@@ -132,7 +132,7 @@ sequenceDiagram
     U->>TM: AddTeam
     U->>TM: AddTeam
     U->>TM: StartTournament
-    TM->>RM: GameInfo
+    TM->>RM: List[GameInfo]
     Note over RM: Add Game Id to GameInfo
     RM->>MQ: GameInfo
     MQ-->>R: GameInfo
