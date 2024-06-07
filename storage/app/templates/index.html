@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Storage App</title>
+</head>
+<body>
+    <h1>Storage App</h1>
+    <ul>
+        <li><a href="/uploadTeamConfigUi">Upload Team Config</a></li>
+        <li>
+            <form action="/downloadTeamConfigUi" method="get" style="display:inline;">
+                <input type="hidden" name="api_key" value="secret"> <!-- Replace 'secret' with the actual API key -->
+                <button type="submit" style="background:none;border:none;color:blue;text-decoration:underline;cursor:pointer;">Download Team Configs</button>
+            </form>
+        </li>
+        <li><a href="/uploadBaseTeamUi">Upload Base Team</a></li>
+        <li>
+            <form action="/downloadBaseTeamUi" method="get" style="display:inline;">
+                <input type="hidden" name="api_key" value="secret"> <!-- Replace 'secret' with the actual API key -->
+                <button type="submit" style="background:none;border:none;color:blue;text-decoration:underline;cursor:pointer;">Download Base Team</button>
+            </form>
+        </li>
+    </ul>
+</body>
+</html>
