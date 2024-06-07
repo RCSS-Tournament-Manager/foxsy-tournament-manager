@@ -71,7 +71,6 @@ async def get_api_key_ui(api_key: str = Security(api_key_query)):
         )
 
 
-
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to the file upload and download service"}
