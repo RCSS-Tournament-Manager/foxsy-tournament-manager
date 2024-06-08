@@ -1,6 +1,7 @@
 from typing import Union
 from game_runner.game import Game, GameInfo
 import logging
+import os
 
 
 class Manager:
@@ -10,6 +11,14 @@ class Manager:
         self.available_ports = []
         self.games: dict[int, Game] = {}
         self.data_dir = data_dir
+        self.check_server()
+
+    def check_server(self):
+        server_dir = os.path.join(self.data_dir, 'server')
+        server_path = os.path.join(server_dir, 'rcssserver')
+        if not os.path.exists(server_dir) or not os.path.exists(server_path):
+            # TODO get server from storage
+            raise FileNotFoundError(f'Server not found')
 
     def set_available_games_count(self, max_games_count):
         logging.info(f'GameRunnerManager set_available_games_count: {max_games_count}')

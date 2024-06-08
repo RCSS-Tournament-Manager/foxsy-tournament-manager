@@ -112,12 +112,6 @@ class Game:
         self.finished_event = None
         self.process = None
 
-    def check_server(self):
-        server_dir = os.path.join(self.data_dir, 'server')
-        if not os.path.exists(server_dir):
-            # TODO get server from storage
-            raise FileNotFoundError(f'Server not found')
-
     def check_base_team(self, base_team_name: str):
         base_teams_dir = os.path.join(self.data_dir, 'base_teams')
         os.makedirs(base_teams_dir, exist_ok=True)
@@ -135,14 +129,13 @@ class Game:
             raise FileNotFoundError(f'Team config {team_config_id} not found')
 
     def check(self):
-        self.check_server()
         self.check_base_team(self.game_info.left_base_team_name)
         self.check_base_team(self.game_info.right_base_team_name)
         self.check_team_config(self.game_info.left_team_config_id)
         self.check_team_config(self.game_info.right_team_config_id)
 
     def run_game(self):
-        # self.check()
+        self.check()
         self.logger.debug(f'Run game {self.game_info} on port {self.port} with config {str(self.server_config)}')
         # TODO run game
 
