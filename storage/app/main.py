@@ -118,7 +118,30 @@ async def download_base_team(base_name: str, api_key: str = Depends(get_api_key)
     return FileResponse(file_path)
 
 
+@app.get("/downloadServer")
+async def download_server(api_key: str = Depends(get_api_key)):
+    logging.info(f"Downloading server file")
+    server_dir = os.path.join(DATA_DIR, "server")
+    file_path = os.path.join(server_dir, "rcssserver")
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+
+@app.post("/uploadServer")
+async def upload_server(file: UploadFile = File(...), api_key: str = Depends(get_api_key)):
+    logging.info(f"Received file: {file.filename}")
+    server_dir = os.path.join(DATA_DIR, "server")
+    os.makedirs(server_dir, exist_ok=True)
+    file_path = os.path.join(server_dir, 'rcssserver')
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    return {"filename": file.filename}
+
+
 # UI
+
+
 @app.get("/ui")
 async def read_root(request: Request, api_key: str = Depends(get_api_key_ui)):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -192,6 +215,32 @@ async def download_base_team_ui(request: Request, api_key: str = Depends(get_api
     base_teams_dir = os.path.join(DATA_DIR, "base_teams")
     files = [f for f in os.listdir(base_teams_dir) if os.path.isfile(os.path.join(base_teams_dir, f))]
     return templates.TemplateResponse("download_base_team.html", {"request": request, "files": files, "api_key": api_key})
+
+
+@app.get("/downloadServerUi", response_class=HTMLResponse)
+async def download_server_ui(request: Request):
+    server_dir = os.path.join(DATA_DIR, "server")
+    file_path = os.path.join(server_dir, "rcssserver")
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+@app.get("/uploadServerUi", response_class=HTMLResponse)
+async def upload_server_ui(request: Request):
+    return templates.TemplateResponse("upload_server.html", {"request": request})
+
+
+@app.post("/uploadServerUiPost", response_class=HTMLResponse)
+async def upload_server_ui_post(request: Request, file: UploadFile = File(...), api_key: str = Form(...)):
+    logging.info(f"Received file from ui: {file.filename}")
+    server_dir = os.path.join(DATA_DIR, "server")
+    os.makedirs(server_dir, exist_ok=True)
+    file_path = os.path.join(server_dir, 'rcssserver')
+    logging.debug(f"Writing file to: {file_path}")
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    return templates.TemplateResponse("upload_server.html",
+                                      {"request": request, "message": f"Successfully uploaded {file.filename}"})
 
 
 if __name__ == "__main__":
