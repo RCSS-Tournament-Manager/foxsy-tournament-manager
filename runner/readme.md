@@ -1,0 +1,294 @@
+# Foxsy Game Runner
+
+Foxsy game runner is a application that can 
+receive soccer simulation 2D game information
+and run the game.
+
+This application can receive the game information from api or rabit mq.
+The application needs binary of base team, soccer simulation 2D server.
+
+It can automatically get rcssserver binary, base team and configs from
+another server by using api.
+
+## Workflow
+
+```mermaid
+flowchart TD
+    subgraph Computer1
+        RM[RunnerManager]
+        RMDB[RMDatabase]
+        MQ[MessageQueue]
+    end
+    subgraph Computer2
+        R1[Runner1]
+    end
+    subgraph Computer3
+        R2[Runner2]
+    end
+    subgraph Computer4
+        S[Storage]
+    end
+    RM <-- API --> R1
+    R1 <--> MQ
+    R2 <--> MQ
+    RM <--> RMDB
+    RM <--> MQ
+    RM <--> S
+    R1 <--> S
+    R2 <--> S
+```
+
+### Sequence Diagram (RabitMQ)
+
+```mermaid
+sequenceDiagram
+    participant RM as RunnerManager
+    participant MQ as MessageQueue
+    participant R as Runner
+    participant S as Storage
+    Note over RM: Add Game Id to GameInfo
+    RM->>MQ: GameInfo
+    MQ-->>R: GameInfo
+    R->>S: GetBaseTeam Name
+    S->>R: BaseTeam
+    Note over R: Unzip BaseTeam
+    R->>S: GetBaseTeam Name
+    S->>R: BaseTeam (name.zip)
+    Note over R: Unzip BaseTeam
+    R->>S: GetTeamConfig
+    S->>R: TeamConfig (id.zip)
+    Note over R: Unzip TeamConfig
+    R->>S: GetTeamConfig
+    S->>R: TeamConfig (id.zip)
+    Note over R: Unzip TeamConfig
+    R->>MQ: Game Status
+    Note over R: Running Game
+    MQ-->>RM: Game Status
+    R->>S: SaveGameLog
+    R->>MQ: Game Status
+    MQ-->>RM: Game Status
+```
+
+### Sequence Diagram (API)
+
+```mermaid
+sequenceDiagram
+    participant RM as RunnerManager
+    participant R as Runner
+    participant S as Storage
+    R->>RM:Register Runner
+    RM->>R:Accept Runner
+    Note over RM: Add Game Id to GameInfo
+    RM->>R: GameInfo
+    R->>S: GetBaseTeam Name
+    S->>R: BaseTeam
+    Note over R: Unzip BaseTeam
+    R->>S: GetBaseTeam Name
+    S->>R: BaseTeam (name.zip)
+    Note over R: Unzip BaseTeam
+    R->>S: GetTeamConfig
+    S->>R: TeamConfig (id.zip)
+    Note over R: Unzip TeamConfig
+    R->>S: GetTeamConfig
+    S->>R: TeamConfig (id.zip)
+    Note over R: Unzip TeamConfig
+    R->>RM: Game Status
+    Note over R: Running Game
+    R->>S: SaveGameLog
+    R->>RM: Game Status
+```
+
+## Data Dir Structure
+
+``` bash
+data
+├── base_teams
+│   ├── base_team_1
+│   ├── cyrus
+│   ├── oxsy
+│   └── ...
+├── server
+│   └── rcssserver
+├── team_configs
+│   ├── 1
+│   ├── 2
+│   └── ...
+└── game_logs
+    ├── 1
+    ├── 2
+    ├── ...
+    ├── 1.zip
+    ├── 2.zip
+    └── ...
+```
+
+## Usage by docker file
+
+### build the docker image
+
+```bash
+docker build -t app-runner .
+```
+
+### create logs directory and data directory
+
+```bash
+mkdir logs
+mkdir data
+```
+
+### run the docker container
+
+```bash
+docker run -it --rm --name runner-container -p 8082:8082 -v ${PWD}/data:/app/data -v ${PWD}/logs:/app/logs -e API_KEY=secret app-runner
+```
+
+### Other parameters
+
+You can pass the following parameters to the docker container:
+
+`DATA_DIR` is the directory where the data is stored. The default value is `/app/data`.
+
+`LOG_DIR` is the directory where the logs are stored. The default value is `/app/logs`.
+
+`API_KEY` is the key to access the api. The default value is `api-key`.
+
+`MAX_GAMES_COUNT` is the maximum number of games that can be run at the same time. The default value is `5`.
+
+`USE_FAST_API` is a flag to enable the fast api. The default value is `true`.
+
+`FAST_API_PORT` is the port where the fast api is running. The default value is `8082`.
+
+`USE_RABBITMQ` is a flag to enable the rabbitmq. The default value is `false`.
+
+`RABBITMQ_HOST` is the host where the rabbitmq is running. The default value is `localhost`.
+
+`RABBITMQ_PORT` is the port where the rabbitmq is running. The default value is `5672`.
+
+`RUNNER_MANAGER_IP` is the ip of the runner manager. The default value is `localhost`.
+
+`RUNNER_MANAGER_PORT` is the port of the runner manager. The default value is `5672`.
+
+`STORAGE_IP` is the ip of the storage. The default value is `localhost`.
+
+`STORAGE_PORT` is the port of the storage. The default value is `5672`.
+
+### Game Info Dict
+
+```json
+{
+    "game_id": 1,
+    "left_team_name": "team1",
+    "right_team_name": "team2",
+    "left_team_config_id": 1,
+    "right_team_config_id": 2,
+    "left_base_team_name": "cyrus",
+    "right_base_team_name": "oxsy",
+    "server_config": ""
+}
+```
+
+### Fast API Endpoints
+
+- GET /
+
+Returns a simple hello world message.
+
+#### Python Example:
+
+```python
+import requests
+
+response = requests.get("http://localhost:8000/")
+print(response.json())
+```
+
+#### Bash Example
+
+```bash
+Copy code
+curl -X GET "http://localhost:8000/"
+```
+
+- GET /items/{item_id}
+
+Retrieves an item by its ID. Requires an API key.
+
+#### Python Example
+
+```python
+Copy code
+import requests
+
+api_key = "your_api_key"
+item_id = 1
+params = {"q": "example query"}
+headers = {"Authorization": api_key}
+
+response = requests.get(f"http://localhost:8000/items/{item_id}", params=params, headers=headers)
+print(response.json())
+```
+
+#### Bash Example
+
+```bash
+Copy code
+curl -X GET "http://localhost:8000/items/1?q=example%20query" -H "Authorization: your_api_key"
+```
+
+- GET /games
+
+Retrieves the list of games. Requires an API key.
+
+#### Python Example
+
+```python
+Copy code
+import requests
+
+api_key = "your_api_key"
+headers = {"Authorization": api_key}
+
+response = requests.get("http://localhost:8000/games", headers=headers)
+print(response.json())
+```
+
+#### Bash Example
+
+```bash
+Copy code
+curl -X GET "http://localhost:8000/games" -H "Authorization: your_api_key"
+```
+
+- POST /add_game
+Adds a new game. Requires an API key.
+
+#### Python Example
+
+```python
+Copy code
+import requests
+
+api_key = "your_api_key"
+headers = {"Authorization": api_key, "Content-Type": "application/json"}
+game_info = {
+    "game_id": 1,
+    "left_team_name": "team1",
+    "right_team_name": "team2",
+    "left_team_config_id": 1,
+    "right_team_config_id": 2,
+    "left_base_team_name": "cyrus",
+    "right_base_team_name": "oxsy",
+    "server_config": ""
+}
+
+response = requests.post("http://localhost:8000/add_game", json=game_info, headers=headers)
+print(response.json())
+```
+
+#### Bash Example
+
+```bash
+Copy code
+curl -X POST "http://localhost:8000/add_game" -H "Authorization: your_api_key" -H "Content-Type: application/json" -d '{game_id": 1, "left_team_name": "team1", "right_team_name": "team2", "left_team_config_id": 1, "right_team_config_id": 2, "left_base_team_name": "cyrus", "right_base_team_name": "oxsy", "server_config": "" }'
+```

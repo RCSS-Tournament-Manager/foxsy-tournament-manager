@@ -33,8 +33,10 @@ class GameInfo:
         game_info.game_id = json_data['game_id']
         game_info.left_team_name = json_data['left_team_name']
         game_info.right_team_name = json_data['right_team_name']
-        game_info.left_team_config_id = json_data['left_team_config_id']
-        game_info.right_team_config_id = json_data['right_team_config_id']
+        if 'left_team_config_id' in json_data:
+            game_info.left_team_config_id = json_data['left_team_config_id']
+        if 'right_team_config_id' in json_data:
+            game_info.right_team_config_id = json_data['right_team_config_id']
         game_info.left_base_team_name = json_data['left_base_team_name']
         game_info.right_base_team_name = json_data['right_base_team_name']
         game_info.server_config = json_data['server_config']
@@ -131,8 +133,10 @@ class Game:
     def check(self):
         self.check_base_team(self.game_info.left_base_team_name)
         self.check_base_team(self.game_info.right_base_team_name)
-        self.check_team_config(self.game_info.left_team_config_id)
-        self.check_team_config(self.game_info.right_team_config_id)
+        if self.game_info.left_team_config_id != -1:
+            self.check_team_config(self.game_info.left_team_config_id)
+        if self.game_info.right_team_config_id != -1:
+            self.check_team_config(self.game_info.right_team_config_id)
 
     def run_game(self):
         self.check()
