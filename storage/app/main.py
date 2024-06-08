@@ -213,6 +213,8 @@ async def upload_base_team_ui_post(request: Request, file: UploadFile = File(...
 @app.get("/downloadBaseTeamUi", response_class=HTMLResponse)
 async def download_base_team_ui(request: Request, api_key: str = Depends(get_api_key_ui)):
     base_teams_dir = os.path.join(DATA_DIR, "base_teams")
+    if not os.path.exists(base_teams_dir):
+        os.makedirs(base_teams_dir)
     files = [f for f in os.listdir(base_teams_dir) if os.path.isfile(os.path.join(base_teams_dir, f))]
     return templates.TemplateResponse("download_base_team.html", {"request": request, "files": files, "api_key": api_key})
 
