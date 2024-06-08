@@ -4,18 +4,8 @@ import threading
 import time
 import zipfile
 import logging
+from utils.tools import Tools
 
-
-def zip_directory(directory_path, zip_file_path):
-    # Create a ZipFile object in write mode
-    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # Walk through the directory
-        for root, dirs, files in os.walk(directory_path):
-            for file in files:
-                # Create the full file path
-                full_path = os.path.join(root, file)
-                # Add file to the zip file, preserving the directory structure
-                zipf.write(full_path, os.path.relpath(full_path, directory_path))
 
 
 class GameInfo:
@@ -37,15 +27,30 @@ class GameInfo:
     def __repr__(self):
         return self.__str__()
 
-    def from_json(self, json_data):
-        self.game_id = json_data['game_id']
-        self.left_team_name = json_data['left_team_name']
-        self.right_team_name = json_data['right_team_name']
-        self.left_team_config_id = json_data['left_team_config_id']
-        self.right_team_config_id = json_data['right_team_config_id']
-        self.left_base_team_name = json_data['left_base_team_name']
-        self.right_base_team_name = json_data['right_base_team_name']
-        self.server_config = json_data['server_config']
+    @staticmethod
+    def from_json(json_data):
+        game_info = GameInfo()
+        game_info.game_id = json_data['game_id']
+        game_info.left_team_name = json_data['left_team_name']
+        game_info.right_team_name = json_data['right_team_name']
+        game_info.left_team_config_id = json_data['left_team_config_id']
+        game_info.right_team_config_id = json_data['right_team_config_id']
+        game_info.left_base_team_name = json_data['left_base_team_name']
+        game_info.right_base_team_name = json_data['right_base_team_name']
+        game_info.server_config = json_data['server_config']
+        return game_info
+
+    def to_dict(self):
+        return {
+            'game_id': self.game_id,
+            'left_team_name': self.left_team_name,
+            'right_team_name': self.right_team_name,
+            'left_team_config_id': self.left_team_config_id,
+            'right_team_config_id': self.right_team_config_id,
+            'left_base_team_name': self.left_base_team_name,
+            'right_base_team_name': self.right_base_team_name,
+            'server_config': self.server_config,
+        }
 
 
 class ServerConfig:
@@ -78,7 +83,10 @@ class ServerConfig:
         res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port}\\' "
         res += f'--server::game_log_dir={self.game_log_dir} '
         res += f'--server::text_log_dir={self.text_log_dir} '
-        res += '--server::half_time=50 '
+        res += '--server::half_time=10 '
+        res += '--server::nr_normal_halfs=2 '
+        res += '--server::nr_extra_halfs=0 '
+        res += '--server::penalty_shoot_outs=0 '
         res += '--server::port=' + str(self.port) + ' '
         res += '--server::coach_port=' + str(self.coach_port) + ' '
         res += '--server::olcoach_port=' + str(self.online_coach_port) + ' '
@@ -140,15 +148,17 @@ class Game:
 
         def target():
             server_path = os.path.join(self.data_dir, 'server', 'rcssserver')
-            command = f'./{server_path} {self.server_config.get_config()}'
+            command = f'{server_path} {self.server_config.get_config()}'
             self.logger.debug(f'Run command: {command}')
-            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            out, err = self.process.communicate()
-            exit_code = self.process.returncode
-            self.finished_game(out, err, exit_code)
+            try:
+                self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                out, err = self.process.communicate()
+                exit_code = self.process.returncode
+                self.finished_game(out, err, exit_code)
+            except Exception as e:
+                self.logger.error(f'Error in run_game: {e}')
 
         thread = threading.Thread(target=target)
-        self.is_running = True
         thread.start()
 
     def check_finished(self):
@@ -166,21 +176,28 @@ class Game:
     def zip_game_log_dir(self):
         # zip game_log_dir
         zip_file_path = os.path.join(os.path.join(self.data_dir, "game_logs"), f'{self.game_info.game_id}.zip')
-        zip_directory(self.server_config.game_log_dir, zip_file_path)
+        Tools.zip_directory(self.server_config.game_log_dir, zip_file_path)
         return zip_file_path
 
     def finished_game(self, out: bytes, err: bytes, exit_code: int):
         # TODO save game results
         self.logger.debug(f'Game finished with exit code {exit_code}')
-        self.logger.debug(out.decode())
-        self.logger.error(err.decode())
+        # self.logger.debug(out.decode())
+        # self.logger.error(err.decode())
 
         if self.check_finished():
             zip_file_path = self.zip_game_log_dir()
-            # print(f'Game log dir zipped to {zip_file_path}')
-            # self.finished_event(self)
+            self.logger.debug(f'Game log dir zipped to {zip_file_path}')
+
+        self.finished_event(self)
 
         self.is_running = False
+
+    def to_dict(self):
+        return {
+            'game_info': self.game_info.to_dict(),
+            'port': self.port,
+        }
 
 
 # game_info = GameInfo()
