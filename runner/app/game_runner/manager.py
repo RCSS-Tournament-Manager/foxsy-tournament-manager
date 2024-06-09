@@ -38,7 +38,7 @@ class Manager:
         self.available_games_count += 1
         self.available_ports.append(port)
 
-    def add_game(self, game_info: Union[GameInfo, dict]):
+    async def add_game(self, game_info: Union[GameInfo, dict]):
         if isinstance(game_info, dict):
             game_info = GameInfo.from_json(game_info)
         logging.info(f'GameRunnerManager add_game: {game_info}')
@@ -49,7 +49,8 @@ class Manager:
         game = Game(game_info, port, self.data_dir)
         game.finished_event = self.on_finished_game
         self.games[port] = game
-        self.games[port].run_game()
+        self.games[port].check()
+        await self.games[port].run_game()
         return game
 
     def on_finished_game(self, game: Game):
@@ -63,5 +64,31 @@ class Manager:
         for port, game in self.games.items():
             res[port] = game.to_dict()
         return res
+
+    async def stop_game_by_port(self, port: int):
+        logging.info(f'GameRunnerManager stop_game_by_port: {port}')
+        game = self.games.get(port)
+        if game is None:
+            logging.error(f'GameRunnerManager stop_game_by_port[{port}]: game not found')
+            return None
+        game_id = game.game_info.game_id
+        await game.stop()
+        return {'game_id': game_id}
+
+    def get_game_by_game_id(self, game_id: int):
+        logging.info(f'GameRunnerManager get_game_by_game_id: {game_id}')
+        for port, game in self.games.items():
+            if game.game_info.game_id == game_id:
+                return game
+        return None
+
+    async def stop_game_by_game_id(self, game_id: int):
+        logging.info(f'GameRunnerManager stop_game_by_game_id: {game_id}')
+        game = self.get_game_by_game_id(game_id)
+        if game is None:
+            logging.error(f'GameRunnerManager stop_game_by_game_id[{game_id}]: game not found')
+            return None
+        await game.stop()
+        return {'game_id': game_id}
 
 

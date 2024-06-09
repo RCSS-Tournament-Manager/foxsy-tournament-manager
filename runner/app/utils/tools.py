@@ -1,5 +1,6 @@
 import os
 import zipfile
+import psutil
 
 
 class Tools:
@@ -14,4 +15,11 @@ class Tools:
                     full_path = os.path.join(root, file)
                     # Add file to the zip file, preserving the directory structure
                     zipf.write(full_path, os.path.relpath(full_path, directory_path))
+
+    @staticmethod
+    def kill_process_tree(pid):
+        parent = psutil.Process(pid)
+        for child in parent.children(recursive=True):
+            child.kill()
+        parent.kill()
 

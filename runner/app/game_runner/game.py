@@ -5,6 +5,8 @@ import time
 import zipfile
 import logging
 from utils.tools import Tools
+import asyncio
+import psutil
 
 
 
@@ -58,7 +60,7 @@ class GameInfo:
 class ServerConfig:
     def __init__(self, config: str, game_info: GameInfo, data_dir: str, port: int, logger):
         self.auto_mode = True
-        self.synch_mode = True
+        self.synch_mode = False
         self.game_id = game_info.game_id
         self.left_team_name = game_info.left_team_name
         self.right_team_name = game_info.right_team_name
@@ -85,7 +87,7 @@ class ServerConfig:
         res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port}\\' "
         res += f'--server::game_log_dir={self.game_log_dir} '
         res += f'--server::text_log_dir={self.text_log_dir} '
-        res += '--server::half_time=10 '
+        res += '--server::half_time=100 '
         res += '--server::nr_normal_halfs=2 '
         res += '--server::nr_extra_halfs=0 '
         res += '--server::penalty_shoot_outs=0 '
@@ -138,8 +140,7 @@ class Game:
         if self.game_info.right_team_config_id != -1:
             self.check_team_config(self.game_info.right_team_config_id)
 
-    def run_game(self):
-        self.check()
+    async def run_game(self):
         self.logger.debug(f'Run game {self.game_info} on port {self.port} with config {str(self.server_config)}')
         # TODO run game
 
@@ -196,20 +197,7 @@ class Game:
             'port': self.port,
         }
 
-
-# game_info = GameInfo()
-# game_info.from_json({
-#     'game_id': 2,
-#     'left_team_name': 'nader',
-#     'right_team_name': 'zare',
-#     'left_team_config_id': 1,
-#     'right_team_config_id': 2,
-#     'left_base_team_name': 'helios',
-#     'right_base_team_name': 'hermes',
-#     'server_config': ''
-# })
-# game = Game(game_info, 6010, '../../data')
-# game.run_game()
-#
-# while game.is_running:
-#     time.sleep(1)
+    async def stop(self):
+        if self.process:
+            Tools.kill_process_tree(self.process.pid)
+            self.process.wait()  # Ensure the main process has terminated
