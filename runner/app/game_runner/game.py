@@ -60,7 +60,7 @@ class GameInfo:
 class ServerConfig:
     def __init__(self, config: str, game_info: GameInfo, data_dir: str, port: int, logger):
         self.auto_mode = True
-        self.synch_mode = False
+        self.synch_mode = True
         self.game_id = game_info.game_id
         self.left_team_name = game_info.left_team_name
         self.right_team_name = game_info.right_team_name
