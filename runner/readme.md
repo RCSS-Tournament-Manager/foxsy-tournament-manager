@@ -188,13 +188,13 @@ You can pass the following parameters to the docker container:
 }
 ```
 
-### Fast API Endpoints
+## Fast API Endpoints
 
-- GET /
+### GET /
 
 Returns a simple hello world message.
 
-#### Python Example:
+- Python Example:
 
 ```python
 import requests
@@ -203,18 +203,18 @@ response = requests.get("http://localhost:8000/")
 print(response.json())
 ```
 
-#### Bash Example
+- Bash Example
 
 ```bash
 Copy code
 curl -X GET "http://localhost:8000/"
 ```
 
-- GET /items/{item_id}
+### GET /items/{item_id}
 
 Retrieves an item by its ID. Requires an API key.
 
-#### Python Example
+- Python Example
 
 ```python
 Copy code
@@ -229,18 +229,18 @@ response = requests.get(f"http://localhost:8000/items/{item_id}", params=params,
 print(response.json())
 ```
 
-#### Bash Example
+- Bash Example
 
 ```bash
 Copy code
 curl -X GET "http://localhost:8000/items/1?q=example%20query" -H "Authorization: your_api_key"
 ```
 
-- GET /games
+### GET /games
 
 Retrieves the list of games. Requires an API key.
 
-#### Python Example
+- Python Example
 
 ```python
 Copy code
@@ -253,17 +253,17 @@ response = requests.get("http://localhost:8000/games", headers=headers)
 print(response.json())
 ```
 
-#### Bash Example
+- Bash Example
 
 ```bash
 Copy code
 curl -X GET "http://localhost:8000/games" -H "Authorization: your_api_key"
 ```
 
-- POST /add_game
+### POST /add_game
 Adds a new game. Requires an API key.
 
-#### Python Example
+- Python Example
 
 ```python
 Copy code
@@ -286,7 +286,7 @@ response = requests.post("http://localhost:8000/add_game", json=game_info, heade
 print(response.json())
 ```
 
-#### Bash Example
+- Bash Example
 
 ```bash
 Copy code

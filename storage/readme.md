@@ -29,12 +29,18 @@ docker run -it --rm --name storage-container -p 80:80 -v ${PWD}/data:/app/data -
 - app-storage: image name
 
 ## Endpoints Overview
+
 ### API Endpoints
+
 - /uploadTeamConfig (POST): Upload a team config file.
 - /downloadTeamConfig/{config_id} (GET): Download a team config file by ID.
 - /uploadBaseTeam (POST): Upload a base team file.
 - /downloadBaseTeam/{base_name} (GET): Download a base team file by name.
+- /downloadServer (GET): Download a server file.
+- /uploadServer (POST): Upload a server file.
+
 ###  UI Endpoints
+
 - /ui (GET): Main UI page.
 - /downloadTeamConfigFromUi/{config_name} (GET): Download a team config file by name from UI.
 - /uploadTeamConfigUi (GET): UI for uploading team config files.
@@ -129,111 +135,54 @@ response = requests.get(url, params=params)
 with open('file.zip', 'wb') as f:
     f.write(response.content)
 ```
-### 5. /ui (GET)
+
+### 5. /downloadServer (GET)
+Description: Download a server file.
+
+- Browser: http://localhost/downloadServer?api_key=secret
+- Curl
+```bash
+curl -X GET "http://localhost/downloadServer?api_key=secret" -o rcssserver
+```
+
+- Python
+```python
+import requests
+
+url = "http://localhost/downloadServer"
+params = {'api_key': 'secret'}
+response = requests.get(url, params=params)
+with open('rcssserver', 'wb') as f:
+    f.write(response.content)
+```
+
+### 6. /uploadServer (POST)
+Description: Upload a server file.
+
+- Browser Not directly accessible via a browser.
+- Curl
+```bash
+curl -X POST "http://localhost/uploadServer" 
+-H "api_key: secret" 
+-F "file=@path/to/your/file"
+```
+- Python
+```python
+
+import requests
+
+url = "http://localhost/uploadServer"
+files = {'file': open('path/to/your/rcssserver', 'rb')}
+headers = {'api_key': 'secret'}
+response = requests.post(url, files=files, headers=headers)
+print(response.json())
+```
+
+
+### 7. /ui (GET)
 Description: Main UI page.
 
 - Browser: http://localhost/ui?api_key=secret
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 6. /downloadTeamConfigFromUi/{config_name} (GET)
-Description: Download a team config file by name from UI.
-
-- Browser: http://localhost/downloadTeamConfigFromUi/config_name?api_key=secret
-
-- Curl
-```bash
-curl -X GET "http://localhost/downloadTeamConfigFromUi/config_name?api_key=secret" -o file.zip
-```
-- Python
-```python
-import requests
-
-url = "http://localhost/downloadTeamConfigFromUi/config_name"
-params = {'api_key': 'secret'}
-response = requests.get(url, params=params)
-with open('file.zip', 'wb') as f:
-    f.write(response.content)
-```
-### 7. /uploadTeamConfigUi (GET)
-Description: UI for uploading team config files.
-
-- Browser: http://localhost/uploadTeamConfigUi
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 8. /uploadTeamConfigUiPost (POST)
-Description: Endpoint for uploading team config files via UI.
-
-- Browser
-Use the form provided by the /uploadTeamConfigUi endpoint.
-
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 9. /downloadTeamConfigUi (GET)
-Description: UI for listing and downloading team config files.
-
-- Browser: http://localhost/downloadTeamConfigUi?api_key=secret
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 10. /downloadBaseTeamFromUi/{base_name} (GET)
-Description: Download a base team file by name from UI.
-
-- Browser: http://localhost/downloadBaseTeamFromUi/base_name?api_key=secret
-- Curl
-```bash
-curl -X GET "http://localhost/downloadBaseTeamFromUi/base_name?api_key=secret" -o file.zip
-```
-- Python
-```python
-import requests
-
-url = "http://localhost/downloadBaseTeamFromUi/base_name"
-params = {'api_key': 'secret'}
-response = requests.get(url, params=params)
-with open('file.zip', 'wb') as f:
-    f.write(response.content)
-```
-### 11. /uploadBaseTeamUi (GET)
-Description: UI for uploading base team files.
-
-- Browser: http://localhost/uploadBaseTeamUi
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 12. /uploadBaseTeamUiPost (POST)
-Description: Endpoint for uploading base team files via UI.
-
-- Browser
-Use the form provided by the /uploadBaseTeamUi endpoint.
-
-- Curl
-Not applicable.
-
-- Python
-Not applicable.
-
-### 13. /downloadBaseTeamUi (GET)
-Description: UI for listing and downloading base team files.
-
-- Browser: http://localhost/downloadBaseTeamUi?api_key=secret
 - Curl
 Not applicable.
 
