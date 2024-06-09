@@ -6,6 +6,7 @@ import os
 from fast_api_app import FastApiApp
 import argparse
 from storage.minio_client import MinioClient
+from rabit_mq_app import RabbitMQConsumer
 
 
 def get_args():
@@ -16,7 +17,7 @@ def get_args():
     parser.add_argument("--max_games_count", type=int, default=2, help="Maximum number of games to run")
     parser.add_argument("--use-fast-api", default=True, action="store_true", help="Use FastAPI app")
     parser.add_argument("--fast-api-port", type=int, default=8082, help="Port to run FastAPI app")
-    parser.add_argument("--use-rabbitmq", action="store_true", help="Use RabbitMQ")
+    parser.add_argument("--use-rabbitmq", default=False, action="store_true", help="Use RabbitMQ")
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
@@ -61,3 +62,10 @@ game_runner_manager.set_available_games_count(2)
 if args.use_fast_api:
     fast_api_app = FastApiApp(game_runner_manager, api_key, api_key_name, args.fast_api_port)
     fast_api_app.run()
+elif args.use_rabbitmq:
+    rabbitmq_ip = "localhost"  # Replace with your RabbitMQ IP
+    rabbitmq_port = 5672  # Replace with your RabbitMQ port
+    specific_queue = "specific_queue_name"  # Replace with your specific queue name
+
+    rabbitmq_consumer = RabbitMQConsumer(game_runner_manager, rabbitmq_ip, rabbitmq_port, specific_queue=specific_queue)
+    rabbitmq_consumer.start_consuming()
