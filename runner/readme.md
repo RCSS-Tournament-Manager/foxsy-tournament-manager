@@ -26,7 +26,7 @@ flowchart TD
         R2[Runner2]
     end
     subgraph Computer4
-        S[Storage]
+        S[Storage (Minio)]
     end
     RM <-- API --> R1
     R1 <--> MQ
@@ -45,7 +45,7 @@ sequenceDiagram
     participant RM as RunnerManager
     participant MQ as MessageQueue
     participant R as Runner
-    participant S as Storage
+    participant S as Storage(Minio)
     Note over RM: Add Game Id to GameInfo
     RM->>MQ: GameInfo
     MQ-->>R: GameInfo
@@ -75,7 +75,7 @@ sequenceDiagram
 sequenceDiagram
     participant RM as RunnerManager
     participant R as Runner
-    participant S as Storage
+    participant S as Storage(Minio)
     R->>RM:Register Runner
     RM->>R:Accept Runner
     Note over RM: Add Game Id to GameInfo
@@ -100,20 +100,21 @@ sequenceDiagram
 
 ## Data Dir Structure
 
+- They can be changed from data_dir.py file.
 ``` bash
 data
-├── base_teams
+├── baseteam
 │   ├── base_team_1
 │   ├── cyrus
 │   ├── oxsy
 │   └── ...
 ├── server
 │   └── rcssserver
-├── team_configs
+├── teamconfig
 │   ├── 1
 │   ├── 2
 │   └── ...
-└── game_logs
+└── gamelog
     ├── 1
     ├── 2
     ├── ...
@@ -140,7 +141,7 @@ mkdir data
 ### run the docker container
 
 ```bash
-docker run -it --rm --name runner-container -p 8082:8082 -v ${PWD}/data:/app/data -v ${PWD}/logs:/app/logs -e API_KEY=secret app-runner
+docker run -it --rm --privileged --name runner-container -p 8082:8082 -v ${PWD}/data:/app/data -v ${PWD}/logs:/app/logs -e API_KEY=secret runner-app
 ```
 
 ### Other parameters
@@ -169,9 +170,20 @@ You can pass the following parameters to the docker container:
 
 `RUNNER_MANAGER_PORT` is the port of the runner manager. The default value is `5672`.
 
-`STORAGE_IP` is the ip of the storage. The default value is `localhost`.
+`MINIO_ENDPOINT` is the endpoint of the minio. The default value is `localhost:9000`.
 
-`STORAGE_PORT` is the port of the storage. The default value is `5672`.
+`MINIO_ACCESS_KEY` is the access key of the minio. The default value is `minioadmin`.
+
+`MINIO_SECRET_KEY` is the secret key of the minio. The default value is `minioadmin`.
+
+`SERVER_BUCKET_NAME` is the server bucket name. The default value is `server`.
+
+`BASE_TEAM_BUCKET_NAME` is the base team bucket name. The default value is `baseteam`.
+
+`TEAM_CONFIG_BUCKET_NAME` is the team config bucket name. The default value is `teamconfig`.
+
+`GAME_LOG_BUCKET_NAME` is the game log bucket name. The default value is `gamelog`.
+
 
 ### Game Info Dict
 

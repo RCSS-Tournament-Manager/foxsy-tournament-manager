@@ -2,3 +2,4 @@ fastapi==0.111.0
 unicorn==2.0.1
 colorlog==6.8.2
 psutil==5.9.8
+minio==7.2.7

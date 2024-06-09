@@ -17,6 +17,13 @@ class Tools:
                     zipf.write(full_path, os.path.relpath(full_path, directory_path))
 
     @staticmethod
+    def unzip_file(zip_file_path, directory_path):
+        # Create a ZipFile object in read mode
+        with zipfile.ZipFile(zip_file_path, 'r') as zipf:
+            # Extract all the contents of zip file in the current directory
+            zipf.extractall(directory_path)
+
+    @staticmethod
     def kill_process_tree(pid):
         parent = psutil.Process(pid)
         for child in parent.children(recursive=True):

@@ -7,7 +7,8 @@ import logging
 from utils.tools import Tools
 import asyncio
 import psutil
-
+from storage.storage_client import StorageClient
+from data_dir import DataDir
 
 
 class GameInfo:
@@ -64,9 +65,11 @@ class ServerConfig:
         self.game_id = game_info.game_id
         self.left_team_name = game_info.left_team_name
         self.right_team_name = game_info.right_team_name
-        self.left_team_start = os.path.join(data_dir, 'base_teams', game_info.left_base_team_name, 'start.sh')
-        self.right_team_start = os.path.join(data_dir, 'base_teams', game_info.right_base_team_name, 'start.sh')
-        self.game_log_dir = os.path.join(data_dir, 'game_logs', f'{self.game_id}')
+        self.left_team_start = os.path.join(data_dir, DataDir.base_team_dir_name,
+                                            game_info.left_base_team_name, 'start.sh')
+        self.right_team_start = os.path.join(data_dir, DataDir.base_team_dir_name,
+                                             game_info.right_base_team_name, 'start.sh')
+        self.game_log_dir = os.path.join(data_dir, DataDir.game_log_dir_name, f'{self.game_id}')
         self.text_log_dir = os.path.join(self.game_log_dir)
         self.port = port
         self.coach_port = port + 1
@@ -106,31 +109,51 @@ class ServerConfig:
 
 
 class Game:
-    def __init__(self, game_info: GameInfo, port: int, data_dir: str):
+    def __init__(self, game_info: GameInfo, port: int, data_dir: str, storage_client: StorageClient):
         self.game_info = game_info
         self.logger = logging.getLogger(f'Game{self.game_info.game_id}')
         self.server_config = ServerConfig(game_info.server_config, game_info, data_dir, port, self.logger)
         self.port = port
         self.data_dir = data_dir
-        self.is_running = False
         self.finished_event = None
         self.process = None
+        self.storage_client = storage_client
 
     def check_base_team(self, base_team_name: str):
-        base_teams_dir = os.path.join(self.data_dir, 'base_teams')
+        base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
         os.makedirs(base_teams_dir, exist_ok=True)
-        base_team_dir = os.path.join(base_teams_dir, base_team_name)
-        if not os.path.exists(base_team_dir):
-            # TODO get base team from storage
-            raise FileNotFoundError(f'Base team {base_team_name} not found')
+        base_team_path = os.path.join(base_teams_dir, base_team_name)
+        if not os.path.exists(base_teams_dir):
+            os.makedirs(base_teams_dir, exist_ok=True)
+        if not os.path.exists(base_team_path):
+            if self.storage_client.check_connection():
+                base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
+                if not self.storage_client.download_file(self.storage_client.base_team_bucket_name,
+                                                         f'{base_team_name}.zip', base_team_zip_path):
+                    logging.error(f'Storage connection error, base team {base_team_name} not found')
+                    raise FileNotFoundError(f'Base team {base_team_name} not found')
+                Tools.unzip_file(base_team_zip_path, base_teams_dir)
+                os.remove(base_team_zip_path)
+            else:
+                logging.error(f'Storage connection error, base team {base_team_name} not found')
+                raise FileNotFoundError(f'Base team {base_team_name} not found')
 
     def check_team_config(self, team_config_id: int):
-        team_configs_dir = os.path.join(self.data_dir, 'team_configs')
+        team_configs_dir = os.path.join(self.data_dir, DataDir.team_config_dir_name)
         os.makedirs(team_configs_dir, exist_ok=True)
         team_config_dir = os.path.join(team_configs_dir, f'{team_config_id}')
+        if not os.path.exists(team_configs_dir):
+            os.makedirs(team_configs_dir, exist_ok=True)
         if not os.path.exists(team_config_dir):
-            # TODO get team config from storage
-            raise FileNotFoundError(f'Team config {team_config_id} not found')
+            if self.storage_client.check_connection():
+                team_config_zip_path = os.path.join(team_configs_dir, f'{team_config_id}.zip')
+                self.storage_client.download_file(self.storage_client.team_config_bucket_name,
+                                                  str(team_config_id), team_config_zip_path)
+                Tools.unzip(team_config_zip_path, team_configs_dir)
+                os.remove(team_config_zip_path)
+            else:
+                logging.error(f'Storage connection error, team config {team_config_id} not found')
+                raise FileNotFoundError(f'Team config {team_config_id} not found')
 
     def check(self):
         self.check_base_team(self.game_info.left_base_team_name)
@@ -145,7 +168,7 @@ class Game:
         # TODO run game
 
         def target():
-            server_path = os.path.join(self.data_dir, 'server', 'rcssserver')
+            server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
             command = f'{server_path} {self.server_config.get_config()}'
             self.logger.debug(f'Run command: {command}')
             try:
@@ -173,7 +196,8 @@ class Game:
 
     def zip_game_log_dir(self):
         # zip game_log_dir
-        zip_file_path = os.path.join(os.path.join(self.data_dir, "game_logs"), f'{self.game_info.game_id}.zip')
+        zip_file_path = os.path.join(os.path.join(self.data_dir, DataDir.game_log_dir_name),
+                                     f'{self.game_info.game_id}.zip')
         Tools.zip_directory(self.server_config.game_log_dir, zip_file_path)
         return zip_file_path
 
@@ -186,10 +210,13 @@ class Game:
         if self.check_finished():
             zip_file_path = self.zip_game_log_dir()
             self.logger.debug(f'Game log dir zipped to {zip_file_path}')
+            if self.storage_client.check_connection():
+                self.storage_client.upload_file(self.storage_client.game_log_bucket_name,
+                                                zip_file_path, f'{self.game_info.game_id}.zip')
+            else:
+                self.logger.error(f'Storage connection error, game log not uploaded')
 
         self.finished_event(self)
-
-        self.is_running = False
 
     def to_dict(self):
         return {

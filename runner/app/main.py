@@ -5,6 +5,7 @@ from game_runner.manager import Manager
 import os
 from fast_api_app import FastApiApp
 import argparse
+from storage.minio_client import MinioClient
 
 
 def get_args():
@@ -20,8 +21,13 @@ def get_args():
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
     parser.add_argument("--runner-manager-port", type=int, default=5672, help="Runner manager port")
-    parser.add_argument("--storage-ip", type=str, default="localhost", help="Storage IP address")
-    parser.add_argument("--storage-port", type=int, default=5672, help="Storage port")
+    parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
+    parser.add_argument("--minio-access-key", type=str, default="minioadmin", help="Minio access key")
+    parser.add_argument("--minio-secret-key", type=str, default="minioadmin", help="Minio secret key")
+    parser.add_argument("--server-bucket-name", type=str, default="server", help="Server bucket name")
+    parser.add_argument("--base-team-bucket-name", type=str, default="baseteam", help="Team bucket name")
+    parser.add_argument("--team-config-bucket-name", type=str, default="teamconfig", help="Team config bucket name")
+    parser.add_argument("--game-log-bucket-name", type=str, default="gamelog", help="Match bucket name")
     args, unknown = parser.parse_known_args()
     return args
 
@@ -38,7 +44,18 @@ logging.config.dictConfig(get_logging_config(log_dir))
 logging.info('GameRunner started')
 logging.debug(f'args: {args}')
 
-game_runner_manager = Manager(data_dir)
+minio_client = MinioClient(
+    endpoint=args.minio_endpoint,
+    access_key=args.minio_access_key,
+    secret_key=args.minio_secret_key,
+    secure=False,
+    server_bucket_name=args.server_bucket_name,
+    base_team_bucket_name=args.base_team_bucket_name,
+    team_config_bucket_name=args.team_config_bucket_name,
+    game_log_bucket_name=args.game_log_bucket_name
+)
+
+game_runner_manager = Manager(data_dir, minio_client)
 game_runner_manager.set_available_games_count(2)
 
 if args.use_fast_api:

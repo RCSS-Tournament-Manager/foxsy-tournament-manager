@@ -2,23 +2,31 @@ from typing import Union
 from game_runner.game import Game, GameInfo
 import logging
 import os
+from storage.storage_client import StorageClient
+from data_dir import DataDir
 
 
 class Manager:
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, storage_client: StorageClient):
         logging.info('GameRunnerManager created')
         self.available_games_count = 0
         self.available_ports = []
         self.games: dict[int, Game] = {}
         self.data_dir = data_dir
+        self.storage_client = storage_client
         self.check_server()
 
     def check_server(self):
-        server_dir = os.path.join(self.data_dir, 'server')
+        server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
         server_path = os.path.join(server_dir, 'rcssserver')
         if not os.path.exists(server_dir) or not os.path.exists(server_path):
-            # TODO get server from storage
-            raise FileNotFoundError(f'Server not found')
+            if not os.path.exists(server_dir):
+                os.makedirs(server_dir)
+            if self.storage_client.check_connection():
+                self.storage_client.download_file(self.storage_client.server_bucket_name, 'rcssserver', server_path)
+            else:
+                logging.error(f'Storage connection error, server not found')
+                raise FileNotFoundError(f'Server not found')
 
     def set_available_games_count(self, max_games_count):
         logging.info(f'GameRunnerManager set_available_games_count: {max_games_count}')
@@ -46,7 +54,7 @@ class Manager:
         if port is None:
             return None
         self.available_games_count -= 1
-        game = Game(game_info, port, self.data_dir)
+        game = Game(game_info, port, self.data_dir, self.storage_client)
         game.finished_event = self.on_finished_game
         self.games[port] = game
         self.games[port].check()
