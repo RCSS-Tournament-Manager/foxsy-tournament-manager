@@ -206,34 +206,7 @@ print(response.json())
 - Bash Example
 
 ```bash
-Copy code
 curl -X GET "http://localhost:8000/"
-```
-
-### GET /items/{item_id}
-
-Retrieves an item by its ID. Requires an API key.
-
-- Python Example
-
-```python
-Copy code
-import requests
-
-api_key = "your_api_key"
-item_id = 1
-params = {"q": "example query"}
-headers = {"Authorization": api_key}
-
-response = requests.get(f"http://localhost:8000/items/{item_id}", params=params, headers=headers)
-print(response.json())
-```
-
-- Bash Example
-
-```bash
-Copy code
-curl -X GET "http://localhost:8000/items/1?q=example%20query" -H "Authorization: your_api_key"
 ```
 
 ### GET /games
@@ -243,7 +216,6 @@ Retrieves the list of games. Requires an API key.
 - Python Example
 
 ```python
-Copy code
 import requests
 
 api_key = "your_api_key"
@@ -256,7 +228,6 @@ print(response.json())
 - Bash Example
 
 ```bash
-Copy code
 curl -X GET "http://localhost:8000/games" -H "Authorization: your_api_key"
 ```
 
@@ -266,7 +237,6 @@ Adds a new game. Requires an API key.
 - Python Example
 
 ```python
-Copy code
 import requests
 
 api_key = "your_api_key"
@@ -289,6 +259,67 @@ print(response.json())
 - Bash Example
 
 ```bash
-Copy code
 curl -X POST "http://localhost:8000/add_game" -H "Authorization: your_api_key" -H "Content-Type: application/json" -d '{game_id": 1, "left_team_name": "team1", "right_team_name": "team2", "left_team_config_id": 1, "right_team_config_id": 2, "left_base_team_name": "cyrus", "right_base_team_name": "oxsy", "server_config": "" }'
 ```
+
+@self.app.post("/stop_game_by_game_id/{game_id}")
+        async def stop_game_by_game_id(game_id: int, api_key: str = Depends(get_api_key)):
+            game = self.manager.get_game_by_game_id(game_id)
+            if game is None:
+                return None
+            await game.stop_game()
+            return game.to_dict()
+        
+@self.app.post("/stop_game_by_port/{port}")
+async def stop_game_by_port(port: int, api_key: str = Depends(get_api_key)):
+    game = self.manager.games.get(port)
+    if game is None:
+        return None
+    await game.stop_game()
+    return game.to_dict()
+
+### POST /stop_game_by_game_id/{game_id}
+Stops a game by game id. Requires an API key.
+
+- Python Example
+
+```python
+import requests
+
+api_key = "your_api_key"
+headers = {"Authorization": api_key, "Content-Type": "application/json"}
+game_id = 1
+
+response = requests.post("http://localhost:8000/stop_game_by_game_id/{game_id}", headers=headers)
+print(response.json())
+```
+
+- Bash Example
+
+```bash
+curl -X POST "http://localhost:8000/stop_game_by_game_id {game_id}" -H "Authorization: your_api_key" -H "Content-Type: application/json"
+```
+
+### POST /stop_game_by_port/{port}
+Stops a game by port. Requires an API key.
+
+- Python Example
+
+```python
+import requests
+
+api_key = "your_api_key"
+headers = {"Authorization": api_key, "Content-Type": "application/json"}
+game_port = 1
+
+response = requests.post("http://localhost:8000/stop_game_by_game_port/{game_port}", headers=headers)
+print(response.json())
+```
+
+- Bash Example
+
+```bash
+curl -X POST "http://localhost:8000/stop_game_by_game_port {game_port}  -H "Authorization: your_api key" -H "Content-Type: application/json"
+```
+
+
