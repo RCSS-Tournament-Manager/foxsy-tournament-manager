@@ -28,16 +28,16 @@ class RabbitMQConsumer:
                 await asyncio.sleep(5)
 
     async def consume_shared_queue(self, message: pika.abc.AbstractIncomingMessage):
-        async with message.process():
+        async with message.process(ignore_processed=True):
             data = json.loads(message.body.decode())
             if self.manager.available_games_count > 0 and data['action'] == 'add_game':
-                self.manager.add_game(message['game_info'])
+                await self.manager.add_game(json.loads(data['game_info']))
                 await message.ack()
             else:
                 await message.nack(requeue=True)
 
     async def consume_specific_queue(self, message: pika.abc.AbstractIncomingMessage):
-        async with message.process():
+        async with message.process(ignore_processed=True):
             data = json.loads(message.body.decode())
             if data['action'] == 'stop_game_by_game_id':
                 self.manager.stop_game_by_game_id(data['game_id'])
