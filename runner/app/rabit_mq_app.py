@@ -1,8 +1,6 @@
 import asyncio
 import json
-import time
 import aio_pika as pika
-from threading import Thread, Event
 
 class RabbitMQConsumer:
     def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue='games', specific_queue=None):
@@ -11,12 +9,11 @@ class RabbitMQConsumer:
         self.rabbitmq_port = rabbitmq_port
         self.shared_queue_name = shared_queue
         self.specific_queue_name = specific_queue
-        self.stop_event = Event()
+        # self.stop_event = Event()
         self.connection = None
         self.channel = None
         self.shared_queue = None
         self.specific_queue = None
-        self.connect() # TODO MOVE THIS
 
     async def connect(self):
         while True:
@@ -55,9 +52,11 @@ class RabbitMQConsumer:
             asyncio.create_task(self.specific_queue.consume(self.consume_specific_queue))
         ]
         await asyncio.gather(*consumers_tasks)
+        while True:
+            await asyncio.sleep(1)
 
     def stop_consuming(self):
-        self.stop_event.set()
+        # self.stop_event.set()
         self.shared_thread.join()
         self.specific_thread.join()
         if self.connection:
