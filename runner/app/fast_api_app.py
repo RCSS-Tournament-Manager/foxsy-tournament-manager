@@ -47,5 +47,7 @@ class FastApiApp:
         async def stop_game_by_port(port: int, api_key: str = Depends(get_api_key)):
             return await self.manager.stop_game_by_port(port)
 
-    def run(self):
-        uvicorn.run(self.app, host="0.0.0.0", port=self.port)
+    async def run(self):
+        config = uvicorn.Config(self.app, host="0.0.0.0", port=self.port)
+        server = uvicorn.Server(config)
+        await server.serve()

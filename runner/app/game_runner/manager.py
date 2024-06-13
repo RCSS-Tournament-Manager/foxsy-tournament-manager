@@ -1,3 +1,4 @@
+import asyncio
 from typing import Union
 from game_runner.game import Game, GameInfo
 import logging
@@ -15,6 +16,7 @@ class Manager:
         self.data_dir = data_dir
         self.storage_client = storage_client
         self.check_server()
+        self.lock = asyncio.Lock()
 
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
@@ -47,24 +49,27 @@ class Manager:
         self.available_ports.append(port)
 
     async def add_game(self, game_info: Union[GameInfo, dict]):
-        if isinstance(game_info, dict):
-            game_info = GameInfo.from_json(game_info)
-        logging.info(f'GameRunnerManager add_game: {game_info}')
-        port = self.get_available_port()
-        if port is None:
-            return None
-        self.available_games_count -= 1
-        game = Game(game_info, port, self.data_dir, self.storage_client)
-        game.finished_event = self.on_finished_game
-        self.games[port] = game
-        self.games[port].check()
-        await self.games[port].run_game()
-        return game
+        async with self.lock:
+            if isinstance(game_info, dict):
+                game_info = GameInfo.from_json(game_info)
+            logging.info(f'GameRunnerManager add_game: {game_info}')
+            port = self.get_available_port()
+            if port is None:
+                return None
+            self.available_games_count -= 1
+            game = Game(game_info, port, self.data_dir, self.storage_client)
+            game.finished_event = self.on_finished_game
+            self.games[port] = game
+            self.games[port].check()
+            # await self.games[port].run_game()
+            asyncio.create_task(game.run_game())
+            return game
 
-    def on_finished_game(self, game: Game):
-        logging.error(f'GameRunnerManager on_finished_game: {game}')
-        self.free_port(game.port)
-        del self.games[game.port]
+    async def on_finished_game(self, game: Game):
+        async with self.lock:
+            logging.error(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
+            self.free_port(game.port)
+            del self.games[game.port]
 
     def get_games(self):
         logging.info(f'GameRunnerManager get_games')

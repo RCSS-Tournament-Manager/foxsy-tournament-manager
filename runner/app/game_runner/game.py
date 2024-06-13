@@ -9,6 +9,7 @@ import asyncio
 import psutil
 from storage.storage_client import StorageClient
 from data_dir import DataDir
+from subprocess import PIPE
 
 
 class GameInfo:
@@ -110,7 +111,7 @@ class ServerConfig:
 
 class Game:
     def __init__(self, game_info: GameInfo, port: int, data_dir: str, storage_client: StorageClient):
-        self.game_info = game_info
+        self.game_info: GameInfo = game_info
         self.logger = logging.getLogger(f'Game{self.game_info.game_id}')
         self.server_config = ServerConfig(game_info.server_config, game_info, data_dir, port, self.logger)
         self.port = port
@@ -163,24 +164,41 @@ class Game:
         if self.game_info.right_team_config_id != -1:
             self.check_team_config(self.game_info.right_team_config_id)
 
+    # async def run_game(self):
+    #     self.logger.debug(f'Run game {self.game_info} on port {self.port} with config {str(self.server_config)}')
+    #     # TODO run game
+    #
+    #     async def target():
+    #         server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
+    #         command = f'{server_path} {self.server_config.get_config()}'
+    #         self.logger.debug(f'Run command: {command}')
+    #         try:
+    #             self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    #             out, err = self.process.communicate()
+    #             exit_code = self.process.returncode
+    #             await self.finished_game(out, err, exit_code)
+    #         except Exception as e:
+    #             self.logger.error(f'Error in run_game: {e}')
+    #
+    #     thread = threading.Thread(target=target)
+    #     thread.start()
+
     async def run_game(self):
-        self.logger.debug(f'Run game {self.game_info} on port {self.port} with config {str(self.server_config)}')
-        # TODO run game
+        server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
+        command = f'{server_path} {self.server_config.get_config()}'
+        self.logger.debug(f'Run command: {command}')
 
-        def target():
-            server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
-            command = f'{server_path} {self.server_config.get_config()}'
-            self.logger.debug(f'Run command: {command}')
-            try:
-                self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                out, err = self.process.communicate()
-                exit_code = self.process.returncode
-                self.finished_game(out, err, exit_code)
-            except Exception as e:
-                self.logger.error(f'Error in run_game: {e}')
-
-        thread = threading.Thread(target=target)
-        thread.start()
+        try:
+            self.process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=PIPE,
+                stderr=PIPE
+            )
+            out, err = await self.process.communicate()
+            exit_code = self.process.returncode
+            await self.finished_game(out, err, exit_code)
+        except Exception as e:
+            self.logger.error(f'Error in run_game: {e}')
 
     def check_finished(self):
         # *.rcg exist in game_log_dir
@@ -201,7 +219,7 @@ class Game:
         Tools.zip_directory(self.server_config.game_log_dir, zip_file_path)
         return zip_file_path
 
-    def finished_game(self, out: bytes, err: bytes, exit_code: int):
+    async def finished_game(self, out: bytes, err: bytes, exit_code: int):
         # TODO save game results
         self.logger.debug(f'Game finished with exit code {exit_code}')
         # self.logger.debug(out.decode())
@@ -216,7 +234,7 @@ class Game:
             else:
                 self.logger.error(f'Storage connection error, game log not uploaded')
 
-        self.finished_event(self)
+        await self.finished_event(self)
 
     def to_dict(self):
         return {

@@ -47,5 +47,10 @@ def get_logging_config(log_dir, log_file_name='app.log'):
                 'level': 'INFO',
                 'propagate': False
             },
+            'aiormq.connection': {
+                'handlers': ['console', 'file'],
+                'level': 'ERROR',
+                'propagate': False
+            },
         }
     }

@@ -9,6 +9,8 @@ import argparse
 from storage.minio_client import MinioClient
 from rabit_mq_app import RabbitMQConsumer
 import aio_pika as pika
+import signal
+
 
 pika.logger.setLevel(logging.ERROR)
 
@@ -19,11 +21,14 @@ def get_args():
     parser.add_argument("--log-dir", type=str, default="../data/logs", help="Directory to store log files")
     parser.add_argument("--api-key", type=str, default="api-key", help="API key for authentication")
     parser.add_argument("--max_games_count", type=int, default=2, help="Maximum number of games to run")
-    parser.add_argument("--use-fast-api", default=False, action="store_true", help="Use FastAPI app")
+    parser.add_argument("--use-fast-api", default=True, action="store_true", help="Use FastAPI app")
     parser.add_argument("--fast-api-port", type=int, default=8082, help="Port to run FastAPI app")
     parser.add_argument("--use-rabbitmq", default=True, action="store_true", help="Use RabbitMQ")
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
+    parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
+    parser.add_argument("--to-runner-manager-queue", type=str, default="to_runner_manager", help="To runner manager queue name")
+    parser.add_argument("--shared-queue", type=str, default="shared_queue", help="Shared queue name")
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
     parser.add_argument("--runner-manager-port", type=int, default=5672, help="Runner manager port")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
@@ -36,15 +41,7 @@ def get_args():
     args, unknown = parser.parse_known_args()
     return args
 
-async def run_rmq():
-    rabbitmq_ip = "localhost"  # Replace with your RabbitMQ IP
-    rabbitmq_port = 5672  # Replace with your RabbitMQ port
-    specific_queue = "specific_queue_name"  # Replace with your specific queue name
 
-    rabbitmq_consumer = RabbitMQConsumer(game_runner_manager, rabbitmq_ip, rabbitmq_port, specific_queue=specific_queue)
-    await rabbitmq_consumer.connect()
-    await rabbitmq_consumer.start_consuming()
-    
 args = get_args()
 data_dir = args.data_dir
 log_dir = args.log_dir
@@ -71,9 +68,47 @@ minio_client = MinioClient(
 game_runner_manager = Manager(data_dir, minio_client)
 game_runner_manager.set_available_games_count(2)
 
-if args.use_fast_api:
+async def run_fastapi():
+    logging.info('Starting FastAPI app')
     fast_api_app = FastApiApp(game_runner_manager, api_key, api_key_name, args.fast_api_port)
-    fast_api_app.run()
-elif args.use_rabbitmq:
-    asyncio.run(run_rmq())
-    asyncio.get_running_loop()
+    await fast_api_app.run()
+
+async def run_rmq():
+    logging.info('Starting RabbitMQ Consumer')
+    rabbitmq_consumer = RabbitMQConsumer(game_runner_manager,
+                                         args.rabbitmq_host, args.rabbitmq_port,
+                                         args.to_runner_queue)
+    await rabbitmq_consumer.run()
+
+async def shutdown(signal, loop):
+    logging.info(f"Received exit signal {signal.name}...")
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+
+    [task.cancel() for task in tasks]
+
+    logging.info("Cancelling outstanding tasks")
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop.stop()
+
+def main():
+    loop = asyncio.get_event_loop()
+
+    signals = (signal.SIGINT, signal.SIGTERM)
+    for s in signals:
+        loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s, loop)))
+
+    try:
+        if args.use_fast_api and args.use_rabbitmq:
+            loop.run_until_complete(asyncio.gather(run_fastapi(), run_rmq()))
+        elif args.use_fast_api:
+            loop.run_until_complete(run_fastapi())
+        elif args.use_rabbitmq:
+            loop.run_until_complete(run_rmq())
+    except Exception as e:
+        logging.error(f"Error: {e}")
+    finally:
+        loop.close()
+        logging.info("Successfully shut down the application.")
+
+if __name__ == "__main__":
+    asyncio.run(main())
