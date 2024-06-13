@@ -10,6 +10,8 @@
 : "${USE_RABBITMQ:=false}"
 : "${RABBITMQ_HOST:=localhost}"
 : "${RABBITMQ_PORT:=5672}"
+: "${TO_RUNNER_QUEUE:=to-runner-queue}"
+: "${TO_RUNNER_MANAGER_QUEUE:=to-runner-manager-queue}"
 : "${RUNNER_MANAGER_IP:=localhost}"
 : "${RUNNER_MANAGER_PORT:=5672}"
 : "${MINIO_ENDPOINT:=localhost:9000}"
