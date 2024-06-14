@@ -33,17 +33,11 @@ class AddGameResponse(BaseModel):
     error: Optional[str] = Field(None, example="")
     port: Optional[int] = Field(None, example=12345)
 
-class StopGameMessage(BaseMessage):
-    game_id: int = Field(None, example=1)
-
 class StopGameResponse(BaseModel):
     game_id: Optional[int] = Field(None, example=1)
     game_port: Optional[int] = Field(None, example=12345)
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
-
-class GetGamesMessage(BaseModel):
-    pass
 
 class GameInfoSummary(BaseModel):
     game_id: int = Field(None, example=1)

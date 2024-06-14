@@ -122,17 +122,3 @@ class Manager:
             return res
         res.success = True
         return res
-
-    async def handle_message(self, message_json: dict):
-        message_type = message_json["type"]
-        if message_type == "add_game":
-            message = AddGameMessage(**message_json)
-            return await self.add_game(message.game_info)
-        elif message_type == "stop_game":
-            message = StopGameMessage(**message_json)
-            return await self.stop_game_by_game_id(message.game_id)
-        elif message_type == "get_games":
-            GetGamesMessage(**message_json)
-            return self.get_games()
-        else:
-            raise ValueError(f"Invalid message type: {message_type}")

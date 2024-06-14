@@ -26,7 +26,7 @@ flowchart TD
         R2[Runner2]
     end
     subgraph Computer4
-        S[Storage (Minio)]
+        S[MinioStorage]
     end
     RM <-- API --> R1
     R1 <--> MQ
@@ -45,7 +45,7 @@ sequenceDiagram
     participant RM as RunnerManager
     participant MQ as MessageQueue
     participant R as Runner
-    participant S as Storage(Minio)
+    participant S as MinioStorage
     Note over RM: Add Game Id to GameInfo
     RM->>MQ: GameInfo
     MQ-->>R: GameInfo
@@ -184,21 +184,70 @@ You can pass the following parameters to the docker container:
 
 `GAME_LOG_BUCKET_NAME` is the game log bucket name. The default value is `gamelog`.
 
+## Messages
 
-### Game Info Dict
+### AddGameMessage
 
 ```json
 {
-    "game_id": 1,
+  "type": "add_game",
+  "game_info": {
+    "game_id": 3,
     "left_team_name": "team1",
     "right_team_name": "team2",
+    "left_base_team_name": "helios",
+    "right_base_team_name": "hermes",
+    "server_config": "",
     "left_team_config_id": 1,
     "right_team_config_id": 2,
-    "left_base_team_name": "cyrus",
-    "right_base_team_name": "oxsy",
-    "server_config": ""
+    "left_team_config_json": {},
+    "right_team_config_json": {}
+  }
 }
 ```
+
+### AddGameResponse
+
+```json
+{
+  "game_id": 3,
+  "status": "running",
+  "success": true,
+  "error": "",
+  "port": 6003
+}
+```
+
+### StopGameResponse
+
+```json
+{
+  "game_id": 3,
+  "game_port": 6003,
+  "success": true,
+  "error": ""
+}
+```
+
+### GetGamesResponse
+
+```json
+{
+  "games": [
+    {
+      "game_id": 1,
+      "status": "running",
+      "port": 6001
+    },
+    {
+      "game_id": 2,
+      "status": "running",
+      "port": 6002
+    }
+  ]
+}
+```
+
 
 ## Fast API Endpoints
 
@@ -253,6 +302,7 @@ import requests
 
 api_key = "your_api_key"
 headers = {"Authorization": api_key, "Content-Type": "application/json"}
+
 game_info = {
     "game_id": 1,
     "left_team_name": "team1",
@@ -264,7 +314,8 @@ game_info = {
     "server_config": ""
 }
 
-response = requests.post("http://localhost:8000/add_game", json=game_info, headers=headers)
+message = {"type": "add_game", "game_info": game_info}
+response = requests.post("http://localhost:8000/add_game", json=message, headers=headers)
 print(response.json())
 ```
 
@@ -273,22 +324,6 @@ print(response.json())
 ```bash
 curl -X POST "http://localhost:8000/add_game" -H "Authorization: your_api_key" -H "Content-Type: application/json" -d '{game_id": 1, "left_team_name": "team1", "right_team_name": "team2", "left_team_config_id": 1, "right_team_config_id": 2, "left_base_team_name": "cyrus", "right_base_team_name": "oxsy", "server_config": "" }'
 ```
-
-@self.app.post("/stop_game_by_game_id/{game_id}")
-        async def stop_game_by_game_id(game_id: int, api_key: str = Depends(get_api_key)):
-            game = self.manager.get_game_by_game_id(game_id)
-            if game is None:
-                return None
-            await game.stop_game()
-            return game.to_dict()
-        
-@self.app.post("/stop_game_by_port/{port}")
-async def stop_game_by_port(port: int, api_key: str = Depends(get_api_key)):
-    game = self.manager.games.get(port)
-    if game is None:
-        return None
-    await game.stop_game()
-    return game.to_dict()
 
 ### POST /stop_game_by_game_id/{game_id}
 Stops a game by game id. Requires an API key.
