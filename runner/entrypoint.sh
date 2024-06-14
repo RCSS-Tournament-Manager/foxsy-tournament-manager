@@ -14,6 +14,7 @@
 : "${TO_RUNNER_MANAGER_QUEUE:=to-runner-manager-queue}"
 : "${RUNNER_MANAGER_IP:=localhost}"
 : "${RUNNER_MANAGER_PORT:=5672}"
+: "${RUNNER_MANAGER_API_KEY:=runner-manager-api-key}"
 : "${MINIO_ENDPOINT:=localhost:9000}"
 : "${MINIO_ACCESS_KEY:=minioadmin}"
 : "${MINIO_SECRET_KEY:=minioadmin}"
@@ -29,4 +30,5 @@ exec python -m main --data-dir "$DATA_DIR" --log-dir "$LOG_DIR" --api-key "$API_
     --rabbitmq-port "$RABBITMQ_PORT" --runner-manager-ip "$RUNNER_MANAGER_IP" --runner-manager-port "$RUNNER_MANAGER_PORT" \
     --minio-endpoint "$MINIO_ENDPOINT" --minio-access-key "$MINIO_ACCESS_KEY" --minio-secret-key "$MINIO_SECRET_KEY" \
     --server-bucket-name "$SERVER_BUCKET_NAME" --base-team-bucket-name "$BASE_TEAM_BUCKET_NAME" --team-config-bucket-name "$TEAM_CONFIG_BUCKET_NAME" \
-    --game-log-bucket-name "$GAME_LOG_BUCKET_NAME" --to-runner-queue "$TO_RUNNER_QUEUE" --to-runner-manager-queue "$TO_RUNNER_MANAGER_QUEUE"
+    --game-log-bucket-name "$GAME_LOG_BUCKET_NAME" --to-runner-queue "$TO_RUNNER_QUEUE" --to-runner-manager-queue "$TO_RUNNER_MANAGER_QUEUE" \
+    --runner-manager-api-key "$RUNNER_RUNNER_MANAGER_API_KEY"

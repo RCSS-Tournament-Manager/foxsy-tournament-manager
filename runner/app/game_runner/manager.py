@@ -1,21 +1,21 @@
 import asyncio
-from typing import Union
 from game_runner.game import Game
 import logging
 import os
 from storage.storage_client import StorageClient
 from data_dir import DataDir
 from utils.messages import *
-
+from utils.message_sender import MessageSender
 
 class Manager:
-    def __init__(self, data_dir: str, storage_client: StorageClient):
+    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender):
         logging.info('GameRunnerManager created')
         self.available_games_count = 0
         self.available_ports = []
         self.games: dict[int, Game] = {}
         self.data_dir = data_dir
         self.storage_client = storage_client
+        self.message_sender = message_sender
         self.check_server()
         self.lock = asyncio.Lock()
 
@@ -49,8 +49,9 @@ class Manager:
         self.available_games_count += 1
         self.available_ports.append(port)
 
-    async def add_game(self, game_info: GameInfoMessage):
+    async def add_game(self, game_info: GameInfoMessage, called_from_rabbitmq: bool = False):
         async with self.lock:
+            #TODO try except
             if self.available_games_count == 0:
                 return AddGameResponse(game_id=game_info.game_id, status='failed',
                                        success=False, error='No available games')
@@ -65,12 +66,16 @@ class Manager:
             self.games[port] = game
             self.games[port].check()
             asyncio.create_task(game.run_game())
-            return AddGameResponse(game_id=game_info.game_id, status='starting', success=True)
+            res = AddGameResponse(game_id=game_info.game_id, status='starting', success=True, port=port)
+            if called_from_rabbitmq:
+                await self.message_sender.send_message('game_started', res.dict())
+            return res
 
     async def on_finished_game(self, game: Game):
         async with self.lock:
             logging.error(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
             self.free_port(game.port)
+            await self.message_sender.send_message('game_finished', game.to_summary().dict())
             del self.games[game.port]
 
     def get_games(self):

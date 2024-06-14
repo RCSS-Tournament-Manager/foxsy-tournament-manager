@@ -1,12 +1,7 @@
 import os
-import subprocess
-import threading
-import time
-import zipfile
 import logging
 from utils.tools import Tools
 import asyncio
-import psutil
 from storage.storage_client import StorageClient
 from data_dir import DataDir
 from subprocess import PIPE
@@ -74,6 +69,7 @@ class Game:
         self.finished_event = None
         self.process = None
         self.storage_client = storage_client
+        self.status = 'starting'
 
     def check_base_team(self, base_team_name: str):
         base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
@@ -156,6 +152,7 @@ class Game:
         return zip_file_path
 
     async def finished_game(self, out: bytes, err: bytes, exit_code: int):
+        self.status = 'finished'
         # TODO save game results
         self.logger.debug(f'Game finished with exit code {exit_code}')
         # self.logger.debug(out.decode())
@@ -186,6 +183,6 @@ class Game:
     def to_summary(self) -> GameInfoSummary:
         return GameInfoSummary(
             game_id=self.game_info.game_id,
-            status='starting',
+            status=self.status,
             port=self.port
         )

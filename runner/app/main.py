@@ -10,6 +10,7 @@ from storage.minio_client import MinioClient
 from rabit_mq_app import RabbitMQConsumer
 import aio_pika as pika
 import signal
+from utils.message_sender import MessageSender
 
 
 pika.logger.setLevel(logging.ERROR)
@@ -31,6 +32,7 @@ def get_args():
     parser.add_argument("--shared-queue", type=str, default="shared_queue", help="Shared queue name")
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
     parser.add_argument("--runner-manager-port", type=int, default=5672, help="Runner manager port")
+    parser.add_argument("--runner-manager-api-key", type=str, default="runner-manager-api-key", help="Runner manager API key")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="minioadmin", help="Minio access key")
     parser.add_argument("--minio-secret-key", type=str, default="minioadmin", help="Minio secret key")
@@ -66,7 +68,9 @@ minio_client.init(endpoint=args.minio_endpoint,
                   secret_key=args.minio_secret_key,
                   secure=False,)
 
-game_runner_manager = Manager(data_dir, minio_client)
+message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
+
+game_runner_manager = Manager(data_dir, minio_client, message_sender)
 game_runner_manager.set_available_games_count(2)
 
 async def run_fastapi():
