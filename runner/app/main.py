@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument("--to-runner-manager-queue", type=str, default="to_runner_manager", help="To runner manager queue name")
     parser.add_argument("--shared-queue", type=str, default="shared_queue", help="Shared queue name")
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
-    parser.add_argument("--runner-manager-port", type=int, default=5672, help="Runner manager port")
+    parser.add_argument("--runner-manager-port", type=int, default=8000, help="Runner manager port")
     parser.add_argument("--runner-manager-api-key", type=str, default="runner-manager-api-key", help="Runner manager API key")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="minioadmin", help="Minio access key")
@@ -70,37 +70,48 @@ minio_client.init(endpoint=args.minio_endpoint,
                   secure=False,)
 
 message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
-register_resp = message_sender.send_message("register", RegisterMessage(ip="localhost", port=args.fast_api_port,
-                                                                        available_games_count=args.max_games_count))
 
 
-game_runner_manager = Manager(data_dir, minio_client, message_sender)
-game_runner_manager.set_available_games_count(2)
+async def send_register_message():
+    try:
+        register_resp = await message_sender.send_message("register",
+                                                          RegisterMessage(ip=args.runner_manager_ip,
+                                                                          port=args.runner_manager_port,
+                                                                          available_games_count=args.max_games_count).dict())
+        logging.info(f"Register response: {register_resp}")
+    except Exception as e:
+        logging.error(f"Failed to send register message: {e}")
 
-async def run_fastapi():
-    logging.info('Starting FastAPI app')
-    fast_api_app = FastApiApp(game_runner_manager, api_key, api_key_name, args.fast_api_port)
-    await fast_api_app.run()
 
-async def run_rmq():
-    logging.info('Starting RabbitMQ Consumer')
-    rabbitmq_consumer = RabbitMQConsumer(game_runner_manager,
-                                         args.rabbitmq_host, args.rabbitmq_port,
-                                         args.to_runner_queue)
-    await rabbitmq_consumer.run()
+async def main():
+    await send_register_message()
 
-async def shutdown(signal, loop):
-    logging.info(f"Received exit signal {signal.name}...")
-    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    game_runner_manager = Manager(data_dir, minio_client, message_sender)
+    game_runner_manager.set_available_games_count(2)
 
-    [task.cancel() for task in tasks]
+    async def run_fastapi():
+        logging.info('Starting FastAPI app')
+        fast_api_app = FastApiApp(game_runner_manager, api_key, api_key_name, args.fast_api_port)
+        await fast_api_app.run()
 
-    logging.info("Cancelling outstanding tasks")
-    await asyncio.gather(*tasks, return_exceptions=True)
-    loop.stop()
+    async def run_rmq():
+        logging.info('Starting RabbitMQ Consumer')
+        rabbitmq_consumer = RabbitMQConsumer(game_runner_manager,
+                                             args.rabbitmq_host, args.rabbitmq_port,
+                                             args.to_runner_queue)
+        await rabbitmq_consumer.run()
 
-def main():
-    loop = asyncio.get_event_loop()
+    async def shutdown(signal, loop):
+        logging.info(f"Received exit signal {signal.name}...")
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+
+        [task.cancel() for task in tasks]
+
+        logging.info("Cancelling outstanding tasks")
+        await asyncio.gather(*tasks, return_exceptions=True)
+        loop.stop()
+
+    loop = asyncio.get_running_loop()
 
     signals = (signal.SIGINT, signal.SIGTERM)
     for s in signals:
@@ -108,16 +119,17 @@ def main():
 
     try:
         if args.use_fast_api and args.use_rabbitmq:
-            loop.run_until_complete(asyncio.gather(run_fastapi(), run_rmq()))
+            await asyncio.gather(run_fastapi(), run_rmq())
         elif args.use_fast_api:
-            loop.run_until_complete(run_fastapi())
+            await run_fastapi()
         elif args.use_rabbitmq:
-            loop.run_until_complete(run_rmq())
+            await run_rmq()
     except Exception as e:
         logging.error(f"Error: {e}")
     finally:
         loop.close()
         logging.info("Successfully shut down the application.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

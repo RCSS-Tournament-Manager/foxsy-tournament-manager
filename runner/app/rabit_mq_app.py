@@ -33,7 +33,7 @@ class RabbitMQConsumer:
         while True:
             message = await self.message_queue.get()
             async with message.process(ignore_processed=True):
-                data = json.loads(message.body.decode())
+                data = json.loads(message.body.decode().replace("'", '"'))
                 data = dict(data)
                 logging.debug(f"Received message: {data}")
                 logging.debug(f"Message type: {data.get('type')}")
