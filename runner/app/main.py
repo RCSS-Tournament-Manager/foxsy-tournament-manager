@@ -11,6 +11,7 @@ from rabit_mq_app import RabbitMQConsumer
 import aio_pika as pika
 import signal
 from utils.message_sender import MessageSender
+from utils.messages import *
 
 
 pika.logger.setLevel(logging.ERROR)
@@ -69,6 +70,9 @@ minio_client.init(endpoint=args.minio_endpoint,
                   secure=False,)
 
 message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
+register_resp = message_sender.send_message("register", RegisterMessage(ip="localhost", port=args.fast_api_port,
+                                                                        available_games_count=args.max_games_count))
+
 
 game_runner_manager = Manager(data_dir, minio_client, message_sender)
 game_runner_manager.set_available_games_count(2)

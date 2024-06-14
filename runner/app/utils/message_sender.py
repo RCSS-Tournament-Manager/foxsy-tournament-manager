@@ -16,3 +16,4 @@ class MessageSender:
             json={"message": message},
         )
         logging.info(f"Response: {response.status_code}")
+        return response

@@ -11,6 +11,15 @@ class GameStatus(str):
 class BaseMessage(BaseModel):
     pass
 
+class RegisterMessage(BaseMessage):
+    ip: str = Field(None, example="localhost")
+    port: int = Field(None, example=12345)
+    available_games_count: int = Field(None, example=2)
+
+class RegisterResponse(BaseModel):
+    success: bool = Field(None, example=True)
+    error: Optional[str] = Field(None, example="")
+
 class GameInfoMessage(BaseModel):
     game_id: int = Field(None, example=1)
     left_team_name: str = Field(None, example="team1")
