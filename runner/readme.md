@@ -29,10 +29,11 @@ flowchart TD
         S[MinioStorage]
     end
     RM <-- API --> R1
-    R1 <--> MQ
-    R2 <--> MQ
+    RM <-- API --> R2
+    MQ --> R1
+    MQ --> R2
     RM <--> RMDB
-    RM <--> MQ
+    RM --> MQ
     RM <--> S
     R1 <--> S
     R2 <--> S
@@ -49,24 +50,16 @@ sequenceDiagram
     Note over RM: Add Game Id to GameInfo
     RM->>MQ: GameInfo
     MQ-->>R: GameInfo
-    R->>S: GetBaseTeam Name
-    S->>R: BaseTeam
-    Note over R: Unzip BaseTeam
-    R->>S: GetBaseTeam Name
-    S->>R: BaseTeam (name.zip)
-    Note over R: Unzip BaseTeam
-    R->>S: GetTeamConfig
-    S->>R: TeamConfig (id.zip)
-    Note over R: Unzip TeamConfig
-    R->>S: GetTeamConfig
-    S->>R: TeamConfig (id.zip)
-    Note over R: Unzip TeamConfig
-    R->>MQ: Game Status
+    R->>S: GetBaseTeams
+    S->>R: BaseTeams
+    Note over R: Unzip BaseTeams
+    R->>S: GetTeamConfigs
+    S->>R: TeamConfigs (id.zip)
+    Note over R: Unzip TeamConfigs
+    R->>RM: Game Status(Starting)
     Note over R: Running Game
-    MQ-->>RM: Game Status
     R->>S: SaveGameLog
-    R->>MQ: Game Status
-    MQ-->>RM: Game Status
+    R->>RM: Game Status(finished)
 ```
 
 ### Sequence Diagram (API)
@@ -80,18 +73,12 @@ sequenceDiagram
     RM->>R:Accept Runner
     Note over RM: Add Game Id to GameInfo
     RM->>R: GameInfo
-    R->>S: GetBaseTeam Name
-    S->>R: BaseTeam
-    Note over R: Unzip BaseTeam
-    R->>S: GetBaseTeam Name
-    S->>R: BaseTeam (name.zip)
-    Note over R: Unzip BaseTeam
-    R->>S: GetTeamConfig
-    S->>R: TeamConfig (id.zip)
-    Note over R: Unzip TeamConfig
-    R->>S: GetTeamConfig
-    S->>R: TeamConfig (id.zip)
-    Note over R: Unzip TeamConfig
+    R->>S: GetBaseTeams
+    S->>R: BaseTeams
+    Note over R: Unzip BaseTeams
+    R->>S: GetTeamConfigs
+    S->>R: TeamConfigs (id.zip)
+    Note over R: Unzip TeamConfigs
     R->>RM: Game Status
     Note over R: Running Game
     R->>S: SaveGameLog
