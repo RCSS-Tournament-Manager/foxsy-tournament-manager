@@ -2,6 +2,7 @@ import asyncio
 import json
 import aio_pika as pika
 import logging
+from utils.messages import *
 
 class RabbitMQConsumer:
     def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue):
@@ -33,16 +34,28 @@ class RabbitMQConsumer:
             message = await self.message_queue.get()
             async with message.process(ignore_processed=True):
                 data = json.loads(message.body.decode())
+                data = dict(data)
                 logging.debug(f"Received message: {data}")
-                if self.manager.available_games_count > 0 and data['action'] == 'add_game':
-                    logging.info(f"Adding game: {data['game_info']}")
-                    await self.manager.add_game(json.loads(data['game_info']))
-                    # TODO: Check output of add game and send response back to the sender
+                logging.debug(f"Message type: {data.get('type')}")
+                if data.get('type') is None or data.get('type') != 'add_game':
+                    logging.error("Invalid message type")
                     await message.ack()
                 else:
-                    await message.nack(requeue=True)
-                    logging.info("Waiting for 5 seconds before re-consuming...")
-                    await asyncio.sleep(5)
+                    async def handle_error(error):
+                        logging.error(f"Failed to parse message: {error}")
+                        await message.nack(requeue=True)
+                        logging.info("Waiting for 5 seconds before re-consuming...")
+                        await asyncio.sleep(5)
+                    try:
+                        add_game_message = AddGameMessage(**data)
+                        res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
+                    except Exception as e:
+                        await handle_error(e)
+
+                    if res.success is False:
+                        await handle_error(res.error)
+                    else:
+                        await message.ack()
 
     async def start_consuming(self):
         await self.shared_queue.consume(self.consume_shared_queue)

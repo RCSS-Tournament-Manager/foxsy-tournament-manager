@@ -1,10 +1,11 @@
 import asyncio
 from typing import Union
-from game_runner.game import Game, GameInfo
+from game_runner.game import Game
 import logging
 import os
 from storage.storage_client import StorageClient
 from data_dir import DataDir
+from utils.messages import *
 
 
 class Manager:
@@ -48,22 +49,23 @@ class Manager:
         self.available_games_count += 1
         self.available_ports.append(port)
 
-    async def add_game(self, game_info: Union[GameInfo, dict]):
+    async def add_game(self, game_info: GameInfoMessage):
         async with self.lock:
-            if isinstance(game_info, dict):
-                game_info = GameInfo.from_json(game_info)
+            if self.available_games_count == 0:
+                return AddGameResponse(game_id=game_info.game_id, status='failed',
+                                       success=False, error='No available games')
             logging.info(f'GameRunnerManager add_game: {game_info}')
             port = self.get_available_port()
             if port is None:
-                return None
+                return AddGameResponse(game_id=game_info.game_id, status='failed',
+                                       success=False, error='No available ports')
             self.available_games_count -= 1
             game = Game(game_info, port, self.data_dir, self.storage_client)
             game.finished_event = self.on_finished_game
             self.games[port] = game
             self.games[port].check()
-            # await self.games[port].run_game()
             asyncio.create_task(game.run_game())
-            return game
+            return AddGameResponse(game_id=game_info.game_id, status='starting', success=True)
 
     async def on_finished_game(self, game: Game):
         async with self.lock:
@@ -73,20 +75,28 @@ class Manager:
 
     def get_games(self):
         logging.info(f'GameRunnerManager get_games')
-        res = {}
-        for port, game in self.games.items():
-            res[port] = game.to_dict()
+        res: GetGamesResponse = GetGamesResponse(games=[])
+        for game in self.games.values():
+            res.games.append(game.to_summary())
         return res
 
     async def stop_game_by_port(self, port: int):
         logging.info(f'GameRunnerManager stop_game_by_port: {port}')
         game = self.games.get(port)
+        res: StopGameResponse = StopGameResponse(game_port=port, success=False)
         if game is None:
             logging.error(f'GameRunnerManager stop_game_by_port[{port}]: game not found')
-            return None
-        game_id = game.game_info.game_id
-        await game.stop()
-        return {'game_id': game_id}
+            res.error = 'Game not found'
+            return res
+        res.game_id = game.game_info.game_id
+        try:
+            await game.stop()
+        except Exception as e:
+            logging.error(f'GameRunnerManager stop_game_by_port[{port}]: {e}')
+            res.error = str(e)
+            return res
+        res.success = True
+        return res
 
     def get_game_by_game_id(self, game_id: int):
         logging.info(f'GameRunnerManager get_game_by_game_id: {game_id}')
@@ -98,10 +108,31 @@ class Manager:
     async def stop_game_by_game_id(self, game_id: int):
         logging.info(f'GameRunnerManager stop_game_by_game_id: {game_id}')
         game = self.get_game_by_game_id(game_id)
+        res: StopGameResponse = StopGameResponse(game_id=game_id, success=False)
         if game is None:
             logging.error(f'GameRunnerManager stop_game_by_game_id[{game_id}]: game not found')
-            return None
-        await game.stop()
-        return {'game_id': game_id}
+            res.error = 'Game not found'
+            return res
+        res.game_port = game.port
+        try:
+            await game.stop()
+        except Exception as e:
+            logging.error(f'GameRunnerManager stop_game_by_game_id[{game_id}]: {e}')
+            res.error = str(e)
+            return res
+        res.success = True
+        return res
 
-
+    async def handle_message(self, message_json: dict):
+        message_type = message_json["type"]
+        if message_type == "add_game":
+            message = AddGameMessage(**message_json)
+            return await self.add_game(message.game_info)
+        elif message_type == "stop_game":
+            message = StopGameMessage(**message_json)
+            return await self.stop_game_by_game_id(message.game_id)
+        elif message_type == "get_games":
+            GetGamesMessage(**message_json)
+            return self.get_games()
+        else:
+            raise ValueError(f"Invalid message type: {message_type}")

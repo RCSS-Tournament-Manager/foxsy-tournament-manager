@@ -10,57 +10,12 @@ import psutil
 from storage.storage_client import StorageClient
 from data_dir import DataDir
 from subprocess import PIPE
+from utils.messages import *
 
-
-class GameInfo:
-    def __init__(self):
-        self.game_id = -1
-        self.left_team_name = ''
-        self.right_team_name = ''
-        self.left_team_config_id = -1
-        self.right_team_config_id = -1
-        self.left_base_team_name = ''
-        self.right_base_team_name = ''
-        self.server_config = ''
-
-    def __str__(self):
-        return (f'GameInfo({self.game_id}, {self.left_team_name}, {self.right_team_name}, '
-                f'{self.left_team_config_id}, {self.right_team_config_id}, {self.left_base_team_name}, '
-                f'{self.right_base_team_name}, {self.server_config})')
-
-    def __repr__(self):
-        return self.__str__()
-
-    @staticmethod
-    def from_json(json_data):
-        game_info = GameInfo()
-        game_info.game_id = json_data['game_id']
-        game_info.left_team_name = json_data['left_team_name']
-        game_info.right_team_name = json_data['right_team_name']
-        if 'left_team_config_id' in json_data:
-            game_info.left_team_config_id = json_data['left_team_config_id']
-        if 'right_team_config_id' in json_data:
-            game_info.right_team_config_id = json_data['right_team_config_id']
-        game_info.left_base_team_name = json_data['left_base_team_name']
-        game_info.right_base_team_name = json_data['right_base_team_name']
-        game_info.server_config = json_data['server_config']
-        return game_info
-
-    def to_dict(self):
-        return {
-            'game_id': self.game_id,
-            'left_team_name': self.left_team_name,
-            'right_team_name': self.right_team_name,
-            'left_team_config_id': self.left_team_config_id,
-            'right_team_config_id': self.right_team_config_id,
-            'left_base_team_name': self.left_base_team_name,
-            'right_base_team_name': self.right_base_team_name,
-            'server_config': self.server_config,
-        }
 
 
 class ServerConfig:
-    def __init__(self, config: str, game_info: GameInfo, data_dir: str, port: int, logger):
+    def __init__(self, config: str, game_info: GameInfoMessage, data_dir: str, port: int, logger):
         self.auto_mode = True
         self.synch_mode = True
         self.game_id = game_info.game_id
@@ -110,8 +65,8 @@ class ServerConfig:
 
 
 class Game:
-    def __init__(self, game_info: GameInfo, port: int, data_dir: str, storage_client: StorageClient):
-        self.game_info: GameInfo = game_info
+    def __init__(self, game_info: GameInfoMessage, port: int, data_dir: str, storage_client: StorageClient):
+        self.game_info: GameInfoMessage = game_info
         self.logger = logging.getLogger(f'Game{self.game_info.game_id}')
         self.server_config = ServerConfig(game_info.server_config, game_info, data_dir, port, self.logger)
         self.port = port
@@ -150,7 +105,7 @@ class Game:
                 team_config_zip_path = os.path.join(team_configs_dir, f'{team_config_id}.zip')
                 self.storage_client.download_file(self.storage_client.team_config_bucket_name,
                                                   str(team_config_id), team_config_zip_path)
-                Tools.unzip(team_config_zip_path, team_configs_dir)
+                Tools.unzip_file(team_config_zip_path, team_configs_dir)
                 os.remove(team_config_zip_path)
             else:
                 logging.error(f'Storage connection error, team config {team_config_id} not found')
@@ -159,29 +114,10 @@ class Game:
     def check(self):
         self.check_base_team(self.game_info.left_base_team_name)
         self.check_base_team(self.game_info.right_base_team_name)
-        if self.game_info.left_team_config_id != -1:
+        if self.game_info.left_team_config_id is not None:
             self.check_team_config(self.game_info.left_team_config_id)
-        if self.game_info.right_team_config_id != -1:
+        if self.game_info.right_team_config_id is not None:
             self.check_team_config(self.game_info.right_team_config_id)
-
-    # async def run_game(self):
-    #     self.logger.debug(f'Run game {self.game_info} on port {self.port} with config {str(self.server_config)}')
-    #     # TODO run game
-    #
-    #     async def target():
-    #         server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
-    #         command = f'{server_path} {self.server_config.get_config()}'
-    #         self.logger.debug(f'Run command: {command}')
-    #         try:
-    #             self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    #             out, err = self.process.communicate()
-    #             exit_code = self.process.returncode
-    #             await self.finished_game(out, err, exit_code)
-    #         except Exception as e:
-    #             self.logger.error(f'Error in run_game: {e}')
-    #
-    #     thread = threading.Thread(target=target)
-    #     thread.start()
 
     async def run_game(self):
         server_path = os.path.join(self.data_dir, DataDir.server_dir_name, 'rcssserver')
@@ -246,3 +182,10 @@ class Game:
         if self.process:
             Tools.kill_process_tree(self.process.pid)
             self.process.wait()  # Ensure the main process has terminated
+
+    def to_summary(self) -> GameInfoSummary:
+        return GameInfoSummary(
+            game_id=self.game_info.game_id,
+            status='starting',
+            port=self.port
+        )

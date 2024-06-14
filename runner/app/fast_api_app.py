@@ -3,7 +3,7 @@ import uvicorn
 from game_runner.manager import Manager
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
-
+from utils.messages import *
 
 class FastApiApp:
     def __init__(self, manager: Manager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
@@ -33,11 +33,11 @@ class FastApiApp:
             return self.manager.get_games()
 
         @self.app.post("/add_game")
-        async def add_game(game_info: dict, api_key: str = Depends(get_api_key)):
-            if self.manager.available_games_count == 0:
-                return None
-            game = await self.manager.add_game(game_info)
-            return game.to_dict()
+        async def add_game(message_json: dict, api_key: str = Depends(get_api_key)):
+            message_type = message_json["type"]
+            if message_type == "add_game":
+                message = AddGameMessage(**message_json)
+                return await self.manager.add_game(message.game_info)
 
         @self.app.post("/stop_game_by_game_id/{game_id}")
         async def stop_game_by_game_id(game_id: int, api_key: str = Depends(get_api_key)):

@@ -55,15 +55,16 @@ logging.info('GameRunner started')
 logging.debug(f'args: {args}')
 
 minio_client = MinioClient(
-    endpoint=args.minio_endpoint,
-    access_key=args.minio_access_key,
-    secret_key=args.minio_secret_key,
-    secure=False,
     server_bucket_name=args.server_bucket_name,
     base_team_bucket_name=args.base_team_bucket_name,
     team_config_bucket_name=args.team_config_bucket_name,
     game_log_bucket_name=args.game_log_bucket_name
 )
+
+minio_client.init(endpoint=args.minio_endpoint,
+                  access_key=args.minio_access_key,
+                  secret_key=args.minio_secret_key,
+                  secure=False,)
 
 game_runner_manager = Manager(data_dir, minio_client)
 game_runner_manager.set_available_games_count(2)
