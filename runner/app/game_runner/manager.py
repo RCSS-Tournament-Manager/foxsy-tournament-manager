@@ -73,7 +73,7 @@ class Manager:
 
     async def on_finished_game(self, game: Game):
         async with self.lock:
-            logging.error(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
+            logging.info(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
             self.free_port(game.port)
             await self.message_sender.send_message('game_finished', game.to_summary().dict())
             del self.games[game.port]

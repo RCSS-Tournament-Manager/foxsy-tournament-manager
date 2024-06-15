@@ -155,8 +155,12 @@ class Game:
         self.status = 'finished'
         # TODO save game results
         self.logger.debug(f'Game finished with exit code {exit_code}')
-        # self.logger.debug(out.decode())
-        # self.logger.error(err.decode())
+        out_file = os.path.join(self.server_config.game_log_dir, 'out.txt')
+        err_file = os.path.join(self.server_config.game_log_dir, 'err.txt')
+        with open(out_file, 'wb') as f:
+            f.write(out)
+        with open(err_file, 'wb') as f:
+            f.write(err)
 
         if self.check_finished():
             zip_file_path = self.zip_game_log_dir()

@@ -30,32 +30,41 @@ class RabbitMQConsumer:
         await self.message_queue.put(message)
 
     async def process_messages(self):
-        while True:
-            message = await self.message_queue.get()
-            async with message.process(ignore_processed=True):
-                data = json.loads(message.body.decode().replace("'", '"'))
-                data = dict(data)
-                logging.debug(f"Received message: {data}")
-                logging.debug(f"Message type: {data.get('type')}")
-                if data.get('type') is None or data.get('type') != 'add_game':
-                    logging.error("Invalid message type")
-                    await message.ack()
-                else:
-                    async def handle_error(error):
-                        logging.error(f"Failed to parse message: {error}")
-                        await message.nack(requeue=True)
-                        logging.info("Waiting for 5 seconds before re-consuming...")
-                        await asyncio.sleep(5)
+        try:
+            while True:
+                message = await self.message_queue.get()
+                async with message.process(ignore_processed=True):
+                    logging.debug(f"Received message: {message.body}")
                     try:
-                        add_game_message = AddGameMessage(**data)
-                        res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
+                        data = json.loads(message.body.decode().replace("'", '"'))
+                        data = dict(data)
                     except Exception as e:
-                        await handle_error(e)
-
-                    if res.success is False:
-                        await handle_error(res.error)
-                    else:
+                        logging.error(f"Failed to parse message: {e}")
                         await message.ack()
+                        continue
+                    logging.info(f"Received message: {data}")
+                    logging.debug(f"Message type: {data.get('type')}")
+                    if data.get('type') is None or data.get('type') != 'add_game':
+                        logging.error("Invalid message type")
+                        await message.ack()
+                    else:
+                        async def handle_error(error):
+                            logging.error(f"Failed to parse message: {error}")
+                            await message.nack(requeue=True)
+                            logging.info("Waiting for 5 seconds before re-consuming...")
+                            await asyncio.sleep(5)
+                        try:
+                            add_game_message = AddGameMessage(**data)
+                            res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
+                        except Exception as e:
+                            await handle_error(e)
+
+                        if res.success is False:
+                            await handle_error(res.error)
+                        else:
+                            await message.ack()
+        except Exception as e:
+            logging.error(f"y Error: {e}")
 
     async def start_consuming(self):
         await self.shared_queue.consume(self.consume_shared_queue)
