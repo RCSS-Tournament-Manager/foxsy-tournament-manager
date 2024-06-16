@@ -20,6 +20,21 @@ class ServerConfig:
                                             game_info.left_base_team_name, 'start.sh')
         self.right_team_start = os.path.join(data_dir, DataDir.base_team_dir_name,
                                              game_info.right_base_team_name, 'start.sh')
+        self.left_team_config_id_path = None
+        self.right_team_config_id_path = None
+        self.left_team_config_json = None
+        self.right_team_config_json = None
+        if game_info.left_team_config_id is not None:
+            self.left_team_config_id_path = os.path.join(data_dir, DataDir.team_config_dir_name,
+                                                        f'{game_info.left_team_config_id}')
+        if game_info.right_team_config_id is not None:
+            self.right_team_config_id_path = os.path.join(data_dir, DataDir.team_config_dir_name,
+                                                         f'{game_info.right_team_config_id}')
+        if game_info.left_team_config_json is not None:
+            self.left_team_config_json = game_info.left_team_config_json
+        if game_info.right_team_config_json is not None:
+            self.right_team_config_json = game_info.right_team_config_json
+
         self.game_log_dir = os.path.join(data_dir, DataDir.game_log_dir_name, f'{self.game_id}')
         self.text_log_dir = os.path.join(self.game_log_dir)
         self.port = port
@@ -35,10 +50,18 @@ class ServerConfig:
         res = ""
         res += f'--server::auto_mode={auto_mode} '
         res += f'--server::synch_mode={synch_mode} '
-        res += f'--server::fixed_teamname_l={self.left_team_name} '
-        res += f'--server::fixed_teamname_r={self.right_team_name} '
-        res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port}\\' "
-        res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port}\\' "
+        if self.left_team_config_id_path:
+            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -c {self.left_team_config_id_path}\\' "
+        elif self.left_team_config_json:
+            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -j '{self.left_team_config_json}'\\' "
+        else:
+            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name}\\' "
+        if self.right_team_config_id_path:
+            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -c {self.right_team_config_id_path}\\' "
+        elif self.right_team_config_json:
+            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -j '{self.right_team_config_json}'\\' "
+        else:
+            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name}\\' "
         res += f'--server::game_log_dir={self.game_log_dir} '
         res += f'--server::text_log_dir={self.text_log_dir} '
         res += '--server::half_time=100 '
