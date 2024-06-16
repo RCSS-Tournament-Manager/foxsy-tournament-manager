@@ -6,7 +6,7 @@ from storage.storage_client import StorageClient
 from data_dir import DataDir
 from subprocess import PIPE
 from utils.messages import *
-
+from storage.downloader import Downloader
 
 
 class ServerConfig:
@@ -98,22 +98,58 @@ class Game:
 
     def check_base_team(self, base_team_name: str):
         base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
-        os.makedirs(base_teams_dir, exist_ok=True)
         base_team_path = os.path.join(base_teams_dir, base_team_name)
-        if not os.path.exists(base_teams_dir):
-            os.makedirs(base_teams_dir, exist_ok=True)
-        if not os.path.exists(base_team_path):
-            if self.storage_client.check_connection():
-                base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
-                if not self.storage_client.download_file(self.storage_client.base_team_bucket_name,
-                                                         f'{base_team_name}.zip', base_team_zip_path):
-                    logging.error(f'Storage connection error, base team {base_team_name} not found')
-                    raise FileNotFoundError(f'Base team {base_team_name} not found')
-                Tools.unzip_file(base_team_zip_path, base_teams_dir)
-                os.remove(base_team_zip_path)
+        logging.debug(f'Check base team {base_team_name}, path: {base_team_path}, dir: {base_teams_dir}')
+
+        if os.path.exists(base_team_path):
+            logging.debug(f'Base team {base_team_name} already exists')
+            # if start.sh exists
+            if os.path.exists(os.path.join(base_team_path, 'start.sh')):
+                return
             else:
-                logging.error(f'Storage connection error, base team {base_team_name} not found')
-                raise FileNotFoundError(f'Base team {base_team_name} not found')
+                logging.error(f'Base team {base_team_name} start.sh not found')
+                Tools.remove_dir(base_team_path)
+        if os.path.isfile(base_teams_dir):
+            logging.error(f'Base teams dir {base_teams_dir} is a file')
+            raise FileNotFoundError(f'Base teams dir {base_teams_dir} is a file')
+
+        if not os.path.exists(base_teams_dir):
+            logging.info(f'Creating base teams directory: {base_teams_dir}')
+            os.makedirs(base_teams_dir, exist_ok=True)
+
+        if not os.path.exists(base_teams_dir):
+            try:
+                os.makedirs(base_teams_dir)
+            except Exception as e:
+                logging.error(f'Failed to create base teams dirA: {e}')
+
+        base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
+        logging.debug(f'Downloading base team {base_team_name} from storage')
+        zip_file_downloaded = False
+        if self.storage_client.check_connection():
+            if self.storage_client.download_file(self.storage_client.base_team_bucket_name,
+                                                     f'{base_team_name}.zip', base_team_zip_path):
+                logging.debug(f'Downloaded base team {base_team_name} from storage')
+                zip_file_downloaded = True
+            else:
+                logging.error(f'Storage error, base team {base_team_name} not found')
+        else:
+            logging.error(f'Storage connection error, base team {base_team_name} not found')
+
+        if not zip_file_downloaded:
+            logging.error(f'Downloading base team from github')
+            if Downloader.download_base_team(base_teams_dir, base_team_name):
+                logging.debug(f'Downloaded base team {base_team_name} from github')
+                zip_file_downloaded = True
+            else:
+                logging.error(f'Base team {base_team_name} not found')
+
+        if zip_file_downloaded:
+            logging.debug(f'Unzip base team {base_team_name}')
+            Tools.unzip_file(base_team_zip_path, base_teams_dir)
+            os.remove(base_team_zip_path)
+
+        logging.debug(f'Check base team {base_team_name} start.sh')
         if not os.path.exists(os.path.join(base_team_path, 'start.sh')):
             logging.error(f'Base team {base_team_name} start.sh not found')
             raise FileNotFoundError(f'Base team {base_team_name} start.sh not found')

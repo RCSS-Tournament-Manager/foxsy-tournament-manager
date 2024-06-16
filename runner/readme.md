@@ -188,7 +188,7 @@ You can pass the following parameters to the docker container:
     "left_team_config_id": 1,
     "right_team_config_id": 2,
     "left_team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}",
-    "right_team_config_json": {}
+    "right_team_config_json": "{}"
   }
 }
 ```

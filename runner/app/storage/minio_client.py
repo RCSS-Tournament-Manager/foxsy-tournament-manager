@@ -20,15 +20,16 @@ class MinioClient(StorageClient):
         try:
             self.client.fput_object(bucket_name, object_name, file_path)
             logging.info(f"'{file_path}' is successfully uploaded as '{object_name}' in '{bucket_name}' bucket.")
-        except S3Error as e:
+        except Exception as e:
             logging.error(f"Error occurred: {e}")
 
     def download_file(self, bucket_name, object_name, file_path):
         try:
+            logging.debug(f"Downloading '{object_name}' from '{bucket_name}' bucket to '{file_path}'")
             self.client.fget_object(bucket_name, object_name, file_path)
             logging.info(f"'{object_name}' is successfully downloaded to '{file_path}' from '{bucket_name}' bucket.")
             return True
-        except S3Error as e:
+        except Exception as e:
             logging.error(f"Error occurred: {e}")
             return False
 
@@ -36,7 +37,7 @@ class MinioClient(StorageClient):
         try:
             self.client.list_buckets()
             return True
-        except S3Error as e:
+        except Exception as e:
             logging.error(f"Error occurred: {e}")
             return False
 

@@ -30,3 +30,11 @@ class Tools:
             child.kill()
         parent.kill()
 
+    @staticmethod
+
+    def remove_dir(directory_path):
+        try:
+            os.rmdir(directory_path)
+        except OSError as e:
+            print(f"Error: {e.strerror}")
+

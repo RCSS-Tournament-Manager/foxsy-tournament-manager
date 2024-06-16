@@ -3,6 +3,9 @@ import json
 import aio_pika as pika
 import logging
 from utils.messages import *
+import traceback
+
+
 
 class RabbitMQConsumer:
     def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue):
@@ -37,6 +40,8 @@ class RabbitMQConsumer:
                     logging.debug(f"Received message: {message.body}")
                     try:
                         data = json.loads(message.body.decode().replace("'", '"'))
+                        if isinstance(data, str):
+                            data = json.loads(data.replace('\r\n', ''))
                         data = dict(data)
                     except Exception as e:
                         logging.error(f"Failed to parse message: {e}")
@@ -50,6 +55,7 @@ class RabbitMQConsumer:
                     else:
                         async def handle_error(error):
                             logging.error(f"Failed to parse message: {error}")
+                            # await message.ack()
                             await message.nack(requeue=True)
                             logging.info("Waiting for 5 seconds before re-consuming...")
                             await asyncio.sleep(5)
@@ -58,13 +64,15 @@ class RabbitMQConsumer:
                             res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
                         except Exception as e:
                             await handle_error(e)
+                            continue
 
                         if res.success is False:
                             await handle_error(res.error)
                         else:
                             await message.ack()
         except Exception as e:
-            logging.error(f"y Error: {e}")
+            logging.fatal(f"y Error: {e}")
+            traceback.print_exc()
 
     async def start_consuming(self):
         await self.shared_queue.consume(self.consume_shared_queue)
