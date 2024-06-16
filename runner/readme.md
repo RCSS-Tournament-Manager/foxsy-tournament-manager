@@ -177,7 +177,6 @@ You can pass the following parameters to the docker container:
 
 ```json
 {
-  "type": "add_game",
   "game_info": {
     "game_id": 3,
     "left_team_name": "team1",

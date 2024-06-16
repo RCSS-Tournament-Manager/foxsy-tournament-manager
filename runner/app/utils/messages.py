@@ -26,11 +26,23 @@ class GameInfoMessage(BaseModel):
     right_team_name: str = Field(None, example="team2")
     left_team_config_id: Optional[int] = Field(None, example=1)
     right_team_config_id: Optional[int] = Field(None, example=2)
-    left_team_config_json: Optional[str] = Field(None, example='{"team": "team1"}')
-    right_team_config_json: Optional[str] = Field(None, example='{"team": "team2"}')
-    left_base_team_name: str = Field(None, example="helios")
-    right_base_team_name: str = Field(None, example="hermes")
-    server_config: str = Field(None, example="")
+    left_team_config_json: Optional[str] = Field(None, example='{"left_team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}')
+    right_team_config_json: Optional[str] = Field(None, example='{"right_team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}')
+    left_base_team_name: str = Field(None, example="cyrus")
+    right_base_team_name: str = Field(None, example="cyrus")
+    server_config: str = Field(None, example="--server::port=6000")
+
+    def fix_json(self):
+        if self.left_team_config_json:
+            self.left_team_config_json = self.left_team_config_json.replace(' ', '')
+            self.left_team_config_json = self.left_team_config_json.replace('\r\n', '')
+            self.left_team_config_json = self.left_team_config_json.replace('\r', '')
+            self.left_team_config_json = self.left_team_config_json.replace("'", '"')
+        if self.right_team_config_json:
+            self.right_team_config_json = self.right_team_config_json.replace(' ', '')
+            self.right_team_config_json = self.right_team_config_json.replace('\r\n', '')
+            self.right_team_config_json = self.right_team_config_json.replace('\r', '')
+            self.right_team_config_json = self.right_team_config_json.replace("'", '"')
 
 class AddGameMessage(BaseMessage):
     game_info: GameInfoMessage = Field(None)

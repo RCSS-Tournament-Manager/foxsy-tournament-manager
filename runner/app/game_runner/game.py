@@ -190,8 +190,10 @@ class Game:
                 stdout=PIPE,
                 stderr=PIPE
             )
+
             out, err = await self.process.communicate()
             exit_code = self.process.returncode
+
             await self.finished_game(out, err, exit_code)
         except Exception as e:
             self.logger.error(f'Error in run_game: {e}')

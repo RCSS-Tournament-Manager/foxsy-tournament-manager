@@ -39,37 +39,38 @@ class RabbitMQConsumer:
                 async with message.process(ignore_processed=True):
                     logging.debug(f"Received message: {message.body}")
                     try:
-                        data = json.loads(message.body.decode().replace("'", '"'))
-                        if isinstance(data, str):
-                            data = json.loads(data.replace('\r\n', ''))
+                        message_body = message.body
+                        message_body_decoded = message_body.decode()
+                        message_body_decoded = message_body_decoded.replace("'", '"')
+                        message_body_decoded = message_body_decoded.replace(' ', '')
+                        message_body_decoded = message_body_decoded.replace('\r\n', '')
+                        data = json.loads(message_body_decoded)
                         data = dict(data)
                     except Exception as e:
                         logging.error(f"Failed to parse message: {e}")
                         await message.ack()
+                        traceback.print_exc()
                         continue
                     logging.info(f"Received message: {data}")
                     logging.debug(f"Message type: {data.get('type')}")
-                    if data.get('type') is None or data.get('type') != 'add_game':
-                        logging.error("Invalid message type")
-                        await message.ack()
-                    else:
-                        async def handle_error(error):
-                            logging.error(f"Failed to parse message: {error}")
-                            # await message.ack()
-                            await message.nack(requeue=True)
-                            logging.info("Waiting for 5 seconds before re-consuming...")
-                            await asyncio.sleep(5)
-                        try:
-                            add_game_message = AddGameMessage(**data)
-                            res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
-                        except Exception as e:
-                            await handle_error(e)
-                            continue
+                    async def handle_error(error):
+                        logging.error(f"Failed to parse message: {error}")
+                        # await message.ack()
+                        await message.nack(requeue=True)
+                        logging.info("Waiting for 5 seconds before re-consuming...")
+                        await asyncio.sleep(5)
+                    try:
+                        add_game_message = AddGameMessage(**data)
+                        AddGameMessage.validate(add_game_message.dict())
+                        res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
+                    except Exception as e:
+                        await handle_error(e)
+                        continue
 
-                        if res.success is False:
-                            await handle_error(res.error)
-                        else:
-                            await message.ack()
+                    if res.success is False:
+                        await handle_error(res.error)
+                    else:
+                        await message.ack()
         except Exception as e:
             logging.fatal(f"y Error: {e}")
             traceback.print_exc()

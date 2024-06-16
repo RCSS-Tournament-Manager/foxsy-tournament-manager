@@ -33,11 +33,16 @@ class FastApiApp:
             return self.manager.get_games()
 
         @self.app.post("/add_game")
-        async def add_game(message_json: dict, api_key: str = Depends(get_api_key)):
-            message_type = message_json["type"]
-            if message_type == "add_game":
-                message = AddGameMessage(**message_json)
+        async def add_game(message_json: AddGameMessage, api_key: str = Depends(get_api_key)):
+            try:
+                message = message_json
+                AddGameMessage.validate(message.dict())
+                if not message.game_info:
+                    raise Exception("game_info is required")
+                message.game_info.fix_json()
                 return await self.manager.add_game(message.game_info)
+            except Exception as e:
+                return {"success": False, "error": str(e)}
 
         @self.app.post("/stop_game_by_game_id/{game_id}")
         async def stop_game_by_game_id(game_id: int, api_key: str = Depends(get_api_key)):
