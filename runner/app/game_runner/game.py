@@ -112,6 +112,9 @@ class Game:
             else:
                 logging.error(f'Storage connection error, base team {base_team_name} not found')
                 raise FileNotFoundError(f'Base team {base_team_name} not found')
+        if not os.path.exists(os.path.join(base_team_path, 'start.sh')):
+            logging.error(f'Base team {base_team_name} start.sh not found')
+            raise FileNotFoundError(f'Base team {base_team_name} start.sh not found')
 
     def check_team_config(self, team_config_id: int):
         team_configs_dir = os.path.join(self.data_dir, DataDir.team_config_dir_name)
