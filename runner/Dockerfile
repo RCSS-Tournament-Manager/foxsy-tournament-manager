@@ -1,8 +1,7 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-RUN apt update
-RUN apt-get install -y fuse && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt-get install -y fuse && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
 RUN useradd -ms /bin/bash appuser
