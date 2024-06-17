@@ -58,6 +58,8 @@ class Downloader:
 
             # check if the file is downloaded
             if os.path.exists(target_path):
+                # change permission to 777
+                os.chmod(target_path, 0o777)
                 return True
             return False
         except Exception as e:

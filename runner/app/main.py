@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import logging.config
+import sys
+from utils.args_helper import ArgsHelper
 from utils.logging_config import get_logging_config
 from game_runner.manager import Manager
 import os
@@ -16,6 +18,9 @@ from utils.messages import *
 
 pika.logger.setLevel(logging.ERROR)
 
+# print args
+
+print(sys.argv)
 
 def get_args():
     parser = argparse.ArgumentParser(description="RoboCup Soccer Simulation 2D Game Runner FastAPI app")
@@ -23,9 +28,9 @@ def get_args():
     parser.add_argument("--log-dir", type=str, default="../data/logs", help="Directory to store log files")
     parser.add_argument("--api-key", type=str, default="api-key", help="API key for authentication")
     parser.add_argument("--max_games_count", type=int, default=2, help="Maximum number of games to run")
-    parser.add_argument("--use-fast-api", default=True, action="store_true", help="Use FastAPI app")
+    parser.add_argument("--use-fast-api", type=ArgsHelper.str_to_bool, default=True, help="Use FastAPI app (true/false or 1/0)")
     parser.add_argument("--fast-api-port", type=int, default=8082, help="Port to run FastAPI app")
-    parser.add_argument("--use-rabbitmq", default=True, action="store_true", help="Use RabbitMQ")
+    parser.add_argument("--use-rabbitmq", type=ArgsHelper.str_to_bool, default=True, help="Use RabbitMQ (true/false or 1/0)")
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
@@ -50,6 +55,8 @@ data_dir = args.data_dir
 log_dir = args.log_dir
 api_key = args.api_key
 api_key_name = "api_key"
+
+logging.info(args)
 
 os.makedirs(log_dir, exist_ok=True)
 logging.config.dictConfig(get_logging_config(log_dir))

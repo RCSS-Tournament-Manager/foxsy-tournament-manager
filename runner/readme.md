@@ -129,8 +129,17 @@ mkdir data
 
 ```bash
 docker run -it --rm --privileged --name runner-container -p 8082:8082 -v ${PWD}/data:/app/data -v ${PWD}/logs:/app/logs -e API_KEY=secret runner-app
+docker run -it --rm --privileged --name r1 -p 8082:8082 -v ${PWD}/data:/app/data -e MINIO_ENDPOINT=10.200.0.4:9000 runner-app
 ```
 
+getting minio ip address
+```bash
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minio
+```
+getting rabbitmq ip address
+```bash
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rabbitmq
+```
 ### Other parameters
 
 You can pass the following parameters to the docker container:
