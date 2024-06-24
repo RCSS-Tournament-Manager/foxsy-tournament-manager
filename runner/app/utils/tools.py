@@ -38,3 +38,11 @@ class Tools:
         except OSError as e:
             print(f"Error: {e.strerror}")
 
+    @staticmethod
+    def set_permissions_recursive(target_path, mode):
+        for root, dirs, files in os.walk(target_path):
+            for dir in dirs:
+                os.chmod(os.path.join(root, dir), mode)
+            for file in files:
+                os.chmod(os.path.join(root, file), mode)
+        os.chmod(target_path, mode)

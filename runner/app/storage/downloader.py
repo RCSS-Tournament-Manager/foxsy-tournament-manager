@@ -1,5 +1,6 @@
 import requests
 import os
+from utils.tools import Tools
 
 
 SERVER_LINK = {'path': 'https://github.com/CLSFramework/rcssserver/releases',
@@ -59,7 +60,7 @@ class Downloader:
             # check if the file is downloaded
             if os.path.exists(target_path):
                 # change permission to 777
-                os.chmod(target_path, 0o777)
+                Tools.set_permissions_recursive(target_path, 0o777)
                 return True
             return False
         except Exception as e:
