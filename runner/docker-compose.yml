@@ -39,8 +39,8 @@ services:
 
   runner-app:
 #    build: .
-    image: runner-app:latest
-    container_name: runner-app
+    image: naderzare/foxsy-runner-app:latest
+    container_name: foxsy-runner-app
     privileged: true
     environment:
       DATA_DIR: /app/data
