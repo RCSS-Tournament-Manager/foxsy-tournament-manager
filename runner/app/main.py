@@ -41,7 +41,7 @@ def get_args():
     parser.add_argument("--use-minio", type=ArgsHelper.str_to_bool, default=True,help="Use Minio (true/false or 1/0)")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
-    parser.add_argument("--minio-secret-key", type=str, default="guest", help="Minio secret key")
+    parser.add_argument("--minio-secret-key", type=str, default="guest1234", help="Minio secret key")
     parser.add_argument("--server-bucket-name", type=str, default="server", help="Server bucket name")
     parser.add_argument("--base-team-bucket-name", type=str, default="baseteam", help="Team bucket name")
     parser.add_argument("--team-config-bucket-name", type=str, default="teamconfig", help="Team config bucket name")
@@ -80,14 +80,14 @@ if args.use_minio:
 
     minio_client.wait_to_connect()
 
-message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
+message_sender = MessageSender(args.tournament_manager_ip, args.tournament_manager_port, args.tournament_manager_api_key)
 
 
 async def send_register_message():
     try:
         register_resp = await message_sender.send_message("register",
-                                                          RegisterMessage(ip=args.runner_manager_ip,
-                                                                          port=args.runner_manager_port,
+                                                          RegisterMessage(ip=args.tournament_manager_ip,
+                                                                          port=args.tournament_manager_port,
                                                                           available_games_count=args.max_games_count).dict())
         logging.info(f"Register response: {register_resp}")
     except Exception as e:

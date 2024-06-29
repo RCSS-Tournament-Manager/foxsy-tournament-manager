@@ -95,6 +95,7 @@ class Game:
         self.process = None
         self.storage_client = storage_client
         self.status = 'starting'
+        self.game_result = [-1, -1, -1, -1]
 
     def check_base_team(self, base_team_name: str):
         base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
@@ -202,16 +203,53 @@ class Game:
         except Exception as e:
             self.logger.error(f'Error in run_game: {e}')
 
+    def check_server_output(self):
+        out_file = os.path.join(self.server_config.game_log_dir, 'out.txt')
+        # check if out.txt exists
+        if not os.path.exists(out_file):
+            self.logger.error(f'Out file {out_file} not found')
+            return False
+        with open(out_file, 'r') as f:
+            lines = f.readlines()
+            count = Tools.count_matching_lines(lines, rf'A new \(v\d+\) player \({self.game_info.left_team_name} \d+\) connected\.')
+            if count != 11:
+                self.logger.error(f'Out file {out_file} not contain 11 lines')
+                return False
+
+            count = Tools.count_matching_lines(lines, rf'A new \(v\d+\) player \({self.game_info.right_team_name} \d+\) connected\.')
+            if count != 11:
+                self.logger.error(f'Out file {out_file} not contain 11 lines')
+                return False
+
+            count = Tools.count_matching_lines(lines, rf'A player disconnected : \({self.game_info.left_team_name} \d+\)')
+            if count != 11:
+                self.logger.warning(f'Out file {out_file} contain disconnect lines')
+
+            count = Tools.count_matching_lines(lines, rf'A player disconnected : \({self.game_info.right_team_name} \d+\)')
+            if count != 11:
+                self.logger.warning(f'Out file {out_file} contain disconnect lines')
+
+        return True
     def check_finished(self):
         # *.rcg exist in game_log_dir
         if not os.path.exists(self.server_config.game_log_dir):
             self.logger.error(f'Game log dir {self.server_config.game_log_dir} not found')
             return False
         rcg_files = [f for f in os.listdir(self.server_config.game_log_dir) if f.endswith('.rcg')]
-        rcg_file = rcg_files[0] if rcg_files else ''
+        rcg_file = rcg_files[0] if rcg_files else None
+        if not rcg_file:
+            self.logger.error(f'Game log file not found')
+            return False
         if rcg_file.find('incomplete') != -1:
             self.logger.error(f'Game log file {rcg_file} is incomplete')
             return False
+        if rcg_file.find(self.game_info.left_team_name) == -1:
+            self.logger.error(f'Game log file {rcg_file} not found')
+            return False
+        if rcg_file.find(self.game_info.right_team_name) == -1:
+            self.logger.error(f'Game log file {rcg_file} not found')
+            return False
+        self.game_result = Tools.find_game_result_from_rcg_file_name(rcg_file)
         return True
 
     def zip_game_log_dir(self):
@@ -232,7 +270,8 @@ class Game:
         with open(err_file, 'wb') as f:
             f.write(err)
 
-        if self.check_finished():
+        valid = self.check_finished()
+        if valid:
             zip_file_path = self.zip_game_log_dir()
             self.logger.debug(f'Game log dir zipped to {zip_file_path}')
             if self.storage_client is not None and self.storage_client.check_connection():
@@ -258,5 +297,9 @@ class Game:
         return GameInfoSummary(
             game_id=self.game_info.game_id,
             status=self.status,
-            port=self.port
+            port=self.port,
+            left_score=self.game_result[0],
+            right_score=self.game_result[1],
+            left_penalty=self.game_result[2],
+            right_penalty=self.game_result[3]
         )

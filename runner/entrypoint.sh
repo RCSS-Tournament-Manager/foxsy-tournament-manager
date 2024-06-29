@@ -18,7 +18,7 @@
 : "${USE_MINIO:=true}"
 : "${MINIO_ENDPOINT:=localhost:9000}"
 : "${MINIO_ACCESS_KEY:=guest}"
-: "${MINIO_SECRET_KEY:=guest}"
+: "${MINIO_SECRET_KEY:=guest1234}"
 : "${SERVER_BUCKET_NAME:=server}"
 : "${BASE_TEAM_BUCKET_NAME:=baseteam}"
 : "${TEAM_CONFIG_BUCKET_NAME:=teamconfig}"

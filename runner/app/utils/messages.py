@@ -64,6 +64,10 @@ class GameInfoSummary(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")
     port: Optional[int] = Field(None, example=12345)
+    left_score: Optional[int] = Field(None, example=-1)
+    right_score: Optional[int] = Field(None, example=-1)
+    left_penalty: Optional[int] = Field(None, example=-1)
+    right_penalty: Optional[int] = Field(None, example=-1)
 
 class GetGamesResponse(BaseModel):
     games: list[GameInfoSummary] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
