@@ -1,50 +1,13 @@
 version: '3.8'
 
 services:
-  minio:
-    image: minio/minio
-    container_name: minio2
-    hostname: minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks:
-      dev_network:
-        ipv4_address: 10.100.0.4
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - D:\workspace\foxsy\minio\minio-data:/data
-
-  rabbitmq:
-    image: rabbitmq:latest
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    command: >
-      sh -c "
-      rabbitmq-plugins enable --offline rabbitmq_management &&
-      rabbitmq-server
-      "
-    networks:
-      - dev_network
-
   runner-app:
-#    build: .
     image: naderzare/foxsy-runner-app:latest
     container_name: foxsy-runner-app
     privileged: true
     environment:
       DATA_DIR: /app/data
-      LOG_DIR: /app/logs
+      LOG_DIR: /app/data/logs
       API_KEY: api-key
       MAX_GAMES_COUNT: 5
       USE_FAST_API: "true"
@@ -64,9 +27,6 @@ services:
       BASE_TEAM_BUCKET_NAME: baseteam
       TEAM_CONFIG_BUCKET_NAME: teamconfig
       GAME_LOG_BUCKET_NAME: gamelog
-    depends_on:
-      - rabbitmq
-      - minio
     networks:
       - dev_network
     ports:
