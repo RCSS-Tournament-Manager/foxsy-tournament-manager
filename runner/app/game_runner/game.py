@@ -137,7 +137,7 @@ class Game:
             logging.error(f'Storage connection error, base team {base_team_name} not found')
 
         if not zip_file_downloaded:
-            logging.error(f'Downloading base team from github')
+            logging.info(f'Downloading base team from github')
             if Downloader.download_base_team(base_teams_dir, base_team_name):
                 logging.debug(f'Downloaded base team {base_team_name} from github')
                 zip_file_downloaded = True
@@ -148,6 +148,10 @@ class Game:
             logging.debug(f'Unzip base team {base_team_name}')
             Tools.unzip_file(base_team_zip_path, base_teams_dir)
             os.remove(base_team_zip_path)
+
+        if os.path.exists(os.path.join(base_team_path)):
+            logging.debug(f'Setting permissions for base team {base_team_name}')
+            Tools.set_permissions_recursive(base_team_path, 0o777)
 
         logging.debug(f'Check base team {base_team_name} start.sh')
         if not os.path.exists(os.path.join(base_team_path, 'start.sh')):

@@ -2,6 +2,7 @@ from minio import Minio
 from minio.error import S3Error
 from storage.storage_client import StorageClient
 import logging
+import time
 
 
 class MinioClient(StorageClient):
@@ -40,6 +41,11 @@ class MinioClient(StorageClient):
         except Exception as e:
             logging.error(f"Error occurred: {e}")
             return False
+
+    def wait_to_connect(self):
+        while not self.check_connection():
+            logging.error("Failed to connect to Minio, retrying in 5 seconds...")
+            time.sleep(5)
 
 # Example usage:
 # if __name__ == "__main__":

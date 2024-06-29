@@ -1,6 +1,7 @@
 import requests
 import os
 from utils.tools import Tools
+import logging
 
 
 SERVER_LINK = {'path': 'https://github.com/CLSFramework/rcssserver/releases',
@@ -20,6 +21,7 @@ CYRUS_LINK = {
 class Downloader:
     @staticmethod
     def download_latest_release(repo_url, file_name, target_name, output_dir):
+
         try:
             # Extract the user and repo from the URL
             parts = repo_url.rstrip('/').split('/')
@@ -28,6 +30,7 @@ class Downloader:
 
             # GitHub API URL for latest release
             api_url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+            logging.debug(f"Getting latest release info from {api_url}")
 
             # Get the latest release info
             response = requests.get(api_url)
@@ -45,6 +48,7 @@ class Downloader:
                 raise ValueError(f"File {file_name} not found in the latest release")
 
             # Download the file
+            logging.debug(f"Downloading {file_name} from {asset_url}")
             response = requests.get(asset_url, stream=True)
             response.raise_for_status()
 
@@ -52,14 +56,18 @@ class Downloader:
             os.makedirs(output_dir, exist_ok=True)
 
             # Save the file
+            logging.debug(f"Saving {file_name} to {output_dir}")
             target_path = os.path.join(output_dir, target_name)
+            logging.debug(f"Target path: {target_path}")
             with open(target_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
+            logging.info(f"Downloaded {file_name} to {target_path}")
 
             # check if the file is downloaded
             if os.path.exists(target_path):
                 # change permission to 777
+                logging.debug(f"Setting permissions for {target_path} to 777")
                 Tools.set_permissions_recursive(target_path, 0o777)
                 return True
             return False

@@ -74,7 +74,9 @@ minio_client = MinioClient(
 minio_client.init(endpoint=args.minio_endpoint,
                   access_key=args.minio_access_key,
                   secret_key=args.minio_secret_key,
-                  secure=False,)
+                  secure=False)
+
+minio_client.wait_to_connect()
 
 message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
 

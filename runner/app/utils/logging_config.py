@@ -52,5 +52,15 @@ def get_logging_config(log_dir, log_file_name='app.log'):
                 'level': 'ERROR',
                 'propagate': False
             },
+            'urllib3.connectionpool': {
+                'handlers': ['console', 'file'],
+                'level': 'ERROR',
+                'propagate': False
+            },
+            'urllib3.util.retry': {
+                'handlers': ['console', 'file'],
+                'level': 'ERROR',
+                'propagate': False
+            },
         }
     }
