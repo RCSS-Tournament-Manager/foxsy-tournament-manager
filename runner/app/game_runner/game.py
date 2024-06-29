@@ -126,7 +126,7 @@ class Game:
         base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
         logging.debug(f'Downloading base team {base_team_name} from storage')
         zip_file_downloaded = False
-        if self.storage_client.check_connection():
+        if self.storage_client is not None and self.storage_client.check_connection():
             if self.storage_client.download_file(self.storage_client.base_team_bucket_name,
                                                      f'{base_team_name}.zip', base_team_zip_path):
                 logging.debug(f'Downloaded base team {base_team_name} from storage')
@@ -165,7 +165,7 @@ class Game:
         if not os.path.exists(team_configs_dir):
             os.makedirs(team_configs_dir, exist_ok=True)
         if not os.path.exists(team_config_dir):
-            if self.storage_client.check_connection():
+            if self.storage_client is not None and self.storage_client.check_connection():
                 team_config_zip_path = os.path.join(team_configs_dir, f'{team_config_id}.zip')
                 self.storage_client.download_file(self.storage_client.team_config_bucket_name,
                                                   str(team_config_id), team_config_zip_path)
@@ -235,7 +235,7 @@ class Game:
         if self.check_finished():
             zip_file_path = self.zip_game_log_dir()
             self.logger.debug(f'Game log dir zipped to {zip_file_path}')
-            if self.storage_client.check_connection():
+            if self.storage_client is not None and self.storage_client.check_connection():
                 self.storage_client.upload_file(self.storage_client.game_log_bucket_name,
                                                 zip_file_path, f'{self.game_info.game_id}.zip')
             else:

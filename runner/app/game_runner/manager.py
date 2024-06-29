@@ -26,7 +26,7 @@ class Manager:
         if not os.path.exists(server_dir):
             logging.info(f'Creating server directory: {server_dir}')
             os.makedirs(server_dir)
-        if not os.path.exists(server_path):
+        if not os.path.exists(server_path) and self.storage_client is not None:
             if self.storage_client.check_connection():
                 self.storage_client.download_file(self.storage_client.server_bucket_name, 'rcssserver', server_path)
             else:

@@ -20,9 +20,10 @@ services:
       RUNNER_MANAGER_IP: localhost
       RUNNER_MANAGER_PORT: 5677
       RUNNER_MANAGER_API_KEY: runner-manager-api-key
+      USE_MINIO: "true"
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ACCESS_KEY: guest
+      MINIO_SECRET_KEY: guest
       SERVER_BUCKET_NAME: server
       BASE_TEAM_BUCKET_NAME: baseteam
       TEAM_CONFIG_BUCKET_NAME: teamconfig

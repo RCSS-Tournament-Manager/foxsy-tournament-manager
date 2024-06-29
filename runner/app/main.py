@@ -39,9 +39,10 @@ def get_args():
     parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
     parser.add_argument("--runner-manager-port", type=int, default=8000, help="Runner manager port")
     parser.add_argument("--runner-manager-api-key", type=str, default="runner-manager-api-key", help="Runner manager API key")
+    parser.add_argument("--use-minio", type=ArgsHelper.str_to_bool, default=True,help="Use Minio (true/false or 1/0)")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
-    parser.add_argument("--minio-access-key", type=str, default="minioadmin", help="Minio access key")
-    parser.add_argument("--minio-secret-key", type=str, default="minioadmin", help="Minio secret key")
+    parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
+    parser.add_argument("--minio-secret-key", type=str, default="guest", help="Minio secret key")
     parser.add_argument("--server-bucket-name", type=str, default="server", help="Server bucket name")
     parser.add_argument("--base-team-bucket-name", type=str, default="baseteam", help="Team bucket name")
     parser.add_argument("--team-config-bucket-name", type=str, default="teamconfig", help="Team config bucket name")
@@ -64,19 +65,21 @@ logging.config.dictConfig(get_logging_config(log_dir))
 logging.info('GameRunner started')
 logging.debug(f'args: {args}')
 
-minio_client = MinioClient(
-    server_bucket_name=args.server_bucket_name,
-    base_team_bucket_name=args.base_team_bucket_name,
-    team_config_bucket_name=args.team_config_bucket_name,
-    game_log_bucket_name=args.game_log_bucket_name
-)
+minio_client = None
+if args.use_minio:
+    minio_client = MinioClient(
+        server_bucket_name=args.server_bucket_name,
+        base_team_bucket_name=args.base_team_bucket_name,
+        team_config_bucket_name=args.team_config_bucket_name,
+        game_log_bucket_name=args.game_log_bucket_name
+    )
 
-minio_client.init(endpoint=args.minio_endpoint,
-                  access_key=args.minio_access_key,
-                  secret_key=args.minio_secret_key,
-                  secure=False)
+    minio_client.init(endpoint=args.minio_endpoint,
+                      access_key=args.minio_access_key,
+                      secret_key=args.minio_secret_key,
+                      secure=False)
 
-minio_client.wait_to_connect()
+    minio_client.wait_to_connect()
 
 message_sender = MessageSender(args.runner_manager_ip, args.runner_manager_port, args.runner_manager_api_key)
 
