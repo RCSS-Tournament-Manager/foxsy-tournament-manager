@@ -146,7 +146,7 @@ You can pass the following parameters to the docker container:
 
 `DATA_DIR` is the directory where the data is stored. The default value is `/app/data`.
 
-`LOG_DIR` is the directory where the logs are stored. The default value is `/app/logs`.
+`LOG_DIR` is the directory where the logs are stored. The default value is `/app/data/logs`.
 
 `API_KEY` is the key to access the api. The default value is `api-key`.
 
@@ -162,9 +162,17 @@ You can pass the following parameters to the docker container:
 
 `RABBITMQ_PORT` is the port where the rabbitmq is running. The default value is `5672`.
 
-`RUNNER_MANAGER_IP` is the ip of the runner manager. The default value is `localhost`.
+`TO_RUNNER_QUEUE` is the queue where the messages are sent to the runner. The default value is `to_runner`.
 
-`RUNNER_MANAGER_PORT` is the port of the runner manager. The default value is `5672`.
+`CONNECT_TO_TOURNAMENT_MANAGER` is a flag to enable the connection to the tournament manager. The default value is `false`.
+
+`TOURNAMENT_MANAGER_IP` is the ip of the tournament manager. The default value is `localhost`.
+
+`TOURNAMENT_MANAGER_PORT` is the port of the tournament manager. The default value is `5672`.
+
+`TOURNAMENT_MANAGER_API_KEY` is the api key of the tournament manager. The default is `tournament-manager-api-key`.
+
+`USE_MINIO` is a flag to enable the minio. The default value is `true`.
 
 `MINIO_ENDPOINT` is the endpoint of the minio. The default value is `localhost:9000`.
 

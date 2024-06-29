@@ -34,11 +34,10 @@ def get_args():
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
-    parser.add_argument("--to-runner-manager-queue", type=str, default="to_runner_manager", help="To runner manager queue name")
-    parser.add_argument("--shared-queue", type=str, default="shared_queue", help="Shared queue name")
-    parser.add_argument("--runner-manager-ip", type=str, default="localhost", help="Runner manager IP address")
-    parser.add_argument("--runner-manager-port", type=int, default=8000, help="Runner manager port")
-    parser.add_argument("--runner-manager-api-key", type=str, default="runner-manager-api-key", help="Runner manager API key")
+    parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=False, help="Connect to Tournament Manager (true/false or 1/0)")
+    parser.add_argument("--tournament-manager-ip", type=str, default="localhost", help="Tournament manager IP address")
+    parser.add_argument("--tournament-manager-port", type=int, default=8000, help="Tournament manager port")
+    parser.add_argument("--tournament-manager-api-key", type=str, default="tournament-manager-api-key", help="Tournament manager API key")
     parser.add_argument("--use-minio", type=ArgsHelper.str_to_bool, default=True,help="Use Minio (true/false or 1/0)")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
@@ -93,7 +92,8 @@ async def send_register_message():
         logging.info(f"Register response: {register_resp}")
     except Exception as e:
         logging.error(f"Failed to send register message: {e}")
-
+        if args.connect_to_tournament_manager:
+            raise e
 
 async def main():
     await send_register_message()
