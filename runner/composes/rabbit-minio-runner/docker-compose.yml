@@ -26,7 +26,7 @@ services:
       - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_PASS: guest1234
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     command: >
