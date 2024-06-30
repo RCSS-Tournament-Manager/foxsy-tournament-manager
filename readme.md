@@ -121,6 +121,7 @@ flowchart TD
     R1 <--> S
 ```
 
+
 ```mermaid
 sequenceDiagram
     participant U as User
