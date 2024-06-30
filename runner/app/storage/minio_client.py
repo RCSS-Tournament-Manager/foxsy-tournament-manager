@@ -47,6 +47,22 @@ class MinioClient(StorageClient):
             logging.error("Failed to connect to Minio, retrying in 5 seconds...")
             time.sleep(5)
 
+    def create_buckets(self):
+        self.create_bucket(self.server_bucket_name)
+        self.create_bucket(self.base_team_bucket_name)
+        self.create_bucket(self.team_config_bucket_name)
+        self.create_bucket(self.game_log_bucket_name)
+
+    def create_bucket(self, bucket_name):
+        try:
+            self.client.make_bucket(bucket_name)
+            logging.info(f"Bucket '{bucket_name}' is successfully created.")
+        except S3Error as e:
+            if e.code == "BucketAlreadyOwnedByYou":
+                logging.info(f"Bucket '{bucket_name}' already exists.")
+            else:
+                logging.error(f"Error occurred: {e}")
+
 # Example usage:
 # if __name__ == "__main__":
 #     # Initialize the Minio client

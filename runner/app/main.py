@@ -82,6 +82,8 @@ if args.use_minio:
 
     minio_client.wait_to_connect()
 
+    minio_client.create_buckets()
+
 message_sender = MessageSender(args.tournament_manager_ip, args.tournament_manager_port, args.tournament_manager_api_key)
 
 
