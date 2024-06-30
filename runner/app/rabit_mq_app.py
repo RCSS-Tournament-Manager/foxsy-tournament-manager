@@ -8,11 +8,13 @@ import traceback
 
 
 class RabbitMQConsumer:
-    def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue):
+    def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue, username, password):
         self.manager = manager
         self.rabbitmq_ip = rabbitmq_ip
         self.rabbitmq_port = rabbitmq_port
         self.shared_queue_name = shared_queue
+        self.username = username
+        self.password = password
         self.connection = None
         self.channel = None
         self.shared_queue = None
@@ -21,7 +23,11 @@ class RabbitMQConsumer:
     async def connect(self):
         while True:
             try:
-                self.connection = await pika.connect_robust(f'amqp://{self.rabbitmq_ip}:{self.rabbitmq_port}')
+                # credentials = pika.PlainCredentials(self.username, self.password)
+                # parameters = pika.ConnectionParameters(host=self.rabbitmq_ip,
+                #                                        port=self.rabbitmq_port,
+                #                                        credentials=credentials)
+                self.connection = await pika.connect_robust(f'amqp://{self.username}:{self.password}@{self.rabbitmq_ip}:{self.rabbitmq_port}')
                 self.channel = await self.connection.channel()
                 self.shared_queue = await self.channel.declare_queue(self.shared_queue_name)
                 break
