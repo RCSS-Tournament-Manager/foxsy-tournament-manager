@@ -10,7 +10,7 @@ from model.tournament import Tournament
 
 class TournamentManager:
     def __init__(self):
-        self.db = create_engine('sqlite:///../data/tournament.db')
+        self.db = create_engine('sqlite:///../storage/data/tournament.db')
         SQLModel.metadata.create_all(self.db)
         
     def create_tournament(self,
@@ -43,11 +43,21 @@ class TournamentManager:
                     session.add(Game(tournament_id=tournament.id,
                                      team_left_id=team_left.id,
                                      team_right_id=team_right.id,
-                                     start_time=start_time,
-                                     status=GameStatus.WAITING))
+                                     start_time=None,
+                                     end_time=None,
+                                     status=GameStatus.WAITING,
+                                     order=0))
             session.commit()
         
         return tournament
+    
+    def change_game_order(self, game_id: int, order: int):
+        with Session(self.db) as session:
+            statement = select(Game).where(Game.id == game_id)
+            game = session.exec(statement).first()
+            game.order = order
+            session.add(game)
+            session.commit()
 
     def get_tournaments_that_should_start(self) -> list[Tournament]:
         with Session(self.db) as session:
