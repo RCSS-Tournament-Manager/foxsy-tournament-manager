@@ -3,9 +3,12 @@ import uvicorn
 import requests
 import pika
 
+from manager.tournament_manager import TournamentManager
+
 
 
 app = FastAPI()
+manager = TournamentManager()
 
 @app.get("/")
 def read_root():

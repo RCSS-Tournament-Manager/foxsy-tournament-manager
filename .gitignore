@@ -1,1 +1,8 @@
 /logs/app.log
+*.pyc
+runner/composes/rabbit-minio-runner/data1/.minio.sys
+runner/composes/rabbit-minio-runner/data2/baseteam/cyrus/
+runner/composes/rabbit-minio-runner/data2/gamelog/
+runner/composes/rabbit-minio-runner/data2/logs/
+runner/composes/rabbit-minio-runner/data2/server/rcssserver
+storage/data/tournament.db
