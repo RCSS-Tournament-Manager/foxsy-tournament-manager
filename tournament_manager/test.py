@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import shuffle
 from tkinter import N
 
@@ -10,64 +10,102 @@ from model.tournament import Tournament
 
 
 def test_creating_tournament():
-    N_TEAMS = 5
+    N_TEAMS = 10
     
     manager = TournamentManager()
     
     teams = []
     for i in range(N_TEAMS):
+        team_name = f"Team {i}"
         teams.append(
-            Team(team_name=f"Team {i}",
+            Team(team_name=team_name,
                  team_base=TeamBase.CYRUS if i % 2 == 0 else TeamBase.OXSY,
                  config="")
         )
+    
+    tournament_time = datetime.now() + timedelta(hours=1)
+    tournament = manager.create_tournament(
+        Tournament(name="Test Tournament",start_time=tournament_time)
+    )
+    
+    for team in teams:
+        manager.add_team_to_tournament(tournament.id, team)
+    
+    t = manager.get_tournament(tournament.id)
+    assert t.name == "Test Tournament"
+    assert t.start_time == tournament_time
+    tmp_teams = list(teams)
+    all_teams = manager.get_teams(tournament.id)
+    for i, team in enumerate(all_teams):
+        tmp_teams.remove(team)
+    assert len(tmp_teams) == 0
+    
     true_game_list = []
     for i in range(N_TEAMS):
         for j in range(i + 1, N_TEAMS):
-            true_game_list.append((f'Team {i}', f'Team {j}'))
+            true_game_list.append((all_teams[i].id, all_teams[j].id))
     shuffle(true_game_list)
     
-    t = datetime.now()
-    manager.create_tournament(
-        tournament_name="Test Tournament",
-        start_time=t,
-        teams=teams
-    )
+    manager.edit_tournament(tournament.id, Tournament(name=tournament.name, start_time=tournament.start_time + timedelta(hours=1)))
     
-    db = manager.db
-    with Session(db) as session:
-        statement = select(Tournament)
-        tournaments = session.exec(statement).all()
-        assert len(tournaments) == 1
-        tournament = tournaments[0]
-        assert tournament.name == "Test Tournament"
-        assert tournament.start_time == t
-        
-        statement = select(Team)
-        teams = session.exec(statement).all()
-        assert len(teams) == N_TEAMS
-        for i, team in enumerate(teams):
-            assert team.team_name == f"Team {i}"
-            assert team.team_base == TeamBase.CYRUS if i % 2 == 0 else TeamBase.OXSY
-            assert team.config == ""
-        
-        statement = select(Game)
-        games = session.exec(statement).all()
-        for game in games:
-            assert game.tournament_id == tournament.id
-            assert game.start_time == None
-            assert game.end_time == None
-            assert game.status == GameStatus.WAITING
-            assert game.order == 0
-            
-            statement = select(Team).where(Team.id == game.team_left_id)
-            team_left = session.exec(statement).first()
-            statement = select(Team).where(Team.id == game.team_right_id)
-            team_right = session.exec(statement).first()
-            assert (team_left.team_name, team_right.team_name) \
-                or (team_right.team_name, team_left.team_name) in true_game_list
-            true_game_list.remove((team_left.team_name, team_right.team_name))
-        assert len(true_game_list) == 0
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=1)
+    assert t.name == tournament.name
+    
+    manager.commit_tournament(tournament.id)
+    
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=1)
+    assert t.name == tournament.name
+    assert t.commited == True
+    
+    games = manager.get_games(tournament.id)
+    tmp_games = list(true_game_list)
+    for game in games:
+        if (game.team_left_id, game.team_right_id) in tmp_games:
+            tmp_games.remove((game.team_left_id, game.team_right_id))
+        elif (game.team_right_id, game.team_left_id) in tmp_games:
+            tmp_games.remove((game.team_right_id, game.team_left_id))
+    assert len(tmp_games) == 0
+    
+    manager.edit_tournament(tournament.id, Tournament(name=tournament.name, start_time=tournament.start_time + timedelta(hours=1)))
+     
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=1)
+    assert t.name == tournament.name
+    
+    manager.uncommit_tournament(tournament.id)
+    
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=1)
+    assert t.name == tournament.name
+    assert t.commited == False
+    
+    games = manager.get_games(tournament.id)
+    assert len(games) == 0
+    
+    manager.edit_tournament(tournament.id, Tournament(name=tournament.name, start_time=t.start_time + timedelta(hours=1)))
+    
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=2)
+    assert t.name == tournament.name
+    assert t.commited == False
+    
+    manager.commit_tournament(tournament.id)
+    
+    t = manager.get_tournament(tournament.id)
+    assert t.start_time == tournament_time + timedelta(hours=2)
+    assert t.name == tournament.name
+    assert t.commited == True
+    
+    games = manager.get_games(tournament.id)
+    tmp_games = list(true_game_list)
+    for game in games:
+        if (game.team_left_id, game.team_right_id) in tmp_games:
+            tmp_games.remove((game.team_left_id, game.team_right_id))
+        elif (game.team_right_id, game.team_left_id) in tmp_games:
+            tmp_games.remove((game.team_right_id, game.team_left_id))
+    assert len(tmp_games) == 0
         
 if __name__ == "__main__":
     test_creating_tournament()

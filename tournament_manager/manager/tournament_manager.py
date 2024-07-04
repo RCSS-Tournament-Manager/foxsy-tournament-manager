@@ -47,6 +47,13 @@ class TournamentManager:
             session.refresh(team)
         return team
     
+    def remove_team_from_tournament(self, team_id: int):
+        with Session(self.db) as session:
+            statement = select(Team).where(Team.id == team_id)
+            team = session.exec(statement).first()
+            session.delete(team)
+            session.commit()
+    
     def add_teams_to_tournament(self, tournament_id: int, teams: list[Team]) -> list[Team]:
         with Session(self.db) as session:
             for team in teams:
@@ -56,6 +63,25 @@ class TournamentManager:
             for team in teams:
                 session.refresh(team)
         return teams
+    
+    def remove_all_teams_from_tournament(self, tournament_id: int):
+        with Session(self.db) as session:
+            statement = select(Team).where(Team.tournament_id == tournament_id)
+            teams = session.exec(statement).all()
+            for team in teams:
+                session.delete(team)
+            session.commit()
+    
+    def remove_teams_from_tournament(self, tournament_id: int, team_ids: list[int]):
+        with Session(self.db) as session:
+            for team_id in team_ids:
+                statement = select(Team).where(Team.id == team_id)
+                team = session.exec(statement).first()
+                if team.tournament_id != tournament_id:
+                    self.logging.error(f"Team {team_id} is not in tournament {tournament_id}")
+                    return
+                session.delete(team)
+            session.commit()
     
     def commit_tournament(self, tournament_id: int) -> Tournament:
         with Session(self.db) as session:
@@ -158,3 +184,18 @@ class TournamentManager:
             session.add(game)
             session.add(game_result)
             session.commit()
+        
+    def get_tournament(self, tournament_id: int) -> Tournament:
+        with Session(self.db) as session:
+            statement = select(Tournament).where(Tournament.id == tournament_id)
+            return session.exec(statement).first()
+        
+    def get_teams(self, tournament_id: int) -> list[Team]:
+        with Session(self.db) as session:
+            statement = select(Team).where(Team.tournament_id == tournament_id)
+            return session.exec(statement).all()
+    
+    def get_games(self, tournament_id: int) -> list[Game]:
+        with Session(self.db) as session:
+            statement = select(Game).where(Game.tournament_id == tournament_id)
+            return session.exec(statement).all()
