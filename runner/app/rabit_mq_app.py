@@ -66,9 +66,9 @@ class RabbitMQConsumer:
                         logging.info("Waiting for 5 seconds before re-consuming...")
                         await asyncio.sleep(5)
                     try:
-                        add_game_message = AddGameMessage(**data)
-                        AddGameMessage.validate(add_game_message.dict())
-                        res: AddGameResponse = await self.manager.add_game(add_game_message.game_info)
+                        game_info_message = GameInfoMessage(**data)
+                        GameInfoMessage.validate(game_info_message.dict())
+                        res: AddGameResponse = await self.manager.add_game(game_info_message, True)
                     except Exception as e:
                         await handle_error(e)
                         continue

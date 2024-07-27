@@ -9,11 +9,12 @@ class MessageSender:
         self.api_key = api_key
 
     async def send_message(self, route, message):
-        logging.info(f"Sending message to {route} with message: {message}")
+        logging.info(f"Sending message to {route} with message: {message} host: {self.host} port: {self.port} api_key: {self.api_key}")
         response = requests.post(
-            f"{self.host}:{self.port}/{route}",
-            headers={"Authorization": f"{self.api_key}"},
-            json={"message": message},
+            #f"{self.host}:{self.port}/{route}",
+            f"http://{'127.0.0.1'}:{self.port}/{route}",
+            headers={"api_key": f"{self.api_key}"},
+            json=message,
         )
         logging.info(f"Response: {response.status_code}")
         return response

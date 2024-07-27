@@ -44,9 +44,6 @@ class GameInfoMessage(BaseModel):
             self.right_team_config_json = self.right_team_config_json.replace('\r', '')
             self.right_team_config_json = self.right_team_config_json.replace("'", '"')
 
-class AddGameMessage(BaseMessage):
-    game_info: GameInfoMessage = Field(None)
-
 class AddGameResponse(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")

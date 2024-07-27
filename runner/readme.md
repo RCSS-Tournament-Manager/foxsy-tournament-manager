@@ -190,12 +190,11 @@ You can pass the following parameters to the docker container:
 
 ## Messages
 
-### AddGameMessage
+### GameInfoMessage
 
 - With config id
 ```json
 {
-  "game_info": {
     "game_id": 3,
     "left_team_name": "team1",
     "right_team_name": "team2",
@@ -204,15 +203,14 @@ You can pass the following parameters to the docker container:
     "server_config": "",
     "left_team_config_id": 1,
     "right_team_config_id": 2
-  }
 }
+
 ```
 
 - With JSON config
 
 ```json
 {
-  "game_info": {
     "game_id": 3,
     "left_team_name": "team1",
     "right_team_name": "team2",
@@ -221,7 +219,6 @@ You can pass the following parameters to the docker container:
     "server_config": "",
     "left_team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}",
     "right_team_config_json": "{}"
-  }
 }
 ```
 

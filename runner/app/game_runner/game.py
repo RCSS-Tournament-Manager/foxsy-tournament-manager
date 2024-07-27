@@ -86,8 +86,9 @@ class ServerConfig:
 
 class Game:
     def __init__(self, game_info: GameInfoMessage, port: int, data_dir: str, storage_client: StorageClient):
+        self.logger = logging.getLogger(f'Game{game_info.game_id}')
+        self.logger.info(f'Game created: {game_info}')
         self.game_info: GameInfoMessage = game_info
-        self.logger = logging.getLogger(f'Game{self.game_info.game_id}')
         self.server_config = ServerConfig(game_info.server_config, game_info, data_dir, port, self.logger)
         self.port = port
         self.data_dir = data_dir
@@ -100,63 +101,63 @@ class Game:
     def check_base_team(self, base_team_name: str):
         base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
         base_team_path = os.path.join(base_teams_dir, base_team_name)
-        logging.debug(f'Check base team {base_team_name}, path: {base_team_path}, dir: {base_teams_dir}')
+        self.logger.debug(f'Check base team {base_team_name}, path: {base_team_path}, dir: {base_teams_dir}')
 
         if os.path.exists(base_team_path):
-            logging.debug(f'Base team {base_team_name} already exists')
+            self.logger.debug(f'Base team {base_team_name} already exists')
             # if start.sh exists
             if os.path.exists(os.path.join(base_team_path, 'start.sh')):
                 return
             else:
-                logging.error(f'Base team {base_team_name} start.sh not found')
+                self.logger.error(f'Base team {base_team_name} start.sh not found')
                 Tools.remove_dir(base_team_path)
         if os.path.isfile(base_teams_dir):
-            logging.error(f'Base teams dir {base_teams_dir} is a file')
+            self.logger.error(f'Base teams dir {base_teams_dir} is a file')
             raise FileNotFoundError(f'Base teams dir {base_teams_dir} is a file')
 
         if not os.path.exists(base_teams_dir):
-            logging.info(f'Creating base teams directory: {base_teams_dir}')
+            self.logger.info(f'Creating base teams directory: {base_teams_dir}')
             os.makedirs(base_teams_dir, exist_ok=True)
 
         if not os.path.exists(base_teams_dir):
             try:
                 os.makedirs(base_teams_dir)
             except Exception as e:
-                logging.error(f'Failed to create base teams dirA: {e}')
+                self.logger.error(f'Failed to create base teams dirA: {e}')
 
         base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
-        logging.debug(f'Downloading base team {base_team_name} from storage')
+        self.logger.debug(f'Downloading base team {base_team_name} from storage')
         zip_file_downloaded = False
         if self.storage_client is not None and self.storage_client.check_connection():
             if self.storage_client.download_file(self.storage_client.base_team_bucket_name,
                                                      f'{base_team_name}.zip', base_team_zip_path):
-                logging.debug(f'Downloaded base team {base_team_name} from storage')
+                self.logger.debug(f'Downloaded base team {base_team_name} from storage')
                 zip_file_downloaded = True
             else:
-                logging.error(f'Storage error, base team {base_team_name} not found')
+                self.logger.error(f'Storage error, base team {base_team_name} not found')
         else:
-            logging.error(f'Storage connection error, base team {base_team_name} not found')
+            self.logger.error(f'Storage connection error, base team {base_team_name} not found')
 
         if not zip_file_downloaded:
-            logging.info(f'Downloading base team from github')
+            self.logger.info(f'Downloading base team from github')
             if Downloader.download_base_team(base_teams_dir, base_team_name):
-                logging.debug(f'Downloaded base team {base_team_name} from github')
+                self.logger.debug(f'Downloaded base team {base_team_name} from github')
                 zip_file_downloaded = True
             else:
-                logging.error(f'Base team {base_team_name} not found')
+                self.logger.error(f'Base team {base_team_name} not found')
 
         if zip_file_downloaded:
-            logging.debug(f'Unzip base team {base_team_name}')
+            self.logger.debug(f'Unzip base team {base_team_name}')
             Tools.unzip_file(base_team_zip_path, base_teams_dir)
             os.remove(base_team_zip_path)
 
         if os.path.exists(os.path.join(base_team_path)):
-            logging.debug(f'Setting permissions for base team {base_team_name}')
+            self.logger.debug(f'Setting permissions for base team {base_team_name}')
             Tools.set_permissions_recursive(base_team_path, 0o777)
 
-        logging.debug(f'Check base team {base_team_name} start.sh')
+        self.logger.debug(f'Check base team {base_team_name} start.sh')
         if not os.path.exists(os.path.join(base_team_path, 'start.sh')):
-            logging.error(f'Base team {base_team_name} start.sh not found')
+            self.logger.error(f'Base team {base_team_name} start.sh not found')
             raise FileNotFoundError(f'Base team {base_team_name} start.sh not found')
 
     def check_team_config(self, team_config_id: int):
@@ -173,7 +174,7 @@ class Game:
                 Tools.unzip_file(team_config_zip_path, team_configs_dir)
                 os.remove(team_config_zip_path)
             else:
-                logging.error(f'Storage connection error, team config {team_config_id} not found')
+                self.logger.error(f'Storage connection error, team config {team_config_id} not found')
                 raise FileNotFoundError(f'Team config {team_config_id} not found')
 
     def check(self):
@@ -244,10 +245,10 @@ class Game:
             self.logger.error(f'Game log file {rcg_file} is incomplete')
             return False
         if rcg_file.find(self.game_info.left_team_name) == -1:
-            self.logger.error(f'Game log file {rcg_file} not found')
+            self.logger.error(f'Game log file {rcg_file}, team [{self.game_info.left_team_name}] not found')
             return False
         if rcg_file.find(self.game_info.right_team_name) == -1:
-            self.logger.error(f'Game log file {rcg_file} not found')
+            self.logger.error(f'Game log file {rcg_file}, team [{self.game_info.right_team_name}] not found')
             return False
         self.game_result = Tools.find_game_result_from_rcg_file_name(rcg_file)
         return True

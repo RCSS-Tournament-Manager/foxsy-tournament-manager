@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException, Security, Depends
 import uvicorn
-from game_runner.manager import Manager
+from game_runner.runner_manager import RunnerManager
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
 
 class FastApiApp:
-    def __init__(self, manager: Manager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
+    def __init__(self, manager: RunnerManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
         self.app = FastAPI()
         self.manager = manager
         self.api_key = api_key
@@ -33,14 +33,14 @@ class FastApiApp:
             return self.manager.get_games()
 
         @self.app.post("/add_game")
-        async def add_game(message_json: AddGameMessage, api_key: str = Depends(get_api_key)):
+        async def add_game(message_json: GameInfoMessage, api_key: str = Depends(get_api_key)):
             try:
                 message = message_json
-                AddGameMessage.validate(message.dict())
-                if not message.game_info:
+                GameInfoMessage.validate(message.dict())
+                if not message:
                     raise Exception("game_info is required")
-                message.game_info.fix_json()
-                return await self.manager.add_game(message.game_info)
+                message.fix_json()
+                return await self.manager.add_game(message)
             except Exception as e:
                 return {"success": False, "error": str(e)}
 

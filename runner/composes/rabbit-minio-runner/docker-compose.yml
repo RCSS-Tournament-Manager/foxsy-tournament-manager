@@ -57,8 +57,8 @@ services:
       TO_RUNNER_QUEUE: to-runner
       CONNECT_TO_TOURNAMENT_MANAGER: "false"
       TOURNAMENT_MANAGER_IP: localhost
-      TOURNAMENT_MANAGER_PORT: 5677
-      TOURNAMENT_MANAGER_API_KEY: tournament-manager-api-key
+      TOURNAMENT_MANAGER_PORT: 8085
+      TOURNAMENT_MANAGER_API_KEY: api-key
       USE_MINIO: "true"
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: guest

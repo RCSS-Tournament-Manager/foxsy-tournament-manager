@@ -4,7 +4,7 @@ import logging.config
 import sys
 from utils.args_helper import ArgsHelper
 from utils.logging_config import get_logging_config
-from game_runner.manager import Manager
+from game_runner.runner_manager import RunnerManager
 import os
 from fast_api_app import FastApiApp
 import argparse
@@ -38,8 +38,8 @@ def get_args():
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
     parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=False, help="Connect to Tournament Manager (true/false or 1/0)")
     parser.add_argument("--tournament-manager-ip", type=str, default="localhost", help="Tournament manager IP address")
-    parser.add_argument("--tournament-manager-port", type=int, default=8000, help="Tournament manager port")
-    parser.add_argument("--tournament-manager-api-key", type=str, default="tournament-manager-api-key", help="Tournament manager API key")
+    parser.add_argument("--tournament-manager-port", type=int, default=8085, help="Tournament manager port")
+    parser.add_argument("--tournament-manager-api-key", type=str, default="api-key", help="Tournament manager API key")
     parser.add_argument("--use-minio", type=ArgsHelper.str_to_bool, default=True,help="Use Minio (true/false or 1/0)")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
@@ -102,7 +102,7 @@ async def send_register_message():
 async def main():
     await send_register_message()
 
-    game_runner_manager = Manager(data_dir, minio_client, message_sender)
+    game_runner_manager = RunnerManager(data_dir, minio_client, message_sender)
     game_runner_manager.set_available_games_count(2)
 
     async def run_fastapi():

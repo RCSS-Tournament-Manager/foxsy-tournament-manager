@@ -1,8 +1,8 @@
-from game_runner.manager import Manager
+from game_runner.runner_manager import RunnerManager
 from game_runner.game import GameInfo
 import time
 
-game_runner_manager = Manager('../data')
+game_runner_manager = RunnerManager('../data')
 
 game_info1 = GameInfo.from_json(
     {
