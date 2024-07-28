@@ -22,10 +22,11 @@ class MessageConvertor:
     @staticmethod
     def convert_game_model_to_game_message(game) -> GameMessage:
         return GameMessage(game_id=game.id, left_team_id=game.left_team_id, right_team_id=game.right_team_id,
-                           status=game.status)
+                           status=game.status,
+                           left_team_score=game.left_team_score, right_team_score=game.right_team_score)
     @staticmethod
     def convert_tournament_model_to_tournament_message(tournament: TournamentModel) -> TournamentMessage:
         return TournamentMessage(tournament_id=tournament.id, tournament_name=tournament.name, start_at=tournament.start_at,
                                  user_id=tournament.user_id,
                                  teams=[MessageConvertor.convert_team_model_to_team_message(team) for team in tournament.teams],
-                                    games=[MessageConvertor.convert_game_model_to_game_message(game) for game in tournament.games])
+                                 games=[MessageConvertor.convert_game_model_to_game_message(game) for game in tournament.games])

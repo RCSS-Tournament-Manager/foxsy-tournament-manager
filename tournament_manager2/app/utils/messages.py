@@ -49,6 +49,8 @@ class GameMessage(BaseModel):
     left_team_id: int = Field(None, example=1)
     right_team_id: int = Field(None, example=2)
     status: str = Field(None, example="pending")
+    left_team_score: Optional[int] = Field(None, example=-1)
+    right_team_score: Optional[int] = Field(None, example=-1)
 
 class TournamentMessage(BaseModel):
     tournament_id: int = Field(None)
