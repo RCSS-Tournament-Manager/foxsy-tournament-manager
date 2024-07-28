@@ -27,18 +27,34 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build the Docker image
+    - name: Build the Docker image of runner
       id: build-image
       run: |
         TIMESTAMP=$(date +%s)
         docker build ./runner --file ./runner/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/foxsy-runner-app:$TIMESTAMP
         echo "::set-output name=timestamp::$TIMESTAMP"
 
-    - name: Tag the Docker image as latest
+    - name: Tag the Docker image as latest of runner
       run: docker tag ${{ secrets.DOCKER_USERNAME }}/foxsy-runner-app:${{ steps.build-image.outputs.timestamp }} ${{ secrets.DOCKER_USERNAME }}/foxsy-runner-app:latest
 
-    - name: Push the Docker image with timestamp tag
+    - name: Push the Docker image with timestamp tag of runner
       run: docker push ${{ secrets.DOCKER_USERNAME }}/foxsy-runner-app:${{ steps.build-image.outputs.timestamp }}
 
-    - name: Push the Docker image with latest tag
+    - name: Push the Docker image with latest tag of runner
       run: docker push ${{ secrets.DOCKER_USERNAME }}/foxsy-runner-app:latest
+      
+    - name: Build the Docker image of tm
+      id: build-image2
+      run: |
+        TIMESTAMP=$(date +%s)
+        docker build ./tournament_manager2 --file ./tournament_manager2/Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/foxsy-tournament-manager-app:$TIMESTAMP
+        echo "::set-output name=timestamp::$TIMESTAMP"
+
+    - name: Tag the Docker image as latest of tm
+      run: docker tag ${{ secrets.DOCKER_USERNAME }}/foxsy-tournament-manager-app:${{ steps.build-image2.outputs.timestamp }} ${{ secrets.DOCKER_USERNAME }}/foxsy-tournament-manager-app:latest
+
+    - name: Push the Docker image with timestamp tag of tm
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/foxsy-tournament-manager-app:${{ steps.build-image2.outputs.timestamp }}
+
+    - name: Push the Docker image with latest tag of tm
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/foxsy-tournament-manager-app:latest
