@@ -59,10 +59,12 @@ class RabbitMQConsumer:
                         continue
                     logging.info(f"Received message: {data}")
                     logging.debug(f"Message type: {data.get('type')}")
-                    async def handle_error(error):
+                    async def handle_error(error, ack=True):
                         logging.error(f"Failed to parse message: {error}")
-                        await message.ack()
-                        # await message.nack(requeue=True)
+                        if ack:
+                            await message.ack()
+                        else:
+                            await message.nack(requeue=True)
                         logging.info("Waiting for 5 seconds before re-consuming...")
                         await asyncio.sleep(5)
                     try:
@@ -74,7 +76,7 @@ class RabbitMQConsumer:
                         continue
 
                     if res.success is False:
-                        await handle_error(res.error)
+                        await handle_error(res.error, False)
                     else:
                         await message.ack()
         except Exception as e:

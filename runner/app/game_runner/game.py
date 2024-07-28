@@ -50,20 +50,25 @@ class ServerConfig:
         res = ""
         res += f'--server::auto_mode={auto_mode} '
         res += f'--server::synch_mode={synch_mode} '
+
+        left_team_start = f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name}"
         if self.left_team_config_id_path:
-            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -c {self.left_team_config_id_path}\\' "
+            left_team_start += f" -c {self.left_team_config_id_path}"
         elif self.left_team_config_json and self.left_team_config_json != '{}':
             self.left_team_config_json = self.left_team_config_json.replace('"', '\\"')
-            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -j '{self.left_team_config_json}'\\' "
-        else:
-            res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name}\\' "
+            left_team_start += f" -j '{self.left_team_config_json}'"
+        left_team_start += "\\' "
+        res += left_team_start
+
+        right_team_start = f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name}"
         if self.right_team_config_id_path:
-            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -c {self.right_team_config_id_path}\\' "
+            right_team_start += f" -c {self.right_team_config_id_path}"
         elif self.right_team_config_json and self.right_team_config_json != '{}':
             self.right_team_config_json = self.right_team_config_json.replace('"', '\\"')
-            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -j '{self.right_team_config_json}'\\' "
-        else:
-            res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name}\\' "
+            right_team_start += f" -j '{self.right_team_config_json}'"
+        right_team_start += "\\' "
+        res += right_team_start
+
         res += f'--server::game_log_dir={self.game_log_dir} '
         res += f'--server::text_log_dir={self.text_log_dir} '
         res += '--server::half_time=100 '

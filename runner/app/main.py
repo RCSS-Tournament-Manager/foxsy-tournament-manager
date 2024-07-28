@@ -36,7 +36,7 @@ def get_args():
     parser.add_argument("--rabbitmq-username", type=str, default="guest", help="RabbitMQ username")
     parser.add_argument("--rabbitmq-password", type=str, default="guest1234", help="RabbitMQ password")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
-    parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=False, help="Connect to Tournament Manager (true/false or 1/0)")
+    parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=True, help="Connect to Tournament Manager (true/false or 1/0)")
     parser.add_argument("--tournament-manager-ip", type=str, default="localhost", help="Tournament manager IP address")
     parser.add_argument("--tournament-manager-port", type=int, default=8085, help="Tournament manager port")
     parser.add_argument("--tournament-manager-api-key", type=str, default="api-key", help="Tournament manager API key")
@@ -88,16 +88,18 @@ message_sender = MessageSender(args.tournament_manager_ip, args.tournament_manag
 
 
 async def send_register_message():
-    try:
-        register_resp = await message_sender.send_message("register",
-                                                          RegisterMessage(ip=args.tournament_manager_ip,
-                                                                          port=args.tournament_manager_port,
-                                                                          available_games_count=args.max_games_count).dict())
-        logging.info(f"Register response: {register_resp}")
-    except Exception as e:
-        logging.error(f"Failed to send register message: {e}")
-        if args.connect_to_tournament_manager:
-            raise e
+    while args.connect_to_tournament_manager:
+        try:
+            register_resp = await message_sender.send_message("register",
+                                                              RegisterMessage(ip=args.tournament_manager_ip,
+                                                                              port=args.tournament_manager_port,
+                                                                              available_games_count=args.max_games_count).dict())
+            logging.info(f"Register response: {register_resp}")
+            break
+        except Exception as e:
+            logging.error(f"Failed to send register message: {e}")
+            await asyncio.sleep(5)
+
 
 async def main():
     await send_register_message()
