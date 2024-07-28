@@ -1,0 +1,45 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: fx_minio
+    hostname: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - ../data/minio:/data
+    networks:
+      dev_network:
+        ipv4_address: 10.100.0.4
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: fx_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ../data/rabbitmq:/var/lib/rabbitmq
+    command: >
+      sh -c "
+      rabbitmq-plugins enable --offline rabbitmq_management &&
+      rabbitmq-server
+      "
+    networks:
+      dev_network:
+        ipv4_address: 10.100.0.4
+
+networks:
+  dev_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.0.0/16
