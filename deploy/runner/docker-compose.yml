@@ -1,41 +1,39 @@
-version: '3.8'
-
 services:
   runner-app:
     image: naderzare/foxsy-runner-app:latest
     container_name: foxsy-runner-app
     privileged: true
     environment:
-      DATA_DIR: /app/data
-      LOG_DIR: /app/data/logs
-      API_KEY: api-key
-      MAX_GAMES_COUNT: 5
-      USE_FAST_API: "true"
-      FAST_API_PORT: 8082
-      USE_RABBITMQ: "true"
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest1234
-      TO_RUNNER_QUEUE: to-runner
-      CONNECT_TO_TOURNAMENT_MANAGER: "false"
-      TOURNAMENT_MANAGER_IP: localhost
-      TOURNAMENT_MANAGER_PORT: 8085
-      TOURNAMENT_MANAGER_API_KEY: api-key
-      USE_MINIO: "true"
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: guest
-      MINIO_SECRET_KEY: guest1234
-      SERVER_BUCKET_NAME: server
-      BASE_TEAM_BUCKET_NAME: baseteam
-      TEAM_CONFIG_BUCKET_NAME: teamconfig
-      GAME_LOG_BUCKET_NAME: gamelog
+      - DATA_DIR=${RUNNER_DATA_DIR}
+      - LOG_DIR=${RUNNER_LOG_DIR}
+      - API_KEY=${RUNNER_API_KEY}
+      - MAX_GAMES_COUNT=${RUNNER_MAX_GAMES_COUNT}
+      - USE_FAST_API=${RUNNER_USE_FAST_API}
+      - FAST_API_PORT=${RUNNER_FAST_API_PORT}
+      - USE_RABBITMQ=${RUNNER_USE_RABBITMQ}
+      - RABBITMQ_HOST=${RUNNER_RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RUNNER_RABBITMQ_PORT}
+      - RABBITMQ_USERNAME=${RUNNER_RABBITMQ_USERNAME}
+      - RABBITMQ_PASSWORD=${RUNNER_RABBITMQ_PASSWORD}
+      - TO_RUNNER_QUEUE=${RUNNER_TO_RUNNER_QUEUE}
+      - CONNECT_TO_TOURNAMENT_MANAGER=${RUNNER_CONNECT_TO_TOURNAMENT_MANAGER}
+      - TOURNAMENT_MANAGER_IP=${RUNNER_TOURNAMENT_MANAGER_IP}
+      - TOURNAMENT_MANAGER_PORT=${RUNNER_TOURNAMENT_MANAGER_PORT}
+      - TOURNAMENT_MANAGER_API_KEY=${RUNNER_TOURNAMENT_MANAGER_API_KEY}
+      - USE_MINIO=${RUNNER_USE_MINIO}
+      - MINIO_ENDPOINT=${RUNNER_MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${RUNNER_MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${RUNNER_MINIO_SECRET_KEY}
+      - SERVER_BUCKET_NAME=${RUNNER_SERVER_BUCKET_NAME}
+      - BASE_TEAM_BUCKET_NAME=${RUNNER_BASE_TEAM_BUCKET_NAME}
+      - TEAM_CONFIG_BUCKET_NAME=${RUNNER_TEAM_CONFIG_BUCKET_NAME}
+      - GAME_LOG_BUCKET_NAME=${RUNNER_GAME_LOG_BUCKET_NAME}
     networks:
       - dev_network
     ports:
       - "8082:8082"
     volumes:
-      - ./data/runner:/app/data
+      - ../data/runner:/app/data
 
 networks:
   dev_network:

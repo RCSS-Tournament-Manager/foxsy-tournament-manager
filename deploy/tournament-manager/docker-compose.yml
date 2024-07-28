@@ -4,26 +4,22 @@ services:
     container_name: foxsy-tournament-manager-app
     privileged: true
     environment:
-      DATA_DIR: /app/data
-      LOG_DIR: /app/data/logs
-      DB: example.db
-      API_KEY: api-key
-      FAST_API_PORT: 8085
-      RABBITMQ_HOST: localhost
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest1234
-      TO_RUNNER_QUEUE: to-runner
+      - DATA_DIR=${TOURNAMENT_MANAGER_DATA_DIR}
+      - LOG_DIR=${TOURNAMENT_MANAGER_LOG_DIR}
+      - DB=${TOURNAMENT_MANAGER_DB}
+      - API_KEY=${TOURNAMENT_MANAGER_API_KEY}
+      - FAST_API_PORT=${TOURNAMENT_MANAGER_FAST_API_PORT}
+      - RABBITMQ_HOST=${TOURNAMENT_MANAGER_RABBITMQ_HOST}
+      - RABBITMQ_PORT=${TOURNAMENT_MANAGER_RABBITMQ_PORT}
+      - RABBITMQ_USERNAME=${TOURNAMENT_MANAGER_RABBITMQ_USERNAME}
+      - RABBITMQ_PASSWORD=${TOURNAMENT_MANAGER_RABBITMQ_PASSWORD}
+      - TO_RUNNER_QUEUE=${TOURNAMENT_MANAGER_TO_RUNNER_QUEUE}
     networks:
       - dev_network
     ports:
       - "8085:8085"
     volumes:
       - ../data/tmanager:/app/data
-
-
-volumes:
-  rabbitmq_data:
 
 networks:
   dev_network:
