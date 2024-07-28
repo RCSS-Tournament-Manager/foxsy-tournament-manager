@@ -1,0 +1,40 @@
+{
+	"name": "test-frontend",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^3.0.0",
+		"@sveltejs/kit": "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"@tailwindcss/typography": "^0.5.13",
+		"autoprefixer": "^10.4.19",
+		"postcss": "^8.4.40",
+		"sass": "^1.77.8",
+		"svelte": "^4.2.7",
+		"tailwindcss": "^3.4.7",
+		"vite": "^5.0.3"
+	},
+	"type": "module",
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.620.0",
+		"@aws-sdk/s3-request-presigner": "^3.620.0",
+		"@stomp/stompjs": "^7.0.0",
+		"axios": "^1.7.2",
+		"bits-ui": "^0.21.12",
+		"brace": "^0.11.1",
+		"clsx": "^2.1.1",
+		"minio": "^8.0.1",
+		"mode-watcher": "^0.4.1",
+		"sockjs-client": "^1.6.1",
+		"svelte-headless-table": "^0.18.2",
+		"svelte-radix": "^1.1.0",
+		"tailwind-merge": "^2.4.0",
+		"tailwind-variants": "^0.2.1",
+		"uuid": "^10.0.0"
+	}
+}

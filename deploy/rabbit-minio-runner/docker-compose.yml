@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio
+    container_name: minio2
+    hostname: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      dev_network:
+        ipv4_address: 10.100.0.4
+    environment:
+      MINIO_ROOT_USER: guest
+      MINIO_ROOT_PASSWORD: guest1234
+    command: server /data --console-address ":9001"
+    volumes:
+      - /home/aref/pp/oxsy/foxsy-tournament-manager/runner/composes/rabbit-minio-runner/data1:/data
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest1234
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    command: >
+      sh -c "
+      rabbitmq-plugins enable --offline rabbitmq_management &&
+      rabbitmq-server
+      "
+    networks:
+      - dev_network
+
+  runner-app:
+#    build: .
+    image: naderzare/foxsy-runner-app:latest
+    container_name: foxsy-runner-app
+    privileged: true
+    environment:
+      DATA_DIR: /app/data
+      LOG_DIR: /app/data/logs
+      API_KEY: api-key
+      MAX_GAMES_COUNT: 5
+      USE_FAST_API: "true"
+      FAST_API_PORT: 8082
+      USE_RABBITMQ: "true"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest1234
+      TO_RUNNER_QUEUE: to-runner
+      CONNECT_TO_TOURNAMENT_MANAGER: "false"
+      TOURNAMENT_MANAGER_IP: localhost
+      TOURNAMENT_MANAGER_PORT: 8085
+      TOURNAMENT_MANAGER_API_KEY: api-key
+      USE_MINIO: "true"
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: guest
+      MINIO_SECRET_KEY: guest1234
+      SERVER_BUCKET_NAME: server
+      BASE_TEAM_BUCKET_NAME: baseteam
+      TEAM_CONFIG_BUCKET_NAME: teamconfig
+      GAME_LOG_BUCKET_NAME: gamelog
+    depends_on:
+      - rabbitmq
+      - minio
+    networks:
+      - dev_network
+    ports:
+      - "8082:8082"
+    volumes:
+      - D:\workspace\foxsy\foxsy-tournament-runner\runner\data:/app/data
+
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  dev_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.0.0/16
