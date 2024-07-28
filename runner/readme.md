@@ -15,35 +15,24 @@ another server by using api.
 ```mermaid
 flowchart TD
     subgraph Computer1
-        RM[RunnerManager]
-        RMDB[RMDatabase]
+        TM[TournamanetManager]
         MQ[MessageQueue]
+        S[MinioStorage]
     end
     subgraph Computer2
         R1[Runner1]
     end
-    subgraph Computer3
-        R2[Runner2]
-    end
-    subgraph Computer4
-        S[MinioStorage]
-    end
-    RM <-- API --> R1
-    RM <-- API --> R2
-    MQ --> R1
-    MQ --> R2
-    RM <--> RMDB
-    RM --> MQ
-    RM <--> S
-    R1 <--> S
-    R2 <--> S
+    R1 -- API --> TM
+    MQ -.-> R1
+    TM -.-> MQ
+    R1 --> S
 ```
 
 ### Sequence Diagram (RabitMQ)
 
 ```mermaid
 sequenceDiagram
-    participant RM as RunnerManager
+    participant RM as TournamanetManager
     participant MQ as MessageQueue
     participant R as Runner
     participant S as MinioStorage
@@ -60,29 +49,6 @@ sequenceDiagram
     Note over R: Running Game
     R->>S: SaveGameLog
     R->>RM: Game Status(finished)
-```
-
-### Sequence Diagram (API)
-
-```mermaid
-sequenceDiagram
-    participant RM as RunnerManager
-    participant R as Runner
-    participant S as Storage(Minio)
-    R->>RM:Register Runner
-    RM->>R:Accept Runner
-    Note over RM: Add Game Id to GameInfo
-    RM->>R: GameInfo
-    R->>S: GetBaseTeams
-    S->>R: BaseTeams
-    Note over R: Unzip BaseTeams
-    R->>S: GetTeamConfigs
-    S->>R: TeamConfigs (id.zip)
-    Note over R: Unzip TeamConfigs
-    R->>RM: Game Status
-    Note over R: Running Game
-    R->>S: SaveGameLog
-    R->>RM: Game Status
 ```
 
 ## Data Dir Structure
