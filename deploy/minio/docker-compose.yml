@@ -15,7 +15,7 @@ services:
       MINIO_ROOT_PASSWORD: guest1234
     command: server /data --console-address ":9001"
     volumes:
-      - D:\workspace\foxsy\minio\minio-data:/data
+      - ../data/minio:/data
 
 networks:
   dev_network:

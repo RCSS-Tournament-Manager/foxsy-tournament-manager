@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   tournament-manager-app:
     image: naderzare/foxsy-tournament-manager-app:latest
@@ -21,7 +19,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\data:/app/data
+      - ../data/tmanager:/app/data
 
 
 volumes:

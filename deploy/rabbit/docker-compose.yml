@@ -9,7 +9,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest  # Default username
       RABBITMQ_DEFAULT_PASS: guest1234  # Default password
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - ../data/rabbitmq:/var/lib/rabbitmq
     command: >
       sh -c "
       rabbitmq-plugins enable --offline rabbitmq_management &&

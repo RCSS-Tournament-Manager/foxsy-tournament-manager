@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   minio:
     image: minio/minio
@@ -16,7 +14,7 @@ services:
       MINIO_ROOT_PASSWORD: guest1234
     command: server /data --console-address ":9001"
     volumes:
-      - /home/aref/pp/oxsy/foxsy-tournament-manager/runner/composes/rabbit-minio-runner/data1:/data
+      - ../data/minio:/data
 
   rabbitmq:
     image: rabbitmq:latest
@@ -28,7 +26,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest1234
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - ../data/rabbitmq:/var/lib/rabbitmq
     command: >
       sh -c "
       rabbitmq-plugins enable --offline rabbitmq_management &&
@@ -75,11 +73,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - D:\workspace\foxsy\foxsy-tournament-runner\runner\data:/app/data
-
-
-volumes:
-  rabbitmq_data:
+      - ../data/runner:/app/data
 
 networks:
   dev_network:
