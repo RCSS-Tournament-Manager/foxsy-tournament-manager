@@ -2,8 +2,8 @@
 
 # Use shell parameter expansion to set defaults
 
-: "${DATA_DIR:=/app/data}"
-: "${LOG_DIR:=/app/data/logs}"
+: "${DATA_DIR:=/home/appuser/app/data}"
+: "${LOG_DIR:=/home/appuser/app/data/logs}"
 : "${DB:=example.db}"
 : "${API_KEY:=api-key}"
 : "${FAST_API_PORT:=8085}"

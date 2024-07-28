@@ -16,7 +16,7 @@ services:
       MINIO_ROOT_PASSWORD: guest1234
     command: server /data --console-address ":9001"
     volumes:
-      - /home/aref/pp/oxsy/foxsy-tournament-manager/runner/composes/rabbit-minio-runner/data1:/data
+      -  ${MINIO_DATA_PATH}:/data
 
   rabbitmq:
     image: rabbitmq:latest
@@ -42,8 +42,8 @@ services:
     container_name: foxsy-tournament-manager-app
     privileged: true
     environment:
-      DATA_DIR: /app/data
-      LOG_DIR: /app/data/logs
+      DATA_DIR: /home/appuser/app/data
+      LOG_DIR: /home/appuser/app/data/logs
       DB: example.db
       API_KEY: api-key
       FAST_API_PORT: 8085
@@ -60,7 +60,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\data:/app/data
+      - ${RUNNER_APP_DATA_PATH}:/home/appuser/app/data
 
   runner-app:
 #    build: .
@@ -68,8 +68,8 @@ services:
     container_name: foxsy-runner-app
     privileged: true
     environment:
-      DATA_DIR: /app/data
-      LOG_DIR: /app/data/logs
+      DATA_DIR: /home/appuser/app/data
+      LOG_DIR: /home/appuser/app/data/logs
       API_KEY: api-key
       MAX_GAMES_COUNT: 5
       USE_FAST_API: "true"
@@ -101,7 +101,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - D:\workspace\foxsy\foxsy-tournament-runner\runner\data:/app/data
+      - ${RUNNER_APP_DATA_PATH}:/home/appuser/app/data
 
 
 volumes:

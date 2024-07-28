@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Use shell parameter expansion to set defaults
-: "${DATA_DIR:=/app/data}"
-: "${LOG_DIR:=/app/data/logs}"
+: "${DATA_DIR:=$HOME/app/data}"
+: "${LOG_DIR:=$HOME/app/data/logs}"
 : "${API_KEY:=api-key}"
 : "${MAX_GAMES_COUNT:=5}"
 : "${USE_FAST_API:=true}"
@@ -25,6 +25,16 @@
 : "${BASE_TEAM_BUCKET_NAME:=baseteam}"
 : "${TEAM_CONFIG_BUCKET_NAME:=teamconfig}"
 : "${GAME_LOG_BUCKET_NAME:=gamelog}"
+
+
+# if [ ! -w $DATA_DIR ]; then
+#     echo "The script does not have permission to write to '$DATA_DIR'. Please run with elevated permissions or change the directory paths."
+#     exit 1
+# fi
+
+# Check if directories exist and create if they do not
+[ ! -d "$DATA_DIR" ] && mkdir -p "$DATA_DIR"
+[ ! -d "$LOG_DIR" ] && mkdir -p "$LOG_DIR"
 
 cd app
 
