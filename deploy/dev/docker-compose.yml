@@ -35,7 +35,7 @@ services:
       "
     networks:
       dev_network:
-        ipv4_address: 10.100.0.4
+        ipv4_address: 10.100.0.5
 
 networks:
   dev_network:
