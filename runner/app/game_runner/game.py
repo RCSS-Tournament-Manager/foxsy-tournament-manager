@@ -52,14 +52,14 @@ class ServerConfig:
         res += f'--server::synch_mode={synch_mode} '
         if self.left_team_config_id_path:
             res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -c {self.left_team_config_id_path}\\' "
-        elif self.left_team_config_json:
+        elif self.left_team_config_json and self.left_team_config_json != '{}':
             self.left_team_config_json = self.left_team_config_json.replace('"', '\\"')
             res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name} -j '{self.left_team_config_json}'\\' "
         else:
             res += f"--server::team_l_start=\\'{self.left_team_start} -p {self.port} -t {self.left_team_name}\\' "
         if self.right_team_config_id_path:
             res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -c {self.right_team_config_id_path}\\' "
-        elif self.right_team_config_json:
+        elif self.right_team_config_json and self.right_team_config_json != '{}':
             self.right_team_config_json = self.right_team_config_json.replace('"', '\\"')
             res += f"--server::team_r_start=\\'{self.right_team_start} -p {self.port} -t {self.right_team_name} -j '{self.right_team_config_json}'\\' "
         else:
@@ -73,7 +73,8 @@ class ServerConfig:
         res += '--server::port=' + str(self.port) + ' '
         res += '--server::coach_port=' + str(self.coach_port) + ' '
         res += '--server::olcoach_port=' + str(self.online_coach_port) + ' '
-        res += self.other_config
+        if self.other_config:
+            res += self.other_config
         self.logger.debug(f'Server config: {res}')
         return res
 

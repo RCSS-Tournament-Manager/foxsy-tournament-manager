@@ -77,15 +77,21 @@ class RunnerManager:
             asyncio.create_task(game.run_game())
             res = AddGameResponse(game_id=game_info.game_id, status='starting', success=True, port=port)
             if called_from_rabbitmq:
-                await self.message_sender.send_message('game_started', res.dict())
+                try:
+                    await self.message_sender.send_message('game_started', res.dict())
+                except Exception as e:
+                    self.logger.error(f'GameRunnerManager add_game (Can not send game_started message): {e}')
             return res
 
     async def on_finished_game(self, game: Game):
         async with self.lock:
-            self.logger.info(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
-            self.free_port(game.port)
-            await self.message_sender.send_message('game_finished', game.to_summary().dict())
-            del self.games[game.port]
+            try:
+                self.logger.info(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
+                self.free_port(game.port)
+                await self.message_sender.send_message('game_finished', game.to_summary().dict())
+                del self.games[game.port]
+            except Exception as e:
+                self.logger.error(f'GameRunnerManager on_finished_game: {e}')
 
     def get_games(self):
         self.logger.info(f'GameRunnerManager get_games')

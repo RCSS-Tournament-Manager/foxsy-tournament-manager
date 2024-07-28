@@ -30,7 +30,7 @@ class GameInfoMessage(BaseModel):
     right_team_config_json: Optional[str] = Field(None, example='{"right_team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}')
     left_base_team_name: str = Field(None, example="cyrus")
     right_base_team_name: str = Field(None, example="cyrus")
-    server_config: str = Field(None, example="--server::port=6000")
+    server_config: Optional[str] = Field(None, example="--server::port=6000")
 
     def fix_json(self):
         if self.left_team_config_json:
