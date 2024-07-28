@@ -144,6 +144,7 @@ class TournamentManager:
                     game.status = GameSatus.IN_QUEUE
 
                 session.commit()
+            session.close()
             await asyncio.sleep(10)
 
     async def handle_game_started(self, json: AddGameResponse):
