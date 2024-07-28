@@ -38,6 +38,19 @@ class TournamentManager:
         session = self.database_manager.get_session()
         new_tournament = MessageConvertor.convert_add_tournament_request_message_to_tournament_model(message)
         session.add(new_tournament)
+
+        if len(message.teams) < 2:
+            session.close()
+            return AddTournamentResponseMessage(tournament_id=None, success=False, error="At least 2 teams are required")
+
+        if len(message.teams) != len(set([team.team_name for team in message.teams])):
+            session.close()
+            return AddTournamentResponseMessage(tournament_id=None, success=False, error="Teams are not unique")
+
+        if any([len(team.team_name) == 0 or len(team.base_team_name) == 0 for team in message.teams]):
+            session.close()
+            return AddTournamentResponseMessage(tournament_id=None, success=False, error="Team name and base team name are required")
+
         session.commit()
         new_tournament_id = new_tournament.id
         self.logger.debug(f"Added tournament with id: {new_tournament_id} {new_tournament}")

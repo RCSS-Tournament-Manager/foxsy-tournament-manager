@@ -39,7 +39,7 @@ class AddTournamentRequestMessage(BaseMessage):
 
 
 class AddTournamentResponseMessage(BaseModel):
-    tournament_id: int = Field(None, example=1)
+    tournament_id: Optional[int] = Field(None, example=1)
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
 
