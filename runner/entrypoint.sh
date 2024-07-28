@@ -2,7 +2,7 @@
 
 # Use shell parameter expansion to set defaults
 : "${DATA_DIR:=/app/data}"
-: "${LOG_DIR:=/app/logs}"
+: "${LOG_DIR:=/app/data/logs}"
 : "${API_KEY:=api-key}"
 : "${MAX_GAMES_COUNT:=5}"
 : "${USE_FAST_API:=true}"

@@ -12,7 +12,7 @@ class MessageSender:
         logging.info(f"Sending message to {route} with message: {message} host: {self.host} port: {self.port} api_key: {self.api_key}")
         response = requests.post(
             #f"{self.host}:{self.port}/{route}",
-            f"http://{'127.0.0.1'}:{self.port}/{route}",
+            f"http://{self.host}:{self.port}/{route}",
             headers={"api_key": f"{self.api_key}"},
             json=message,
         )
