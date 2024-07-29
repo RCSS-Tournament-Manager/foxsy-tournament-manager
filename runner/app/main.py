@@ -16,11 +16,39 @@ from utils.message_sender import MessageSender
 from utils.messages import *
 
 
-pika.logger.setLevel(logging.ERROR)
+pika.logger.setLevel(logging.error)
 
 # print args
 
 print(sys.argv)
+
+# def check_directory_permissions(directory_path):
+#     if os.path.isdir(directory_path):
+#         logging.info(f"{directory_path} is a directory")
+#     else:
+#         logging.info(f"{directory_path} is not a directory or does not exist")
+
+#     if os.access(directory_path, os.R_OK):
+#         logging.info(f"Read permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Read permissions are not granted for the directory: {directory_path}")
+
+#     if os.access(directory_path, os.W_OK):
+#         logging.info(f"Write permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Write permissions are not granted for the directory: {directory_path}")
+
+#     if os.access(directory_path, os.X_OK):
+#         logging.info(f"Execute permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Execute permissions are not granted for the directory: {directory_path}")
+        
+#     try:
+#         return os.stat(directory_path).st_mode
+#     except Exception as e:
+#         logging.error(f"Failed to get permissions for the directory: {directory_path}", exc_info=True)
+#         return None
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="RoboCup Soccer Simulation 2D Game Runner FastAPI app")
@@ -60,7 +88,24 @@ api_key_name = "api_key"
 
 logging.info(args)
 
-os.makedirs(log_dir, exist_ok=True)
+# logging.info(f"Permission mask for {data_dir}: {oct(check_directory_permissions(data_dir))}")
+
+try:
+    os.makedirs(data_dir, exist_ok=True)
+except Exception as e:
+    print(f"Failed to create data_dir directory: {e}")
+    logging.error(f"Failed to create data_dir directory: {e}")
+    sys.exit(1)
+
+# logging.info(f"Permission mask for {log_dir}: {oct(check_directory_permissions(log_dir))}")
+
+try:
+    os.makedirs(log_dir, exist_ok=True)
+except Exception as e:
+    print(f"Failed to create log_dir directory: {e}")
+    logging.error(f"Failed to create log_dir directory: {e}")
+    sys.exit(1)
+
 logging.config.dictConfig(get_logging_config(log_dir))
 
 logging.info('GameRunner started')

@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   runner-app:
-    image: fox-run:latest
+    image: naderzare/foxsy-runner-app:latest
     container_name: foxsy-runner-app
     privileged: true
     environment:
-      DATA_DIR: /home/appuser/app/data
-      LOG_DIR: /home/appuser/app/data/logs
+      DATA_DIR: /app/data
+      LOG_DIR: /app/data/logs
       API_KEY: api-key
       MAX_GAMES_COUNT: 5
       USE_FAST_API: "true"
@@ -35,7 +35,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ${RUNNER_APP_DATA_PATH}:/home/appuser/app/data
+      - ${RUNNER_APP_DATA_PATH}:/app/data
 
 
 volumes:

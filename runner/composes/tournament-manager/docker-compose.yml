@@ -6,8 +6,8 @@ services:
     container_name: foxsy-tournament-manager-app
     privileged: true
     environment:
-      DATA_DIR: /home/appuser/app/data
-      LOG_DIR: /home/appuser/app/data/logs
+      DATA_DIR: /app/data
+      LOG_DIR: /app/data/logs
       DB: example.db
       API_KEY: api-key
       FAST_API_PORT: 8085
@@ -21,7 +21,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - ${RUNNER_APP_DATA_PATH}:/home/appuser/app/data
+      - ${RUNNER_APP_DATA_PATH}:/app/data
 
 
 volumes:

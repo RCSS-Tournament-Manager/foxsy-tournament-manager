@@ -16,7 +16,7 @@ services:
       MINIO_ROOT_PASSWORD: guest1234
     command: server /data --console-address ":9001"
     volumes:
-      - ../data/minio:/data
+      - ${MINIO_DATA_PATH}:/data
 
   rabbitmq:
     image: rabbitmq:latest
@@ -28,7 +28,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest1234
     volumes:
-      - ../data/rabbitmq:/var/lib/rabbitmq
+      - ${RABBITMQ_DATA_PATH}:/var/lib/rabbitmq
     command: >
       sh -c "
       rabbitmq-plugins enable --offline rabbitmq_management &&
@@ -60,7 +60,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - ../data/tmanager:/app/data
+      - ${TOURNAMENT_MANAGER_APP_DATA_PATH}:/app/data
 
   runner-app:
 #    build: .
@@ -101,7 +101,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ../data/runner:/app/data
+      - ${RUNNER_APP_DATA_PATH}:/app/data
 
 networks:
   dev_network:

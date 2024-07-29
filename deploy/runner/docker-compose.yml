@@ -1,6 +1,6 @@
 services:
   runner-app:
-    image: naderzare/foxsy-runner-app:latest
+    image: foxsy-runner-app:latest
     container_name: foxsy-runner-app
     privileged: true
     environment:
@@ -33,7 +33,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ../data/runner:/app/data
+      - ${RUNNER_APP_DATA_PATH}:/app/data
 
 networks:
   dev_network:
