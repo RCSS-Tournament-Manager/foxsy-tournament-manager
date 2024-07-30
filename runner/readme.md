@@ -10,6 +10,39 @@ The application needs binary of base team, soccer simulation 2D server.
 It can automatically get rcssserver binary, base team and configs from
 another server by using api.
 
+
+## Run development
+
+```bash
+
+pipenv run python app/main.py \
+    --data-dir "$(pwd)/data/app-data"\
+    --log-dir "$(pwd)/data/log"\
+    --api-key "testtest"\
+    --max-games-count "4" \
+    --use-fast-api "true"\
+    --fast-api-port "8082" \
+    --use-rabbitmq "true"\
+    --rabbitmq-host "127.0.0.1"\
+    --rabbitmq-port "5672" \
+    --rabbitmq-username "guest"\
+    --rabbitmq-password "guest1234" \
+    --connect-to-tournament-manager "true"\
+    --tournament-manager-ip "127.0.0.1"\
+    --tournament-manager-port "8081"\
+    --tournament-manager-api-key "testtest" \
+    --use-minio "true"\
+    --minio-endpoint "127.0.0.1:9000"\
+    --minio-access-key "guest"\
+    --minio-secret-key "guest1234" \
+    --server-bucket-name "server"\
+    --base-team-bucket-name "baseteam"\
+    --team-config-bucket-name "teamconfig" \
+    --game-log-bucket-name "gamelog"\
+    --to-runner-queue "to-runner"
+
+```
+
 ## Workflow
 
 ```mermaid

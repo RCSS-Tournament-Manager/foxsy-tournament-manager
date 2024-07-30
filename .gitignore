@@ -8,3 +8,5 @@ runner/composes/rabbit-minio-runner/data2/server/rcssserver
 storage/data/tournament.db
 runner/composes/.env
 deploy/data
+.idea
+data/

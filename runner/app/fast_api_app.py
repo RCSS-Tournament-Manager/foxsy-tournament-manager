@@ -6,7 +6,7 @@ from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
 
 class FastApiApp:
-    def __init__(self, manager: RunnerManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
+    def __init__(self, manager: RunnerManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):      
         self.app = FastAPI()
         self.manager = manager
         self.api_key = api_key

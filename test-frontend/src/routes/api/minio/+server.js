@@ -6,8 +6,8 @@ const minioClient = new Minio.Client({
     endPoint: 'localhost',
     port: 9000,
     useSSL: false,
-    accessKey: 'minioadmin',
-    secretKey: 'minioadmin'
+    accessKey: 'guest',
+    secretKey: 'guest1234'
 });
 
 // POST endpoint for actions other than upload

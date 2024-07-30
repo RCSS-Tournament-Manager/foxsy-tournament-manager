@@ -92,8 +92,10 @@
 <div class="container mx-auto py-10">
     <Tabs.Root value="teams" class="w-full">
         <Tabs.List>
-            <Tabs.Trigger value="teams">Teams</Tabs.Trigger>
-            <Tabs.Trigger value="logs">Logs</Tabs.Trigger>
+            <Tabs.Trigger value="baseteam">Base Team</Tabs.Trigger>
+            <Tabs.Trigger value="gamelog">Game Log</Tabs.Trigger>
+            <Tabs.Trigger value="server">Server</Tabs.Trigger>
+            <Tabs.Trigger value="teamconfig">Team Config</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="teams">
             <DataTable {files} onUpload={handleUpload("test")} />
