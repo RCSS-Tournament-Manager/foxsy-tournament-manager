@@ -24,6 +24,34 @@ message_sender = None
 game_runner_manager = None
 fast_api_app = None
 
+# def check_directory_permissions(directory_path):
+#     if os.path.isdir(directory_path):
+#         logging.info(f"{directory_path} is a directory")
+#     else:
+#         logging.info(f"{directory_path} is not a directory or does not exist")
+
+#     if os.access(directory_path, os.R_OK):
+#         logging.info(f"Read permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Read permissions are not granted for the directory: {directory_path}")
+
+#     if os.access(directory_path, os.W_OK):
+#         logging.info(f"Write permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Write permissions are not granted for the directory: {directory_path}")
+
+#     if os.access(directory_path, os.X_OK):
+#         logging.info(f"Execute permissions are granted for the directory: {directory_path}")
+#     else:
+#         logging.info(f"Execute permissions are not granted for the directory: {directory_path}")
+        
+#     try:
+#         return os.stat(directory_path).st_mode
+#     except Exception as e:
+#         logging.error(f"Failed to get permissions for the directory: {directory_path}", exc_info=True)
+#         return None
+
+
 def get_args():
     parser = argparse.ArgumentParser(description="RoboCup Soccer Simulation 2D Game Runner FastAPI app")
     parser.add_argument("--data-dir", type=str, default="../data", help="Directory to store data files")

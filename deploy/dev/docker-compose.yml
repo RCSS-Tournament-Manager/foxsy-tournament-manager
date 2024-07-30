@@ -12,7 +12,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
-      - ../data/minio:/data
+      - ${MINIO_DATA_PATH}:/data
     networks:
       dev_network:
         ipv4_address: 10.100.0.4
@@ -27,7 +27,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
-      - ../data/rabbitmq:/var/lib/rabbitmq
+      - ${RABBITMQ_DATA_PATH}:/var/lib/rabbitmq
     command: >
       sh -c "
       rabbitmq-plugins enable --offline rabbitmq_management &&
@@ -36,6 +36,42 @@ services:
     networks:
       dev_network:
         ipv4_address: 10.100.0.5
+
+  runner-app:
+    image: foxsy-runner-app:latest
+    container_name: foxsy-runner-app
+    privileged: true
+    environment:
+      - DATA_DIR=${RUNNER_DATA_DIR}
+      - LOG_DIR=${RUNNER_LOG_DIR}
+      - API_KEY=${RUNNER_API_KEY}
+      - MAX_GAMES_COUNT=${RUNNER_MAX_GAMES_COUNT}
+      - USE_FAST_API=${RUNNER_USE_FAST_API}
+      - FAST_API_PORT=${RUNNER_FAST_API_PORT}
+      - USE_RABBITMQ=${RUNNER_USE_RABBITMQ}
+      - RABBITMQ_HOST=${RUNNER_RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RUNNER_RABBITMQ_PORT}
+      - RABBITMQ_USERNAME=${RUNNER_RABBITMQ_USERNAME}
+      - RABBITMQ_PASSWORD=${RUNNER_RABBITMQ_PASSWORD}
+      - TO_RUNNER_QUEUE=${RUNNER_TO_RUNNER_QUEUE}
+      - CONNECT_TO_TOURNAMENT_MANAGER=${RUNNER_CONNECT_TO_TOURNAMENT_MANAGER}
+      - TOURNAMENT_MANAGER_IP=${RUNNER_TOURNAMENT_MANAGER_IP}
+      - TOURNAMENT_MANAGER_PORT=${RUNNER_TOURNAMENT_MANAGER_PORT}
+      - TOURNAMENT_MANAGER_API_KEY=${RUNNER_TOURNAMENT_MANAGER_API_KEY}
+      - USE_MINIO=${RUNNER_USE_MINIO}
+      - MINIO_ENDPOINT=${RUNNER_MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${RUNNER_MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${RUNNER_MINIO_SECRET_KEY}
+      - SERVER_BUCKET_NAME=${RUNNER_SERVER_BUCKET_NAME}
+      - BASE_TEAM_BUCKET_NAME=${RUNNER_BASE_TEAM_BUCKET_NAME}
+      - TEAM_CONFIG_BUCKET_NAME=${RUNNER_TEAM_CONFIG_BUCKET_NAME}
+      - GAME_LOG_BUCKET_NAME=${RUNNER_GAME_LOG_BUCKET_NAME}
+    networks:
+      - dev_network
+    ports:
+      - "8082:8082"
+    volumes:
+      - ${RUNNER_APP_DATA_PATH}:/app/data
 
 networks:
   dev_network:

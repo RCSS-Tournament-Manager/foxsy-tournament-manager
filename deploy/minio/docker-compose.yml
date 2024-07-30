@@ -14,7 +14,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
-      - ../data/minio:/data
+      - ${MINIO_DATA_PATH}:/data
 
 networks:
   dev_network:
