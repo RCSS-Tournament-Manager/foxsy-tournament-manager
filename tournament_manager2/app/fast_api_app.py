@@ -84,10 +84,10 @@ class FastApiApp:
                 return {"success": False, "error": str(e)}
 
         @self.app.post("/register")
-        async def register(json: RegisterMessage, api_key: str = Depends(get_api_key)):
+        async def register(json: RegisterGameRunnerRequest, api_key: str = Depends(get_api_key)):
             try:
                 self.logger.info(f"register: {json}")
-                RegisterMessage.validate(json.dict())
+                RegisterGameRunnerRequest.validate(json.dict())
                 # return await self.manager.register(json)
                 return {"success": True}
             except Exception as e:

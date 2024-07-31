@@ -91,9 +91,9 @@ async def send_register_message():
     while args.connect_to_tournament_manager:
         try:
             register_resp = await message_sender.send_message("register",
-                                                              RegisterMessage(ip=args.tournament_manager_ip,
-                                                                              port=args.tournament_manager_port,
-                                                                              available_games_count=args.max_games_count).dict())
+                                                              RegisterGameRunnerRequest(ip=args.tournament_manager_ip,
+                                                                                        port=args.tournament_manager_port,
+                                                                                        available_games_count=args.max_games_count).dict())
             logging.info(f"Register response: {register_resp}")
             break
         except Exception as e:
