@@ -17,6 +17,7 @@ class MinioClient(StorageClient):
             secret_key=secret_key,
             secure=secure
         )
+
     def upload_file(self, bucket_name, file_path, object_name):
         try:
             self.client.fput_object(bucket_name, object_name, file_path)
@@ -33,6 +34,9 @@ class MinioClient(StorageClient):
         except Exception as e:
             logging.error(f"Error occurred: {e}")
             return False
+
+    async def download_log_file(self, log_file_name, file_path):
+        return self.download_file(self.game_log_bucket_name, log_file_name, file_path)
 
     def check_connection(self):
         try:
@@ -63,26 +67,3 @@ class MinioClient(StorageClient):
             else:
                 logging.error(f"Error occurred: {e}")
 
-# Example usage:
-# if __name__ == "__main__":
-#     # Initialize the Minio client
-#     minio_client = MinioClient(
-#         endpoint="localhost:9000",
-#         access_key="minioadmin",
-#         secret_key="minioadmin",
-#         secure=False
-#     )
-#
-#     # Upload a file
-#     minio_client.upload_file(
-#         bucket_name="mybucket",
-#         file_path="t.txt",
-#         object_name="remote_file.txt"
-#     )
-#
-#     # Download a file
-#     minio_client.download_file(
-#         bucket_name="mybucket",
-#         object_name="Screenshot 2024-02-20 200127.png",
-#         file_path="./downloads/screenshot.png"
-#     )
