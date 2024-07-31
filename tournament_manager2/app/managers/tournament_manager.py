@@ -9,6 +9,7 @@ import asyncio
 from sqlalchemy.sql import exists
 from utils.rmq_message_sender import RmqMessageSender
 import logging
+from storage.minio_client import MinioClient
 
 
 def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: TeamModel) -> GameInfoMessage:
@@ -27,11 +28,12 @@ def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: 
 
 
 class TournamentManager:
-    def __init__(self, database_manager: DataBaseManager, rmq_message_sender: RmqMessageSender):
+    def __init__(self, database_manager: DataBaseManager, rmq_message_sender: RmqMessageSender, minio_client: MinioClient):
         self.logger = logging.getLogger(__name__)
         self.logger.info('TournamentManager created')
         self.database_manager = database_manager
         self.rmq_message_sender = rmq_message_sender
+        self.minio_client = minio_client
 
     async def add_tournament(self, message: AddTournamentRequestMessage) -> AddTournamentResponseMessage:
         self.logger.info(f"add_tournament: {message}")
@@ -177,4 +179,32 @@ class TournamentManager:
             tournament.done = True
 
         session.commit()
+
+    async def get_game(self, game_id):
+        self.logger.info(f"get_game: {game_id}")
+        session = self.database_manager.get_session()
+        game = (session.query(GameModel)
+                .options(joinedload(GameModel.tournament))
+                .filter_by(id=game_id).first())
+        session.close()
+        if not game:
+            return None
+        game_message = MessageConvertor.convert_game_model_to_game_message(game)
+        self.logger.info(f"get_game: {game_message}")
+        return game_message
+
+    async def download_log_file(self, game_id, file_path):
+        self.logger.info(f"get_log_file: {game_id}")
+        session = self.database_manager.get_session()
+        game = (session.query(GameModel)
+                .options(joinedload(GameModel.tournament))
+                .filter_by(id=game_id).first())
+        session.close()
+        if not game:
+            raise Exception(f"Game not found: {game_id}")
+        if game.status != GameSatus.FINISHED:
+            raise Exception(f"Game is not finished: {game_id}")
+        log_file_name = f"{game_id}.zip"
+
+        return await self.minio_client.download_log_file(log_file_name, file_path)
 

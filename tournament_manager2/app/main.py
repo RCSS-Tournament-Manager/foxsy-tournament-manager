@@ -1,7 +1,3 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from models import TeamModel, GameModel, TournamentModel
-from models.base import Base
 import logging
 import logging.config
 from utils.logging_config import get_logging_config
@@ -13,6 +9,7 @@ import asyncio
 import signal
 from managers.database_manager import DataBaseManager
 from utils.rmq_message_sender import RmqMessageSender
+from storage.minio_client import MinioClient
 
 
 logging.warning("This is a warning message")
@@ -29,6 +26,13 @@ def get_args():
     parser.add_argument("--rabbitmq-username", type=str, default="guest", help="RabbitMQ username")
     parser.add_argument("--rabbitmq-password", type=str, default="guest1234", help="RabbitMQ password")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
+    parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
+    parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
+    parser.add_argument("--minio-secret-key", type=str, default="guest1234", help="Minio secret key")
+    parser.add_argument("--server-bucket-name", type=str, default="server", help="Server bucket name")
+    parser.add_argument("--base-team-bucket-name", type=str, default="baseteam", help="Team bucket name")
+    parser.add_argument("--team-config-bucket-name", type=str, default="teamconfig", help="Team config bucket name")
+    parser.add_argument("--game-log-bucket-name", type=str, default="gamelog", help="Match bucket name")
     args, unknown = parser.parse_known_args()
     return args
 
@@ -47,7 +51,19 @@ logging.config.dictConfig(get_logging_config(log_dir))
 logging.info('Tournament Manager started')
 logging.debug(f'args: {args}')
 
+minio_client = MinioClient(
+    server_bucket_name=args.server_bucket_name,
+    base_team_bucket_name=args.base_team_bucket_name,
+    team_config_bucket_name=args.team_config_bucket_name,
+    game_log_bucket_name=args.game_log_bucket_name
+)
 
+minio_client.init(endpoint=args.minio_endpoint,
+                  access_key=args.minio_access_key,
+                  secret_key=args.minio_secret_key,
+                  secure=False)
+
+minio_client.wait_to_connect()
 
 async def main():
     database_manager = DataBaseManager(args.data_dir, args.db)
@@ -55,7 +71,7 @@ async def main():
                                           args.rabbitmq_username,
                                           args.rabbitmq_password)
     await rmq_message_sender.connect()
-    tournament_manager = TournamentManager(database_manager, rmq_message_sender)
+    tournament_manager = TournamentManager(database_manager, rmq_message_sender, minio_client)
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')

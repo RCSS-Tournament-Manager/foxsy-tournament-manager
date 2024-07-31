@@ -5,6 +5,9 @@ from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
 import logging
+from fastapi.responses import FileResponse
+import aiofiles
+import os
 
 class FastApiApp:
     def __init__(self, manager: TournamentManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
@@ -53,6 +56,28 @@ class FastApiApp:
             res = await self.manager.get_tournament(tournament_id)
             self.logger.info(f"get_tournament: {res}")
             return res
+
+        @self.app.get("/get_game/{game_id}")
+        async def get_game(game_id: int, api_key: str = Depends(get_api_key)):
+            self.logger.info(f"get_game: {game_id}")
+            res = await self.manager.get_game(game_id)
+            self.logger.info(f"get_game: {res}")
+            return res
+
+        @self.app.get("/download_log/{game_id}")
+        async def download_log(game_id: str):
+            self.logger.info(f"download_log: {game_id}")
+            game_log_name = f"{game_id}.zip"
+            tmp_file_path = os.path.join("/tmp", game_log_name)
+            try:
+                res = await self.manager.download_log_file(game_id, tmp_file_path)
+                if not res:
+                    raise Exception(f"File not found: {game_id}")
+                if not os.path.exists(tmp_file_path):
+                    raise Exception(f"File not found: {tmp_file_path}")
+                return FileResponse(tmp_file_path, media_type="application/octet-stream", filename=game_log_name)
+            except Exception as e:
+                raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
 
         @self.app.get("/get_tournaments")
         async def get_tournaments(api_key: str = Depends(get_api_key)):
