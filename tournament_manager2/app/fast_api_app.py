@@ -121,7 +121,7 @@ class FastApiApp:
         @self.app.get("/tmp_get_url/{game_id}")
         async def tmp_get_url(game_id: int, api_key: str = Depends(get_api_key)):
             self.logger.info(f"tmp_get_url: {game_id}")
-            path = f'/home/foxsy/Development/runner/data/runner/gamelog/{game_id}'
+            path = f'/app/data/gamelog/{game_id}'
             files = os.listdir(path)
             rcg_file_name = None
             for file in files:
