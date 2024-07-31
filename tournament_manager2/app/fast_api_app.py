@@ -118,6 +118,22 @@ class FastApiApp:
                 self.logger.error(f"register: {e}")
                 return {"success": False, "error": str(e)}
 
+        @self.app.get("/tmp_get_url/{game_id}")
+        async def tmp_get_url(game_id: int, api_key: str = Depends(get_api_key)):
+            self.logger.info(f"tmp_get_url: {game_id}")
+            path = f'/home/foxsy/Development/runner/data/runner/gamelog/{game_id}'
+            files = os.listdir(path)
+            rcg_file_name = None
+            for file in files:
+                if file.endswith('.rcg'):
+                    rcg_file_name = file
+                    break
+            if rcg_file_name is None:
+                raise HTTPException(status_code=404, detail=f"File not found: {game_id}")
+            url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/gamelog/{game_id}/{rcg_file_name}'
+            return {"url": url}
+
+
 
     async def run(self):
         self.logger.info('Starting FastAPI app')
