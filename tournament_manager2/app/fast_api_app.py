@@ -6,7 +6,6 @@ from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
 import logging
 from fastapi.responses import FileResponse
-import aiofiles
 import os
 
 class FastApiApp:
