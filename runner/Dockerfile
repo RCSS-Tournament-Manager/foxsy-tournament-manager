@@ -1,7 +1,14 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-RUN apt update && apt-get install -y fuse && rm -rf /var/lib/apt/lists/*
+# Install necessary dependencies, including Rust and Cargo
+RUN apt update && apt-get install -y fuse curl build-essential && rm -rf /var/lib/apt/lists/*
+
+# Install Rust and Cargo
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Ensure Rust and Cargo are available in the environment for subsequent commands
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Create a non-root user
 RUN useradd -ms /bin/bash appuser
@@ -12,7 +19,7 @@ COPY . /app
 RUN chown -R appuser:appuser /app
 
 # Install dependencies
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --upgrade pip && pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the entrypoint script and make it executable
 COPY entrypoint.sh /app/entrypoint.sh
