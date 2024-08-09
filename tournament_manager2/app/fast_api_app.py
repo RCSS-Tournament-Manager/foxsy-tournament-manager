@@ -6,6 +6,7 @@ from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
 import logging
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 class FastApiApp:
@@ -16,6 +17,16 @@ class FastApiApp:
         self.api_key = api_key
         self.api_key_name = api_key_name
         self.port = port
+
+        # Add CORS middleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # Allow all origins
+            allow_credentials=True,
+            allow_methods=["*"],  # Allow all methods
+            allow_headers=["*"],  # Allow all headers
+        )
+
         self.setup_routes()
 
     def setup_routes(self):
