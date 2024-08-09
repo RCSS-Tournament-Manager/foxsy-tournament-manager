@@ -1,7 +1,7 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-RUN apt update && apt-get install -y fuse && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt-get install -y fuse curl build-essential && rm -rf /var/lib/apt/lists/*
 
 # Install Rust and Cargo
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
