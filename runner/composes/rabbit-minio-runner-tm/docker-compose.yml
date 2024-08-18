@@ -59,7 +59,7 @@ services:
       BASE_TEAM_BUCKET_NAME: baseteam
       TEAM_CONFIG_BUCKET_NAME: teamconfig
       GAME_LOG_BUCKET_NAME: gamelog
-      TMP_GAME_LOD_DIR: /app/tmp_game_log
+      TMP_GAME_LOG_DIR: /app/tmp_game_log
     networks:
       - dev_network
     depends_on:

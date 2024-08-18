@@ -16,7 +16,7 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest1234
       TO_RUNNER_QUEUE: to-runner
-      TMP_GAME_LOD_DIR: /app/tmp_game_log
+      TMP_GAME_LOG_DIR: /app/tmp_game_log
     networks:
       - dev_network
     ports:

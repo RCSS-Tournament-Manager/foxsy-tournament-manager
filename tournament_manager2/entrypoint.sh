@@ -19,7 +19,7 @@
 : "${BASE_TEAM_BUCKET_NAME:=baseteam}"
 : "${TEAM_CONFIG_BUCKET_NAME:=teamconfig}"
 : "${GAME_LOG_BUCKET_NAME:=gamelog}"
-: "${TMP_GAME_LOD_DIR:=/app/tmp_game_log}"
+: "${TMP_GAME_LOG_DIR:=/app/tmp_game_log}"
 
 cd app
 
@@ -31,4 +31,4 @@ exec python -m main --data-dir "$DATA_DIR" --log-dir "$LOG_DIR" --db "$DB" \
     --minio-endpoint "$MINIO_ENDPOINT" --minio-access-key "$MINIO_ACCESS_KEY" --minio-secret-key \
     "$MINIO_SECRET_KEY" --server-bucket-name "$SERVER_BUCKET_NAME" --base-team-bucket-name "$BASE_TEAM_BUCKET_NAME" \
     --team-config-bucket-name "$TEAM_CONFIG_BUCKET_NAME" --game-log-bucket-name "$GAME_LOG_BUCKET_NAME" \
-    --tmp-game-log-dir "$TMP_GAME_LOD_DIR"
+    --tmp-game-log-dir "$TMP_GAME_LOG_DIR"
