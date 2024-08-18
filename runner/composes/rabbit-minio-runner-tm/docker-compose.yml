@@ -59,6 +59,7 @@ services:
       BASE_TEAM_BUCKET_NAME: baseteam
       TEAM_CONFIG_BUCKET_NAME: teamconfig
       GAME_LOG_BUCKET_NAME: gamelog
+      TMP_GAME_LOD_DIR: /app/tmp_game_log
     networks:
       - dev_network
     depends_on:
@@ -68,6 +69,7 @@ services:
       - "8085:8085"
     volumes:
       - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\data:/app/data
+      - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\tmp_game_log:/app/tmp_game_log
 
   runner-app:
 #    build: .

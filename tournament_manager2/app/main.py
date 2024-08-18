@@ -18,6 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='RoboCup Soccer Simulation 2D Tournament Manager app')
     parser.add_argument('--data-dir', type=str, default='../data', help='Directory to store data files')
     parser.add_argument('--log-dir', type=str, default='../data/logs', help='Directory to store log files')
+    parser.add_argument("--tmp-game-lod-dir", type=str, default="../data/game_logs", help="Directory to store temporary game log files")
     parser.add_argument('--db', default='example.db', help='Database file name')
     parser.add_argument("--api-key", type=str, default="api-key", help="API key for authentication")
     parser.add_argument("--fast-api-port", type=int, default=8085, help="Port to run FastAPI app")
@@ -76,6 +77,7 @@ async def main():
     async def run_fastapi():
         logging.info('Starting FastAPI app')
         fast_api_app = FastApiApp(tournament_manager, api_key, api_key_name, args.fast_api_port)
+        fast_api_app.game_log_tmp_path = args.tmp_game_lod_dir
         await fast_api_app.run()
 
     async def run_game_sender():

@@ -17,6 +17,7 @@ class FastApiApp:
         self.api_key = api_key
         self.api_key_name = api_key_name
         self.port = port
+        self.game_log_tmp_path = "/app/game_log_tmp"
 
         # Add CORS middleware
         self.app.add_middleware(
@@ -132,7 +133,34 @@ class FastApiApp:
         @self.app.get("/tmp_get_url/{game_id}")
         async def tmp_get_url(game_id: int, api_key: str = Depends(get_api_key)):
             self.logger.info(f"tmp_get_url: {game_id}")
-            path = f'/app/data/gamelog/{game_id}'
+            game_log_tmp_path = self.game_log_tmp_path
+            if not os.path.exists(game_log_tmp_path):
+                os.makedirs(game_log_tmp_path)
+            game_log_name = f"{game_id}"
+            tmp_file_path = os.path.join(game_log_tmp_path, f"{game_log_name}.zip")
+
+            if not os.path.exists(tmp_file_path):
+                self.logger.debug(f"downloading log file: {game_id} to {tmp_file_path}")
+                try:
+                    res = await self.manager.download_log_file(game_id, tmp_file_path)
+                    if not res:
+                        raise Exception(f"File not found: {game_id}")
+                    if not os.path.exists(tmp_file_path):
+                        raise Exception(f"File not found: {tmp_file_path}")
+
+                except Exception as e:
+                    raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
+
+            import zipfile
+            tmp_dir_path = os.path.join(game_log_tmp_path, game_log_name)
+            self.logger.debug(f"unzipping file: {tmp_file_path} to {tmp_dir_path}")
+            with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp_dir_path)
+
+            if not os.path.exists(tmp_dir_path):
+                raise Exception(f"Dir not found: {tmp_dir_path}")
+
+            path = tmp_dir_path
             files = os.listdir(path)
             rcg_file_name = None
             for file in files:
@@ -143,8 +171,6 @@ class FastApiApp:
                 raise HTTPException(status_code=404, detail=f"File not found: {game_id}")
             url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/gamelog/{game_id}/{rcg_file_name}'
             return {"url": url}
-
-
 
     async def run(self):
         self.logger.info('Starting FastAPI app')

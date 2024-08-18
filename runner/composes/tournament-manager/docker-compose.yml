@@ -16,12 +16,14 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest1234
       TO_RUNNER_QUEUE: to-runner
+      TMP_GAME_LOD_DIR: /app/tmp_game_log
     networks:
       - dev_network
     ports:
       - "8085:8085"
     volumes:
       - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\data:/app/data
+      - D:\workspace\foxsy\foxsy-tournament-runner\tournament_manager2\tmp_game_log:/app/tmp_game_log
 
 
 volumes:
