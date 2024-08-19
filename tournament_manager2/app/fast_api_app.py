@@ -138,6 +138,7 @@ class FastApiApp:
                 os.makedirs(game_log_tmp_path)
             game_log_name = f"{game_id}"
             tmp_file_path = os.path.join(game_log_tmp_path, f"{game_log_name}.zip")
+            tmp_dir_path = os.path.join(game_log_tmp_path, game_log_name)
 
             if not os.path.exists(tmp_file_path):
                 self.logger.debug(f"downloading log file: {game_id} to {tmp_file_path}")
@@ -151,14 +152,14 @@ class FastApiApp:
                 except Exception as e:
                     raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
 
-            import zipfile
-            tmp_dir_path = os.path.join(game_log_tmp_path, game_log_name)
-            self.logger.debug(f"unzipping file: {tmp_file_path} to {tmp_dir_path}")
-            with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
-                zip_ref.extractall(tmp_dir_path)
+                import zipfile
 
-            if not os.path.exists(tmp_dir_path):
-                raise Exception(f"Dir not found: {tmp_dir_path}")
+                self.logger.debug(f"unzipping file: {tmp_file_path} to {tmp_dir_path}")
+                with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+                    zip_ref.extractall(tmp_dir_path)
+
+                if not os.path.exists(tmp_dir_path):
+                    raise Exception(f"Dir not found: {tmp_dir_path}")
 
             path = tmp_dir_path
             files = os.listdir(path)
