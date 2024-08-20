@@ -170,7 +170,7 @@ class FastApiApp:
                     break
             if rcg_file_name is None:
                 raise HTTPException(status_code=404, detail=f"File not found: {game_id}")
-            url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/gamelog/{game_id}/{rcg_file_name}'
+            url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/{game_id}/{rcg_file_name}'
             return {"url": url}
 
     async def run(self):
