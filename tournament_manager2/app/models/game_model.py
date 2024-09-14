@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 
-class GameSatus:
+class GameStatus:
     PENDING = 'pending'
     IN_QUEUE = 'in_queue'
     IN_PROGRESS = 'in_progress'
@@ -17,7 +17,7 @@ class GameModel(Base):
     left_team_id = Column(Integer, ForeignKey('teams.id'))
     right_team_id = Column(Integer, ForeignKey('teams.id'))
     tournament_id = Column(Integer, ForeignKey('tournaments.id'))
-    status = Column(String, default=GameSatus.PENDING)
+    status = Column(String, default=GameStatus.PENDING)
     left_score = Column(Integer, default=0)
     right_score = Column(Integer, default=0)
 
