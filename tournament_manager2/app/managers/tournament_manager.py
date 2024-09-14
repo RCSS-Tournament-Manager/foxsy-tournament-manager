@@ -181,18 +181,20 @@ class TournamentManager:
         self.logger.info(f"get_game: {game_message}")
         return game_message
 
+    # Use self.minio_client in your methods
     async def download_log_file(self, game_id: int, file_path: str):
-        self.logger.info(f"download_log_file: {game_id}")
-        session = self.db_session
-
-        stmt = select(GameModel).where(GameModel.id == game_id)
-        result = await session.execute(stmt)
-        game = result.scalars().first()
-
-        if not game:
-            raise Exception(f"Game not found: {game_id}")
-        if game.status != GameStatus.FINISHED:
-            raise Exception(f"Game is not finished: {game_id}")
-
+        self.logger.info(f"Downloading log file for game_id: {game_id}")
         log_file_name = f"{game_id}.zip"
-        return await self.minio_client.download_log_file(log_file_name, file_path)
+
+        # Run the blocking I/O operation in a separate thread
+        success = await asyncio.to_thread(
+            self.minio_client.download_file,
+            bucket_name=self.minio_client.game_log_bucket_name,
+            object_name=log_file_name,
+            file_path=file_path
+        )
+
+        if success:
+            self.logger.info(f"Log file for game_id {game_id} downloaded successfully.")
+        else:
+            self.logger.error(f"Failed to download log file for game_id {game_id}.")

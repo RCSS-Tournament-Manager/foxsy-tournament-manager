@@ -1,69 +1,126 @@
-from minio import Minio
-from minio.error import S3Error
-from storage.storage_client import StorageClient
+# managers/minio_client.py
+
+import aiobotocore.session
+import asyncio
 import logging
-import time
+from botocore.exceptions import ClientError, EndpointConnectionError
+from typing import Optional
 
-
-class MinioClient(StorageClient):
-    def __init__(self, server_bucket_name, base_team_bucket_name, team_config_bucket_name, game_log_bucket_name):
-        super().__init__(server_bucket_name, base_team_bucket_name, team_config_bucket_name, game_log_bucket_name)
+class MinioClient:
+    def __init__(
+        self,
+        endpoint_url: str,
+        access_key: str,
+        secret_key: str,
+        secure: bool = True,
+        server_bucket_name: str = None,
+        base_team_bucket_name: str = None,
+        team_config_bucket_name: str = None,
+        game_log_bucket_name: str = None
+    ):
+        self.endpoint_url = endpoint_url
+        self.access_key = access_key
+        self.secret_key = secret_key
+        self.secure = secure
+        self.session = None
         self.client = None
 
-    def init(self, endpoint, access_key, secret_key, secure=True):
-        self.client = Minio(
-            endpoint,
-            access_key=access_key,
-            secret_key=secret_key,
-            secure=secure
-        )
+        # Buckets
+        self.server_bucket_name = server_bucket_name
+        self.base_team_bucket_name = base_team_bucket_name
+        self.team_config_bucket_name = team_config_bucket_name
+        self.game_log_bucket_name = game_log_bucket_name
 
-    def upload_file(self, bucket_name, file_path, object_name):
+    async def init(self):
+        # Initialize the aiobotocore session
+        self.session = aiobotocore.session.get_session()
+
+        # Build the endpoint URL with the correct scheme
+        scheme = 'https' if self.secure else 'http'
+        endpoint_url = f"{scheme}://{self.endpoint_url}"
+
+        # Create the client
+        self.client = await self.session.create_client(
+            's3',
+            endpoint_url=endpoint_url,
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+        ).__aenter__()
+
+    async def close(self):
+        if self.client:
+            await self.client.__aexit__(None, None, None)
+
+    async def upload_file(self, bucket_name: str, file_path: str, object_name: str):
         try:
-            self.client.fput_object(bucket_name, object_name, file_path)
+            with open(file_path, 'rb') as f:
+                data = f.read()
+            await self.client.put_object(Bucket=bucket_name, Key=object_name, Body=data)
             logging.info(f"'{file_path}' is successfully uploaded as '{object_name}' in '{bucket_name}' bucket.")
         except Exception as e:
-            logging.error(f"Error occurred: {e}")
+            logging.error(f"Error occurred while uploading: {e}")
 
-    def download_file(self, bucket_name, object_name, file_path):
+    async def download_file(self, bucket_name: str, object_name: str, file_path: str):
         try:
-            logging.debug(f"Downloading '{object_name}' from '{bucket_name}' bucket to '{file_path}'")
-            self.client.fget_object(bucket_name, object_name, file_path)
+            response = await self.client.get_object(Bucket=bucket_name, Key=object_name)
+            async with response['Body'] as stream:
+                data = await stream.read()
+            with open(file_path, 'wb') as f:
+                f.write(data)
             logging.info(f"'{object_name}' is successfully downloaded to '{file_path}' from '{bucket_name}' bucket.")
             return True
         except Exception as e:
-            logging.error(f"Error occurred: {e}")
+            logging.error(f"Error occurred while downloading: {e}")
             return False
 
-    async def download_log_file(self, log_file_name, file_path):
-        return self.download_file(self.game_log_bucket_name, log_file_name, file_path)
+    async def download_log_file(self, log_file_name: str, file_path: str):
+        return await self.download_file(self.game_log_bucket_name, log_file_name, file_path)
 
-    def check_connection(self):
+    async def check_connection(self) -> bool:
         try:
-            self.client.list_buckets()
+            await self.client.list_buckets()
             return True
+        except EndpointConnectionError as e:
+            logging.error(f"Connection error: {e}")
+            return False
+        except ClientError as e:
+            logging.error(f"Client error: {e}")
+            return False
         except Exception as e:
-            logging.error(f"Error occurred: {e}")
+            logging.error(f"Unexpected error: {e}")
             return False
 
-    def wait_to_connect(self):
-        while not self.check_connection():
-            logging.error("Failed to connect to Minio, retrying in 5 seconds...")
-            time.sleep(5)
+    async def wait_to_connect(self):
+        while not await self.check_connection():
+            logging.error("Failed to connect to MinIO, retrying in 5 seconds...")
+            await asyncio.sleep(5)
+        logging.info("Connected to MinIO.")
 
-    def create_buckets(self):
-        self.create_bucket(self.server_bucket_name)
-        self.create_bucket(self.base_team_bucket_name)
-        self.create_bucket(self.team_config_bucket_name)
-        self.create_bucket(self.game_log_bucket_name)
+    async def create_buckets(self):
+        buckets = [
+            self.server_bucket_name,
+            self.base_team_bucket_name,
+            self.team_config_bucket_name,
+            self.game_log_bucket_name,
+        ]
+        for bucket_name in buckets:
+            if bucket_name:
+                await self.create_bucket(bucket_name)
 
-    def create_bucket(self, bucket_name):
+    async def create_bucket(self, bucket_name: str):
         try:
-            self.client.make_bucket(bucket_name)
+            # Check if bucket exists
+            response = await self.client.list_buckets()
+            existing_buckets = [b['Name'] for b in response['Buckets']]
+            if bucket_name in existing_buckets:
+                logging.info(f"Bucket '{bucket_name}' already exists.")
+                return
+            await self.client.create_bucket(Bucket=bucket_name)
             logging.info(f"Bucket '{bucket_name}' is successfully created.")
-        except S3Error as e:
-            if e.code == "BucketAlreadyOwnedByYou":
+        except ClientError as e:
+            if e.response['Error']['Code'] == "BucketAlreadyOwnedByYou":
                 logging.info(f"Bucket '{bucket_name}' already exists.")
             else:
-                logging.error(f"Error occurred: {e}")
-
+                logging.error(f"Error occurred while creating bucket: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error occurred while creating bucket: {e}")

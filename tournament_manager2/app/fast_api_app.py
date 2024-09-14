@@ -11,14 +11,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator, List
+from storage.minio_client import MinioClient
 
 
 
 class FastApiApp:
-    def __init__(self, db_manager: DatabaseManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
+    def __init__(self, db_manager: DatabaseManager, minio_client: MinioClient, api_key: str, api_key_name: str = "api_key", port: int = 8000):
         self.logger = logging.getLogger(__name__)
         self.app = FastAPI()
         self.db_manager = db_manager
+        self.minio_client = minio_client
         self.api_key = api_key
         self.api_key_name = api_key_name
         self.port = port
@@ -51,10 +53,13 @@ class FastApiApp:
             async for session in self.db_manager.get_session():
                 yield session
 
-        async def get_tournament_manager(
+        def get_tournament_manager(
             db_session: AsyncSession = Depends(get_db)
         ) -> TournamentManager:
-            return TournamentManager(db_session=db_session)
+            return TournamentManager(
+                db_session=db_session,
+                minio_client=self.minio_client
+            )
         
         @self.app.get("/")
         def read_root():

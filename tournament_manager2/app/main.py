@@ -54,19 +54,6 @@ logging.config.dictConfig(get_logging_config(log_dir))
 logging.info('Tournament Manager started')
 logging.debug(f'args: {args}')
 
-minio_client = MinioClient(
-    server_bucket_name=args.server_bucket_name,
-    base_team_bucket_name=args.base_team_bucket_name,
-    team_config_bucket_name=args.team_config_bucket_name,
-    game_log_bucket_name=args.game_log_bucket_name
-)
-
-minio_client.init(endpoint=args.minio_endpoint,
-                  access_key=args.minio_access_key,
-                  secret_key=args.minio_secret_key,
-                  secure=False)
-
-minio_client.wait_to_connect()
 
 async def main():
     database_path = os.path.abspath(os.path.join(args.data_dir, args.db))
@@ -74,7 +61,22 @@ async def main():
 
     database_manager = DatabaseManager('sqlite+aiosqlite:///{}'.format(f'{database_path}'))
     await database_manager.init_db()  # Initialize the database (create tables)
-    
+
+    # Initialize MinioClient
+    minio_client = MinioClient(
+        endpoint_url=args.minio_endpoint,
+        access_key=args.minio_access_key,
+        secret_key=args.minio_secret_key,
+        secure=False,  # Set to True if using HTTPS
+        server_bucket_name=args.server_bucket_name,
+        base_team_bucket_name=args.base_team_bucket_name,
+        team_config_bucket_name=args.team_config_bucket_name,
+        game_log_bucket_name=args.game_log_bucket_name
+    )
+    await minio_client.init()
+    await minio_client.wait_to_connect()
+    await minio_client.create_buckets()
+        
     rmq_message_sender = RmqMessageSender(args.rabbitmq_host, args.rabbitmq_port, args.to_runner_queue,
                                           args.rabbitmq_username,
                                           args.rabbitmq_password)
@@ -82,7 +84,7 @@ async def main():
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')
-        fast_api_app = FastApiApp(database_manager, api_key, api_key_name, args.fast_api_port)
+        fast_api_app = FastApiApp(database_manager, minio_client, api_key, api_key_name, args.fast_api_port)
         fast_api_app.game_log_tmp_path = args.tmp_game_log_dir
         await fast_api_app.run()
 
