@@ -7,9 +7,11 @@ from managers.tournament_manager import TournamentManager
 from fast_api_app import FastApiApp
 import asyncio
 import signal
-from managers.database_manager import DataBaseManager
+from managers.database_manager import DatabaseManager
 from utils.rmq_message_sender import RmqMessageSender
 from storage.minio_client import MinioClient
+from managers.scheduler import Scheduler
+from managers.run_game_sender import run_game_sender
 
 
 logging.warning("This is a warning message")
@@ -67,24 +69,36 @@ minio_client.init(endpoint=args.minio_endpoint,
 minio_client.wait_to_connect()
 
 async def main():
-    database_manager = DataBaseManager(args.data_dir, args.db)
+    database_path = os.path.abspath(os.path.join(args.data_dir, args.db))
+    logging.info(f'{database_path=}')
+
+    database_manager = DatabaseManager('sqlite+aiosqlite:///{}'.format(f'{database_path}'))
+    await database_manager.init_db()  # Initialize the database (create tables)
+    
     rmq_message_sender = RmqMessageSender(args.rabbitmq_host, args.rabbitmq_port, args.to_runner_queue,
                                           args.rabbitmq_username,
                                           args.rabbitmq_password)
     await rmq_message_sender.connect()
-    tournament_manager = TournamentManager(database_manager, rmq_message_sender, minio_client)
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')
-        fast_api_app = FastApiApp(tournament_manager, api_key, api_key_name, args.fast_api_port)
+        fast_api_app = FastApiApp(database_manager, api_key, api_key_name, args.fast_api_port)
         fast_api_app.game_log_tmp_path = args.tmp_game_log_dir
         await fast_api_app.run()
 
-    async def run_game_sender():
-        await tournament_manager.run_game_sender()
+    async def running_game_sender():
+        # Initialize and start the scheduler
+        scheduler = Scheduler(
+            interval=10,  # Run every 10 seconds
+            function=run_game_sender,
+            db_manager=database_manager,
+            rabbitmq_manager=rmq_message_sender
+        )
+        # scheduler.run()
 
     async def run_smart_contract():
-        await tournament_manager.run_smart_contract()
+        pass
+        # await tournament_manager.run_smart_contract()
 
     async def shutdown(signal, loop):
         logging.info(f"Received exit signal {signal.name}...")
@@ -103,7 +117,7 @@ async def main():
         loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s, loop)))
 
     try:
-        await asyncio.gather(run_fastapi(), run_game_sender())
+        await asyncio.gather(run_fastapi(), running_game_sender())
     except Exception as e:
         logging.error(f"Error: {e}")
     finally:

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Security, Depends
 import uvicorn
 from managers.tournament_manager import TournamentManager
+from managers.database_manager import DatabaseManager
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
@@ -8,12 +9,16 @@ import logging
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import AsyncGenerator, List
+
+
 
 class FastApiApp:
-    def __init__(self, manager: TournamentManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
+    def __init__(self, db_manager: DatabaseManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
         self.logger = logging.getLogger(__name__)
         self.app = FastAPI()
-        self.manager = manager
+        self.db_manager = db_manager
         self.api_key = api_key
         self.api_key_name = api_key_name
         self.port = port
@@ -40,12 +45,25 @@ class FastApiApp:
                 raise HTTPException(
                     status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
                 )
+        
+                # Define dependencies inside the setup_routes method to access self.db_manager
+        async def get_db() -> AsyncGenerator[AsyncSession, None]:
+            async for session in self.db_manager.get_session():
+                yield session
+
+        async def get_tournament_manager(
+            db_session: AsyncSession = Depends(get_db)
+        ) -> TournamentManager:
+            return TournamentManager(db_session=db_session)
+        
         @self.app.get("/")
         def read_root():
             return {"message": "Hello World"}
 
         @self.app.post("/add_tournament")
-        async def add_tournament(message_json: AddTournamentRequestMessage, api_key: str = Depends(get_api_key)):
+        async def add_tournament(message_json: AddTournamentRequestMessage, 
+                                 tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                 api_key: str = Depends(get_api_key)):
             self.logger.info(f"add_tournament: {message_json}")
             try:
                 message = message_json
@@ -56,32 +74,37 @@ class FastApiApp:
                     TeamMessage.validate(team)
                     team.fix_json()
                 self.logger.info(f"add_tournament: adding message to manager: {message}")
-                return await self.manager.add_tournament(message)
+                return await tournament_manager.add_tournament(message)
             except Exception as e:
                 self.logger.error(f"add_tournament: {e}")
                 return AddTournamentResponseMessage(tournament_id=None, success=False, error=str(e))
 
         @self.app.get("/get_tournament/{tournament_id}")
-        async def get_tournament(tournament_id: int, api_key: str = Depends(get_api_key)):
+        async def get_tournament(tournament_id: int, 
+                                 tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                 api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_tournament: {tournament_id}")
-            res = await self.manager.get_tournament(tournament_id)
+            res = await tournament_manager.get_tournament(tournament_id)
             self.logger.info(f"get_tournament: {res}")
             return res
 
         @self.app.get("/get_game/{game_id}")
-        async def get_game(game_id: int, api_key: str = Depends(get_api_key)):
+        async def get_game(game_id: int, 
+                           tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                           api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_game: {game_id}")
-            res = await self.manager.get_game(game_id)
+            res = await tournament_manager.get_game(game_id)
             self.logger.info(f"get_game: {res}")
             return res
 
         @self.app.get("/download_log/{game_id}")
-        async def download_log(game_id: str):
+        async def download_log(game_id: str,
+                               tournament_manager: TournamentManager = Depends(get_tournament_manager)):
             self.logger.info(f"download_log: {game_id}")
             game_log_name = f"{game_id}.zip"
             tmp_file_path = os.path.join("/tmp", game_log_name)
             try:
-                res = await self.manager.download_log_file(game_id, tmp_file_path)
+                res = await tournament_manager.download_log_file(game_id, tmp_file_path)
                 if not res:
                     raise Exception(f"File not found: {game_id}")
                 if not os.path.exists(tmp_file_path):
@@ -91,47 +114,56 @@ class FastApiApp:
                 raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
 
         @self.app.get("/get_tournaments")
-        async def get_tournaments(api_key: str = Depends(get_api_key)):
+        async def get_tournaments(tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                  api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_tournaments")
-            res = await self.manager.get_tournaments()
+            res = await tournament_manager.get_tournaments()
             self.logger.info(f"get_tournaments: {res}")
             return res
 
         @self.app.post("/game_started")
-        async def game_started(json: AddGameResponse, api_key: str = Depends(get_api_key)):
+        async def game_started(json: AddGameResponse, 
+                               tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                               api_key: str = Depends(get_api_key)):
             try:
                 self.logger.info(f"game_started: {json}")
                 AddGameResponse.validate(json.dict())
-                await self.manager.handle_game_started(json)
+                await tournament_manager.handle_game_started(json)
                 return {"success": True}
             except Exception as e:
                 self.logger.error(f"game_started: {e}")
                 return {"success": False, "error": str(e)}
 
         @self.app.post("/game_finished")
-        async def game_finished(json: GameInfoSummary, api_key: str = Depends(get_api_key)):
+        async def game_finished(json: GameInfoSummary, 
+                                tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                api_key: str = Depends(get_api_key)):
             try:
                 self.logger.info(f"game_finished: {json}")
                 GameInfoSummary.validate(json.dict())
-                await self.manager.handle_game_finished(json)
+                await tournament_manager.handle_game_finished(json)
                 return {"success": True}
             except Exception as e:
                 self.logger.error(f"game_finished: {e}")
                 return {"success": False, "error": str(e)}
 
         @self.app.post("/register")
-        async def register(json: RegisterGameRunnerRequest, api_key: str = Depends(get_api_key)):
+        async def register(json: RegisterGameRunnerRequest, 
+                           tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                           api_key: str = Depends(get_api_key)):
             try:
                 self.logger.info(f"register: {json}")
                 RegisterGameRunnerRequest.validate(json.dict())
-                # return await self.manager.register(json)
+                # return await tournament_manager.register(json)
                 return {"success": True}
             except Exception as e:
                 self.logger.error(f"register: {e}")
                 return {"success": False, "error": str(e)}
 
         @self.app.get("/tmp_get_url/{game_id}")
-        async def tmp_get_url(game_id: int, api_key: str = Depends(get_api_key)):
+        async def tmp_get_url(game_id: int, 
+                              tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                              api_key: str = Depends(get_api_key)):
             self.logger.info(f"tmp_get_url: {game_id}")
             game_log_tmp_path = self.game_log_tmp_path
             if not os.path.exists(game_log_tmp_path):
@@ -143,7 +175,7 @@ class FastApiApp:
             if not os.path.exists(tmp_file_path):
                 self.logger.debug(f"downloading log file: {game_id} to {tmp_file_path}")
                 try:
-                    res = await self.manager.download_log_file(game_id, tmp_file_path)
+                    res = await tournament_manager.download_log_file(game_id, tmp_file_path)
                     if not res:
                         raise Exception(f"File not found: {game_id}")
                     if not os.path.exists(tmp_file_path):

@@ -29,7 +29,7 @@ class RmqMessageSender:
                 self.logger.error('Failed to connect to RabbitMQ. Retrying...')
                 await asyncio.sleep(5)
 
-    async def send_message(self, message: dict):
+    async def publish_message(self, message: dict):
         message_json = json.dumps(message)
         await self.channel.default_exchange.publish(
             pika.Message(body=message_json.encode(), delivery_mode=pika.DeliveryMode.PERSISTENT),
