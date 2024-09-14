@@ -2,14 +2,12 @@ from datetime import datetime
 from utils.messages import *
 from models import TournamentModel, TeamModel, GameModel
 from models.game_model import GameSatus
-from managers.database_manager import DataBaseManager
+from managers.manager import Manager
 from models.message_convertor import MessageConvertor
 from sqlalchemy.orm import joinedload
 import asyncio
 from sqlalchemy.sql import exists
-from utils.rmq_message_sender import RmqMessageSender
 import logging
-from storage.minio_client import MinioClient
 
 
 def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: TeamModel) -> GameInfoMessage:
@@ -28,16 +26,14 @@ def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: 
 
 
 class TournamentManager:
-    def __init__(self, database_manager: DataBaseManager, rmq_message_sender: RmqMessageSender, minio_client: MinioClient):
+    def __init__(self, manager: Manager):
         self.logger = logging.getLogger(__name__)
         self.logger.info('TournamentManager created')
-        self.database_manager = database_manager
-        self.rmq_message_sender = rmq_message_sender
-        self.minio_client = minio_client
+        self.manager = manager
 
     async def add_tournament(self, message: AddTournamentRequestMessage) -> AddTournamentResponseMessage:
         self.logger.info(f"add_tournament: {message}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         new_tournament = MessageConvertor.convert_add_tournament_request_message_to_tournament_model(message)
         session.add(new_tournament)
 
@@ -87,7 +83,7 @@ class TournamentManager:
 
     async def get_tournament(self, tournament_id: int) -> TournamentMessage:
         self.logger.info(f"get_tournament: {tournament_id}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         tournament = (session.query(TournamentModel)
                         .options(joinedload(TournamentModel.teams), joinedload(TournamentModel.games))
                         .filter_by(id=tournament_id).first())
@@ -98,9 +94,9 @@ class TournamentManager:
         self.logger.info(f"get_tournament: {tournament_message}")
         return tournament_message
 
-    async def get_tournaments(self) -> [TournamentMessage]:
+    async def get_tournaments(self) -> list[TournamentMessage]:
         self.logger.info(f"get_tournaments")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         tournaments = (session.query(TournamentModel)
                         .options(joinedload(TournamentModel.teams), joinedload(TournamentModel.games))
                         .all())
@@ -118,7 +114,7 @@ class TournamentManager:
     async def run_game_sender(self):
         self.logger.info("Running game sender")
         while True:
-            session = self.database_manager.get_session()
+            session = self.manager.database_manager.get_session()
             current_time = datetime.now()
             tournaments = (session.query(TournamentModel)
                            .options(joinedload(TournamentModel.teams), joinedload(TournamentModel.games))
@@ -151,7 +147,7 @@ class TournamentManager:
 
     async def handle_game_started(self, json: AddGameResponse):
         self.logger.info(f"game_started: {json}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         game = (session.query(GameModel)
                 .filter_by(id=json.game_id).first())
         if not game:
@@ -164,7 +160,7 @@ class TournamentManager:
 
     async def handle_game_finished(self, json: GameInfoSummary):
         self.logger.info(f"game_finished: {json}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         game = (session.query(GameModel)
                 .options(joinedload(GameModel.tournament))
                 .filter_by(id=json.game_id).first())
@@ -182,7 +178,7 @@ class TournamentManager:
 
     async def get_game(self, game_id):
         self.logger.info(f"get_game: {game_id}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         game = (session.query(GameModel)
                 .options(joinedload(GameModel.tournament))
                 .filter_by(id=game_id).first())
@@ -195,7 +191,7 @@ class TournamentManager:
 
     async def download_log_file(self, game_id, file_path):
         self.logger.info(f"get_log_file: {game_id}")
-        session = self.database_manager.get_session()
+        session = self.manager.database_manager.get_session()
         game = (session.query(GameModel)
                 .options(joinedload(GameModel.tournament))
                 .filter_by(id=game_id).first())
@@ -206,5 +202,5 @@ class TournamentManager:
             raise Exception(f"Game is not finished: {game_id}")
         log_file_name = f"{game_id}.zip"
 
-        return await self.minio_client.download_log_file(log_file_name, file_path)
+        return await self.manager.minio_client.download_log_file(log_file_name, file_path)
 

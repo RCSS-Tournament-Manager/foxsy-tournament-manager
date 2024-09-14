@@ -3,7 +3,9 @@ import logging.config
 from utils.logging_config import get_logging_config
 import os
 import argparse
+from managers.manager import Manager
 from managers.tournament_manager import TournamentManager
+from managers.user_manager import UserManager
 from fast_api_app import FastApiApp
 import asyncio
 import signal
@@ -67,12 +69,23 @@ minio_client.init(endpoint=args.minio_endpoint,
 minio_client.wait_to_connect()
 
 async def main():
+    manager = Manager()
+    
     database_manager = DataBaseManager(args.data_dir, args.db)
+    manager.set_database_manager(database_manager)
+    
     rmq_message_sender = RmqMessageSender(args.rabbitmq_host, args.rabbitmq_port, args.to_runner_queue,
                                           args.rabbitmq_username,
                                           args.rabbitmq_password)
+    manager.set_rmq_message_sender(rmq_message_sender)
+    
     await rmq_message_sender.connect()
-    tournament_manager = TournamentManager(database_manager, rmq_message_sender, minio_client)
+    
+    tournament_manager = TournamentManager(manager)
+    manager.set_tournament_manager(tournament_manager)
+    
+    user_manager = UserManager(manager)
+    manager.set_user_manager(user_manager)
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')
