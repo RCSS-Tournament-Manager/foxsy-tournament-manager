@@ -5,7 +5,7 @@ from .base import Base
 class TournamentStatus:
     WAIT_FOR_REGISTRATION = 'wait_for_registration'
     REGISTRATION = 'registration'
-    PENDING = 'pending'
+    WAIT_FOR_START = 'wait_for_start'
     IN_PROGRESS = 'in_progress'
     FINISHED = 'finished'
 

@@ -1,6 +1,7 @@
 # managers/scheduler.py
 import asyncio
 from typing import Callable
+import logging
 
 class Scheduler:
     def __init__(self, interval: int, function: Callable, *args, **kwargs):
@@ -9,10 +10,12 @@ class Scheduler:
         self.args = args
         self.kwargs = kwargs
         self.task = None
+        self.logger = logging.getLogger(__name__)
 
     async def start(self):
         while True:
             try:
+                self.logger.info("Running scheduled function")
                 await self.function(*self.args, **self.kwargs)
             except Exception as e:
                 # Log the exception

@@ -186,6 +186,24 @@ class TournamentManager:
         
         return ResponseMessage(success=True, error=None)
         
+    async def create_all_games(self, tournament_id: int):
+        # Get all teams in the tournament
+        stmt = select(TeamModel).options(
+            selectinload(TeamModel.tournaments)
+            ).filter(TeamModel.tournaments.any(id=tournament_id))
+        teams = await self.db_session.execute(stmt)
+        teams = teams.scalars().all()
+        
+        # Create all games
+        for i in range(len(teams)):
+            for j in range(i + 1, len(teams)):
+                game = GameModel(
+                    left_team_id=teams[i].id,
+                    right_team_id=teams[j].id,
+                    tournament_id=tournament_id
+                )
+                self.db_session.add(game)
+        await self.db_session.commit()
 
     # Use self.minio_client in your methods
     async def download_log_file(self, game_id: int, file_path: str):

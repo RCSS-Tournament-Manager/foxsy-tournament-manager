@@ -96,7 +96,7 @@ async def main():
             db_manager=database_manager,
             rabbitmq_manager=rmq_message_sender
         )
-        # scheduler.run()
+        scheduler.run()
 
     async def run_smart_contract():
         pass
