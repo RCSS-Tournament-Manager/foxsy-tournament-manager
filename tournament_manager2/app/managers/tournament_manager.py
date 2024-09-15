@@ -1,10 +1,9 @@
-# managers/tournament_manager.py
-
 from datetime import datetime
 from utils.messages import *
-from models.tournament_model import TournamentModel
+from models.tournament_model import TournamentModel, TournamentStatus
 from models.team_model import TeamModel
 from models.game_model import GameModel, GameStatus
+from models.user_model import UserModel
 from models.message_convertor import MessageConvertor
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, exists, and_
@@ -16,69 +15,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TournamentManager:
-    def __init__(self, db_session: AsyncSession, minio_client: MinioClient = None):
+    def __init__(self, db_session: AsyncSession, minio_client: MinioClient):
         self.logger = logging.getLogger(__name__)
         self.logger.info('TournamentManager created')
         self.db_session = db_session
         self.minio_client = minio_client
 
-    async def add_tournament(self, message: AddTournamentRequestMessage) -> AddTournamentResponseMessage:
+    async def add_tournament(self, message: AddTournamentRequestMessage) -> ResponseMessage:
         self.logger.info(f"add_tournament: {message}")
         session = self.db_session
 
-        new_tournament = MessageConvertor.convert_add_tournament_request_message_to_tournament_model(message)
+        stmt = select(UserModel).filter_by(code=message.user_code)
+        user = await session.execute(stmt)
+        user = user.scalars().first()
+        user_id = user.id
+        
+        # check tournament name is unique
+        stmt = select(TournamentModel).filter_by(name=message.tournament_name)
+        result = await session.execute(stmt)
+        existing_tournament = result.scalars().first()
+        if existing_tournament:
+            return ResponseMessage(success=False, error='Tournament name is not unique')
+        
+        new_tournament = MessageConvertor.convert_add_tournament_request_message_to_tournament_model(message, user_id)
         session.add(new_tournament)
-
-        # Perform validation checks
-        if len(message.teams) < 2:
-            return AddTournamentResponseMessage(tournament_id=None, success=False, error="At least 2 teams are required")
-
-        if len(message.teams) != len(set([team.team_name for team in message.teams])):
-            return AddTournamentResponseMessage(tournament_id=None, success=False, error="Teams are not unique")
-
-        if any([len(team.team_name) == 0 or len(team.base_team_name) == 0 for team in message.teams]):
-            return AddTournamentResponseMessage(tournament_id=None, success=False, error="Team name and base team name are required")
 
         await session.commit()
         await session.refresh(new_tournament)
 
-        new_tournament_id = new_tournament.id
-        self.logger.debug(f"Added tournament with id: {new_tournament_id} {new_tournament}")
+        self.logger.debug(f"Added tournament with id: {new_tournament.id} {new_tournament}")
 
-        # Process teams
-        new_teams = []
-        for team in message.teams:
-            team_model = MessageConvertor.convert_team_message_to_team_model(team)
-            team_model.tournament_id = new_tournament_id  # Assign foreign key
-            new_teams.append(team_model)
-            self.logger.debug(f"Adding team: {team_model}")
-
-        session.add_all(new_teams)
-        await session.commit()
-
-        # After committing, the team IDs are available
-        await session.refresh_all(new_teams)
-
-        # Process games
-        new_games = []
-        for t1 in range(len(new_teams)):
-            for t2 in range(t1 + 1, len(new_teams)):
-                team1 = new_teams[t1]
-                team2 = new_teams[t2]
-                new_game = GameModel(
-                    left_team_id=team1.id,
-                    right_team_id=team2.id,
-                    tournament_id=new_tournament_id,
-                    status=GameStatus.PENDING
-                )
-                new_games.append(new_game)
-                self.logger.debug(f"Adding game: {new_game}")
-
-        session.add_all(new_games)
-        await session.commit()
-
-        self.logger.info(f"Added tournament, games, teams with tournament id: {new_tournament_id}")
-        return AddTournamentResponseMessage(tournament_id=new_tournament_id, success=True, error=None)
+        return ResponseMessage(success=True, error=None)
 
     async def get_tournament(self, tournament_id: int) -> TournamentMessage:
         self.logger.info(f"get_tournament: {tournament_id}")
@@ -99,7 +66,7 @@ class TournamentManager:
         self.logger.info(f"get_tournament: {tournament_message}")
         return tournament_message
 
-    async def get_tournaments(self) -> List[TournamentMessage]:
+    async def get_tournaments(self) -> GetTournamentsResponseMessage:
         self.logger.info(f"get_tournaments")
         session = self.db_session
 
@@ -110,8 +77,9 @@ class TournamentManager:
 
         result = await session.execute(stmt)
         tournaments = result.scalars().all()
-
-        tournament_messages = [MessageConvertor.convert_tournament_model_to_tournament_message(tournament) for tournament in tournaments]
+        
+        tournament_messages = GetTournamentsResponseMessage()
+        tournament_messages.tournaments = [MessageConvertor.convert_tournament_model_to_tournament_summary_message(tournament) for tournament in tournaments]
         self.logger.info(f"get_tournaments: {tournament_messages}")
         return tournament_messages
 
@@ -180,6 +148,44 @@ class TournamentManager:
         game_message = MessageConvertor.convert_game_model_to_game_message(game)
         self.logger.info(f"get_game: {game_message}")
         return game_message
+    
+    async def register_team(self, message: RegisterTeamInTournamentRequestMessage) -> ResponseMessage:
+        self.logger.info(f"register_team: {message}")
+        
+        stmt = select(UserModel).filter_by(code=message.user_code)
+        user = await self.db_session.execute(stmt)
+        user = user.scalars().first()
+        user_id = user.id
+        
+        stmt = select(TeamModel).options(
+            selectinload(TeamModel.tournaments)
+            ).filter_by(id=message.team_id, user_id=user_id)
+        team = await self.db_session.execute(stmt)
+        team = team.scalars().first()
+        
+        stmt = select(TournamentModel).options(
+            selectinload(TournamentModel.teams)
+            ).filter_by(id=message.tournament_id)
+        tournament = await self.db_session.execute(stmt)
+        tournament = tournament.scalars().first()
+        
+        if not team or not tournament:
+            return ResponseMessage(success=False, error='Team or tournament not found')
+        
+        # if tournament.status != TournamentStatus.REGISTRATION:
+        #     return ResponseMessage(success=False, error='Tournament is not in registration phase')
+        
+        # if datetime.now() < tournament.start_registration_at or datetime.now() > tournament.end_registration_at:
+        #     return ResponseMessage(success=False, error='Registration time is over')
+        
+        if team in tournament.teams:
+            return ResponseMessage(success=False, error='Team is already registered')
+        
+        team.tournaments.append(tournament)
+        await self.db_session.commit()
+        
+        return ResponseMessage(success=True, error=None)
+        
 
     # Use self.minio_client in your methods
     async def download_log_file(self, game_id: int, file_path: str):

@@ -67,5 +67,15 @@ def get_logging_config(log_dir, log_file_name='app.log'):
                 'level': 'ERROR',
                 'propagate': False
             },
+            'aiosqlite': {
+                'handlers': ['console', 'file'],
+                'level': 'ERROR',
+                'propagate': False
+            },
+            'botocore': {
+                'handlers': ['console', 'file'],
+                'level': 'ERROR',
+                'propagate': False
+            },
         }
     }

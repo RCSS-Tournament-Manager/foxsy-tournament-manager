@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
 
 class GameStatus(str):
@@ -84,37 +85,20 @@ class TeamMessage(BaseModel):
             self.team_config_json = self.team_config_json.replace("'", '"')
 
 class AddTournamentRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
     tournament_name: str = Field(None, example="RoboCup 2024")
-    start_at: str = Field(None, example="2024-07-01")
-    user_id: int = Field(None, example=1)
-    teams: list[TeamMessage] = Field(None, example=[{"user_id": 1, "team_name": "team1", "team_config_json": '{"team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}', "base_team_name": "cyrus"}])
-    # example:
-    # {
-    #     "tournament_name": "RoboCup 2024",
-    #     "start_at": "2024-07-01",
-    #     "user_id": 1,
-    #     "teams": [
-    #         {"user_id": 1,"team_name": "team1","team_config_json": '{"team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}',"base_team_name": "cyrus"},
-    #         {"user_id": 2,"team_name": "team2","team_config_json": '{"team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}',"base_team_name": "cyrus"},
-    #         {"user_id": 3,"team_name": "team3","team_config_json": '{"team_config_json": "{\"version\":1, \"formation_name\":\"433l\"}"}',"base_team_name": "cyrus"}
-    #     ]
-    # }
+    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
+    start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
+    end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    
+class RemoveTournamentRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    tournament_id: int = Field(None, example=1)
 
-
-class AddTournamentResponseMessage(BaseModel):
-    tournament_id: Optional[int] = Field(None, example=1)
-    success: bool = Field(None, example=True)
-    error: Optional[str] = Field(None, example="")
-
-
-class GameMessage(BaseModel):
-    game_id: int = Field(None, example=1)
-    left_team_id: int = Field(None, example=1)
-    right_team_id: int = Field(None, example=2)
-    status: str = Field(None, example="pending")
-    left_team_score: Optional[int] = Field(None, example=-1)
-    right_team_score: Optional[int] = Field(None, example=-1)
-
+class GetTournamentRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    tournament_id: int = Field(None, example=1)
+    
 class TournamentTeamResultMessage(BaseModel):
     team_id: int = Field(None)
     team_name: str = Field(None)
@@ -127,11 +111,116 @@ class TournamentTeamResultMessage(BaseModel):
     point: int = Field(None)
     rank: int = Field(None)
 
+class GameMessage(BaseModel):
+    game_id: int = Field(None, example=1)
+    left_team_id: int = Field(None, example=1)
+    right_team_id: int = Field(None, example=2)
+    status: str = Field(None, example="pending")
+    left_team_score: Optional[int] = Field(None, example=-1)
+    right_team_score: Optional[int] = Field(None, example=-1)
+    
 class TournamentMessage(BaseModel):
     tournament_id: int = Field(None)
     tournament_name: str = Field(None)
-    start_at: str = Field(None)
+    start_at: datetime = Field(None)
+    start_registration_at: datetime = Field(None)
+    end_registration_at: datetime = Field(None)
+    status: str = Field(None)
     user_id: int = Field(None)
     teams: list[TeamMessage] = Field(None)
     games: list[GameMessage] = Field(None)
     results: list[TournamentTeamResultMessage] = Field(None)
+
+class TournamentSummaryMessage(BaseModel):
+    tournament_id: int = Field(None, example=1)
+    tournament_name: str = Field(None, example="RoboCup 2024")
+    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
+    start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
+    end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    status: str = Field(None, example="pending")
+    
+class GetTournamentsResponseMessage(BaseModel):
+    tournaments: list[TournamentSummaryMessage] = Field(None, example=[{"tournament_id": 1, "tournament_name": "RoboCup 2024"}])
+    
+class AddTournamentResponseMessage(BaseModel):
+    tournament_id: Optional[int] = Field(None, example=1)
+    success: bool = Field(None, example=True)
+    error: Optional[str] = Field(None, example="")
+
+class AddTeamRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    team_name: str = Field(None, example="team1")
+    
+class RemoveTeamRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    team_id: int = Field(None, example=1)
+    
+class UpdateTeamRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    team_id: int = Field(None, example=1)
+    base_team_name: str = Field(None, example="cyrus")    
+    team_config_json: Optional[str] = Field(None, example='{"team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
+    
+    def fix_json(self):
+        if self.team_config_json:
+            self.team_config_json = self.team_config_json.replace(' ', '')
+            self.team_config_json = self.team_config_json.replace('\r\n', '')
+            self.team_config_json = self.team_config_json.replace('\r', '')
+            self.team_config_json = self.team_config_json.replace("'", '"')
+    
+class GetTeamRequestMessage(BaseMessage):
+    user_code: str = Field(None, example="123456")
+    team_id: int = Field(None, example=1)
+    
+class GetTeamResponseMessage(BaseModel):
+    team_id: Optional[int] = Field(None, example=1)
+    team_name: str = Field(None, example="team1")
+    base_team_name: str = Field(None, example="cyrus")
+    team_config_json: Optional[str] = Field(None, example='{"team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
+
+class GetTeamsResponseMessage(BaseModel):
+    teams: list[TeamMessage] = Field(None, example=[{"team_id": 1, "team_name": "team1", "base_team_name": "cyrus"}])
+    
+class RegisterUserRequestMessage(BaseModel):
+    user_code: str = Field(None, example="123456")
+    user_name: str = Field(None, example="user1")
+    
+class RegisterTeamInTournamentRequestMessage(BaseModel):
+    user_code: str = Field(None, example="123456")
+    tournament_id: int = Field(None, example=1)
+    team_id: int = Field(None, example=1)
+    
+class RemoveTeamFromTournamentRequestMessage(BaseModel):
+    user_code: str = Field(None, example="123456")
+    tournament_id: int = Field(None, example=1)
+    team_id: int = Field(None, example=1)
+
+class AddUserRequestMessage(BaseModel):
+    user_name: str = Field(None, example="user1")
+    user_code: str = Field(None, example="123456")
+    
+class GetUserRequestMessage(BaseModel):
+    user_code: Optional[str] = Field(None, example="123456")
+    user_id: Optional[int] = Field(None, example=1)
+    user_name: Optional[str] = Field(None, example="user1")
+    
+    def is_empty(self):
+        return not any([self.user_code, self.user_id, self.user_name])
+    
+class GetUserResponseMessage(BaseModel):
+    user_id: int = Field(None, example=1)
+    user_name: str = Field(None, example="user1")
+    owned_tournament_ids: list[int] = Field(None)
+    in_tournament_ids: list[int] = Field(None)
+    team_ids: list[int] = Field(None)
+    
+class GetUsersResponseMessage(BaseModel):
+    users: list[GetUserResponseMessage] = Field(None, example=[{"user_id": 1, "user_name": "user1"}])
+        
+class ResponseMessage(BaseModel):
+    success: bool = Field(None, example=True)
+    error: Optional[str] = Field(None, example="")
+
+
+
+

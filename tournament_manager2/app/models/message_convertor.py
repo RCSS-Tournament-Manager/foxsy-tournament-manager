@@ -1,13 +1,19 @@
 from models.team_model import TeamModel
 from models.game_model import GameModel
-from models.tournament_model import TournamentModel
+from models.tournament_model import TournamentModel, TournamentStatus
 from utils.messages import *
 
 
 class MessageConvertor:
     @staticmethod
-    def convert_add_tournament_request_message_to_tournament_model(message: AddTournamentRequestMessage) -> TournamentModel:
-        return TournamentModel(name=message.tournament_name, user_id=message.user_id, start_at=message.start_at)
+    def convert_add_tournament_request_message_to_tournament_model(message: AddTournamentRequestMessage, user_id:int) -> TournamentModel:
+        return TournamentModel(name=message.tournament_name, 
+                               owner_id=user_id,
+                               start_at=message.start_at,
+                               start_registration_at=message.start_at,
+                               end_registration_at=message.start_at,
+                               done=False,
+                               status=TournamentStatus.WAIT_FOR_REGISTRATION)
 
     @staticmethod
     def convert_team_message_to_team_model(team_message: TeamMessage) -> TeamModel:
@@ -69,8 +75,22 @@ class MessageConvertor:
             tournament_results.append(MessageConvertor.create_tournament_team_result_message(team, tournament.games))
         tournament_results = MessageConvertor.set_tournament_rank(tournament_results)
 
-        return TournamentMessage(tournament_id=tournament.id, tournament_name=tournament.name, start_at=tournament.start_at,
-                                 user_id=tournament.user_id,
+        return TournamentMessage(tournament_id=tournament.id, 
+                                 tournament_name=tournament.name, 
+                                 start_at=tournament.start_at,
+                                 start_registration_at=tournament.start_registration_at,
+                                 end_registration_at=tournament.end_registration_at,
+                                 done=tournament.done,
+                                 user_id=tournament.owner_id,
                                  teams=[MessageConvertor.convert_team_model_to_team_message(team) for team in tournament.teams],
                                  games=[MessageConvertor.convert_game_model_to_game_message(game) for game in tournament.games],
                                  results=tournament_results)
+        
+    @staticmethod
+    def convert_tournament_model_to_tournament_summary_message(tournament: TournamentModel) -> TournamentSummaryMessage:
+        return TournamentSummaryMessage(tournament_id=tournament.id, 
+                                        tournament_name=tournament.name, 
+                                        start_at=tournament.start_at,
+                                        start_registration_at=tournament.start_registration_at,
+                                        end_registration_at=tournament.end_registration_at,
+                                        done=tournament.done)
