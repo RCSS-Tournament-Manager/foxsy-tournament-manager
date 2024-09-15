@@ -172,11 +172,11 @@ class TournamentManager:
         if not team or not tournament:
             return ResponseMessage(success=False, error='Team or tournament not found')
         
-        # if tournament.status != TournamentStatus.REGISTRATION:
-        #     return ResponseMessage(success=False, error='Tournament is not in registration phase')
+        if tournament.status != TournamentStatus.REGISTRATION:
+            return ResponseMessage(success=False, error='Tournament is not in registration phase')
         
-        # if datetime.now() < tournament.start_registration_at or datetime.now() > tournament.end_registration_at:
-        #     return ResponseMessage(success=False, error='Registration time is over')
+        if datetime.now() < tournament.start_registration_at or datetime.now() > tournament.end_registration_at:
+            return ResponseMessage(success=False, error='Registration time is over')
         
         if team in tournament.teams:
             return ResponseMessage(success=False, error='Team is already registered')
