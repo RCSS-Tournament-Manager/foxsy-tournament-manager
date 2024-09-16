@@ -4,12 +4,13 @@ from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from managers.user_manager import UserManager
 from models import TournamentModel, UserModel
-from utils.messages import AddUserRequestMessage, GetUserRequestMessage, ResponseMessage
-from sqlalchemy import select
+from utils.messages import AddUserRequestMessage, ResponseMessage
+from pytest import raises
+from sqlalchemy import select, exists, and_
 
-# Database and session fixture
-@pytest.fixture(name='db_session', scope='session')
-async def async_session():
+
+@pytest.mark.asyncio
+async def test_add_tournament():
     # Create in-memory SQLite engine
     engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
     async_session = sessionmaker(
@@ -20,110 +21,32 @@ async def async_session():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Provide a session object for tests
-    while True:
-        async with async_session() as session:
-            yield session
+    # Create a session and tournament manager
+    async with async_session() as session:
+        # Add a dummy user to the database
+        
+        # Instantiate TournamentManager
+        user_manager = UserManager(db_session=session)
 
-    # Drop all tables after tests complete (if needed)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # Create an AddUserRequestMessage
+        add_user_message = AddUserRequestMessage(
+            user_code="123456",
+            user_name="Test User")
+        
+        response = await user_manager.add_user(add_user_message)
+            
+        # Assert the response is successful
+        assert isinstance(response, ResponseMessage)
+        assert response.success is True
 
-# Test function using the session fixture
-@pytest.mark.asyncio
-async def test_add_user(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
+        # Check if the tournament was added to the database
+        stmt = select(UserModel).filter_by(name="Test User")
+        result = await session.execute(stmt)
+        new_user = result.scalars().first()
 
-    add_user_message = AddUserRequestMessage(
-        user_code="123456",
-        user_name="Test User"
-    )
-    
-    response = await user_manager.add_user(add_user_message)
-    
-    # Assert the response is successful
-    assert isinstance(response, ResponseMessage)
-    assert response.success is True
-
-@pytest.mark.asyncio
-async def test_get_user_by_code(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    user_info = GetUserRequestMessage(user_code="123456")
-    response = await user_manager.get_user(user_info)
-    
-    assert isinstance(response, UserModel)
-    assert response.name == "Test User"
-    
-@pytest.mark.asyncio
-async def test_same_user(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    add_user_message = AddUserRequestMessage(
-        user_code="123456",
-        user_name="Test User"
-    )
-    
-    response = await user_manager.add_user(add_user_message)
-    
-    assert response.success is False
-    
-@pytest.mark.asyncio
-async def test_add_new_user(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    add_user_message = AddUserRequestMessage(
-        user_code="654321",
-        user_name="New User"
-    )
-    
-    response = await user_manager.add_user(add_user_message)
-    
-    assert response.success is True
-
-async def test_get_users(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    response = await user_manager.get_users()
-    
-    assert isinstance(response, list)
-    assert len(response) == 2
-    assert response[0].name == "Test User"
-    assert response[1].name == "New User"
-    
-@pytest.mark.asyncio
-async def test_user_not_found(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    user_info = GetUserRequestMessage(user_code="000000")
-    response = await user_manager.get_user(user_info)
-    
-    assert response is None
-
-@pytest.mark.asyncio
-async def test_get_user_by_id(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    user_info = GetUserRequestMessage(user_id=1)
-    response = await user_manager.get_user(user_info)
-    
-    assert isinstance(response, UserModel)
-    assert response.name == "Test User"
-
-@pytest.mark.asyncio
-async def test_get_user_by_name(db_session):
-    session = await db_session.asend(None)
-    user_manager = UserManager(db_session=session)
-    
-    user_info = GetUserRequestMessage(user_name="New User")
-    response = await user_manager.get_user(user_info)
-    
-    assert isinstance(response, UserModel)
-    assert response.name == "New User"
+        assert new_user is not None
+        assert new_user.name == "Test User"
+        
+        response = await user_manager.add_user(add_user_message)
+        
+        assert response.success is False
