@@ -8,9 +8,7 @@ from utils.messages import AddUserRequestMessage, ResponseMessage
 from pytest import raises
 from sqlalchemy import select, exists, and_
 
-
-@pytest.mark.asyncio
-async def test_add_tournament():
+async def get_db_session():
     # Create in-memory SQLite engine
     engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
     async_session = sessionmaker(
@@ -20,6 +18,12 @@ async def test_add_tournament():
     # Create tables in the in-memory database
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    return async_session
+
+@pytest.mark.asyncio
+async def test_add_tournament():
+    async_session = await get_db_session()
 
     # Create a session and tournament manager
     async with async_session() as session:
