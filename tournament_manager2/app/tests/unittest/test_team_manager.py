@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
-from utils.messages import AddTeamRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
+from utils.messages import AddTeamRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, GetUserRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
 
 async def get_db_session():
     # Create in-memory SQLite engine
@@ -82,9 +82,10 @@ async def test_get_user_teams():
     async with async_session() as session:
         await make_user(session)
         tm = TeamManager(db_session=session)
-        response = tm.get_user_teams("123456")
+        um = UserManager(db_session=session)
+        response = await um.get_user_info(GetUserRequestMessage(user_code="123456"))
         assert response is not None
-        assert len(response) == 0
+        assert len(response.team_ids) == 0
         
         response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
         assert response is not None
@@ -92,15 +93,39 @@ async def test_get_user_teams():
         response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
         assert response is not None
         assert response.team_name == "T1_1"
-        
-        response = await tm.get_user_teams("123456")
+    
+        um = UserManager(db_session=session)
+        response = await um.get_user_info(GetUserRequestMessage(user_code="123456"))
         assert response is not None
-        assert len(response) == 2
-        assert response[0].team_name == "T1"
-        assert response[1].team_name == "T1_1"
+        assert len(response.team_ids) == 2
+        assert response.team_ids[0] == 1
+        assert response.team_ids[1] == 2
         
         with pytest.raises(Exception):
-            await tm.get_user_teams("999")
+            await um.get_user_info("999")
+            
+@pytest.mark.asyncio
+async def test_user_access():
+    async_session = await get_db_session()
+    async with async_session() as session:
+        await make_user(session)
+        await make_user(session, user_name="U2", user_code="654321")
+        tm = TeamManager(db_session=session)
+        team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
+        assert team is not None
+        assert team.team_name == "T1"
+        
+        response = await tm.get_team(GetTeamRequestMessage(user_code="654321", team_id=team.team_id))
+        assert response is not None
+        assert response.team_name == "T1"
+        assert response.team_config_json == None
+        
+        with pytest.raises(Exception):
+            await tm.update_team(UpdateTeamRequestMessage(user_code="654321", team_id=team.team_id, team_name="T2"))
+        
+        with pytest.raises(Exception):
+            await tm.remove_team(RemoveTeamRequestMessage(user_code="654321", team_id=team.team_id))
+        
 
 @pytest.mark.asyncio
 async def test_remove_team():
@@ -153,7 +178,7 @@ async def test_update_team():
         assert response.team_name == "T2_1"
         
 @pytest.mark.asyncio
-async def test_get_teams():
+async def test_get_teams(): 
     async_session = await get_db_session()
     async with async_session() as session:
         await make_user(session)
@@ -195,7 +220,7 @@ async def test_get_teams():
         assert response.teams[0].user_id == 1
         assert response.teams[1].user_id == 1
         assert response.teams[2].user_id == 2
-        assert response.teams[3].user_id == 2
+        assert response.teams[3].user_id == 2 # TODO Just add User ID
         
         
         

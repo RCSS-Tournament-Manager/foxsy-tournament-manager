@@ -8,7 +8,7 @@ from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
 
-async def get_db_session():
+async def get_db_session(): # TODO make new session for each connection
     # Create in-memory SQLite engine
     engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
     async_session = sessionmaker(
@@ -128,7 +128,7 @@ async def test_register_team():
 
 
 @pytest.mark.asyncio
-async def test_games():
+async def test_games(): # TODO USE run_game_sender; RMQ
     async_session = await get_db_session()
     async with async_session() as session:
         await make_user(session)
@@ -140,8 +140,8 @@ async def test_games():
                                                                        end_registration_at=now() + timedelta(hours=1) + timedelta(minutes=45)))
         assert response is not None
         assert response.success is True
-        tournament_id = response.tournament_id
-        # tournament_id = 1
+        # tournament_id = response.tournament_id
+        tournament_id = 1
         
         team1 = await make_team(session)
         team2 = await make_team(session, team_name="T2")
@@ -181,7 +181,7 @@ async def test_games():
             for j in range(i+1, 4):
                 response.games[i*4+j].left_team_id == teams[i].team_id
                 response.games[i*4+j].right_team_id == teams[j].team_id
-                response.games[i*4+j].status == 'pending' # TODO I DONE KNOW?!
+                response.games[i*4+j].status == 'pending'
         
         team_ids = list(map(lambda team: team.team_id,response.teams))
         for t in teams:
