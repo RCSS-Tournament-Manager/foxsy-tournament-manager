@@ -188,4 +188,6 @@ async def test_games(): # TODO USE run_game_sender; RMQ
             if t not in team_ids:
                 assert False
         
-                
+
+# TODO test remove team when in the tournament or game
+# TODO test update team when in the tournament or game

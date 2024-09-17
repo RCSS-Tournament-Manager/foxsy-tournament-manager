@@ -10,7 +10,7 @@ from sqlalchemy import select, exists, and_
 import asyncio
 import logging
 from storage.minio_client import MinioClient
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -57,38 +57,46 @@ class TeamManager:
         response = await self.get_team(GetTeamRequestMessage(user_code=message.user_code, team_id=new_team.id))
         return response
 
-    async def get_team(self, message: GetTeamRequestMessage) -> GetTeamResponseMessage:
+    async def get_team(self, message: GetTeamRequestMessage) -> Union[GetTeamResponseMessage, ResponseMessage]:
         """
         Retrieve a team if the user is the owner.
         """
         self.logger.info(f"Getting team with id: {message.team_id} for user with: {message.user_code}")
         session = self.db_session
         
-        stmt = select(UserModel).filter_by(code=message.user_code)
-        user = await session.execute(stmt)
-        user = user.scalars().first()
-        user_id = user.id
+        user_id = None
+        if message.user_code is not None:
+            stmt = select(UserModel).filter_by(code=message.user_code)
+            user = await session.execute(stmt)
+            user = user.scalars().first()
+            if user is not None:
+                user_id = user.id
         
-        stmt = select(TeamModel).filter_by(id=message.team_id, user_id=user_id)
+        stmt = select(TeamModel)
+        if message.team_id is not None:
+            stmt = stmt.filter_by(id=message.team_id)
+        if message.team_name is not None:
+            stmt = stmt.filter_by(name=message.team_name)
+            
         result = await session.execute(stmt)
         team = result.scalars().first()
 
         if not team:
             self.logger.error(f"Team not found or user does not own the team.")
-            raise Exception("Team not found or you are not the owner.")
+            return ResponseMessage(success=False, error="Team not found")
 
         team_message = GetTeamResponseMessage(
             user_code=message.user_code,
             team_id=team.id,
             team_name=team.name,
             base_team_name=team.base_team,
-            team_config_json=team.config
+            team_config_json=team.config if user_id == team.user_id else None
         )
 
         self.logger.info(f"Team retrieved: {team_message}")
         return team_message
 
-    async def remove_team(self, message: RemoveTeamRequestMessage) -> bool:
+    async def remove_team(self, message: RemoveTeamRequestMessage) -> ResponseMessage:
         """
         Remove a team if the user is the owner, the team is not in any tournament or game.
         """
@@ -107,7 +115,7 @@ class TeamManager:
 
         if not team:
             self.logger.error(f"Team not found or user does not own the team.")
-            raise Exception("Team not found or you are not the owner.")
+            return ResponseMessage(success=False, error="Team not found or user does not own the team")
 
         # Ensure the team is not in any tournaments
         stmt_tournament = select(TournamentModel).filter(TournamentModel.teams.contains(team))
@@ -116,7 +124,7 @@ class TeamManager:
 
         if tournament:
             self.logger.error(f"Team is in an ongoing tournament and cannot be deleted.")
-            raise Exception("Team is in an ongoing tournament and cannot be deleted.")
+            return ResponseMessage(success=False, error="Team is in an ongoing tournament and cannot be deleted.")
 
         # Ensure the team is not part of any games
         stmt_game = select(GameModel).filter(
@@ -127,15 +135,15 @@ class TeamManager:
 
         if game:
             self.logger.error(f"Team is involved in a game and cannot be deleted.")
-            raise Exception("Team is involved in a game and cannot be deleted.")
+            return ResponseMessage(success=False, error="Team is involved in a game and cannot be deleted.")
 
         # Remove the team
         await session.delete(team)
         await session.commit()
         self.logger.info(f"Team with id {team.id} removed successfully.")
-        return True
+        return ResponseMessage(success=True)
 
-    async def update_team(self, message: UpdateTeamRequestMessage) -> GetTeamResponseMessage:
+    async def update_team(self, message: UpdateTeamRequestMessage) -> Union[GetTeamResponseMessage, ResponseMessage]:
         """
         Update a team's base_team_name and team_config_json if the user is the owner.
         """
@@ -154,7 +162,7 @@ class TeamManager:
 
         if not team:
             self.logger.error(f"Team not found or user does not own the team.")
-            raise Exception("Team not found or you are not the owner.")
+            return ResponseMessage(success=False, error="Team not found or user does not own the team")
 
         # Update the team's base_team_name and team_config_json
         team.base_team = message.base_team_name
