@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select, exists, and_
 import asyncio
 import logging
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List, Optional, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class UserManager:
@@ -51,7 +51,7 @@ class UserManager:
             self.logger.error(f"Error adding user: {e}")
             return ResponseMessage(success=False, error="An error occurred while adding the user")
         
-    async def get_user_or_create(self, user_code: str) -> Optional[UserModel]:
+    async def get_user_or_create(self, user_code: str) -> Union[UserModel, ResponseMessage]:
         """
         Retrieves the user model on the user_code.
         If the user does not exist, creates a new user with a default name.
@@ -81,7 +81,7 @@ class UserManager:
             except Exception as e:
                 await session.rollback()
                 self.logger.error(f"Error creating user: {e}")
-                raise e  # Raise exception or handle it appropriately
+                return ResponseMessage(success=False, error=f"An error occurred while creating the user. Error: {e}")
             
     async def get_user(self, message: GetUserRequestMessage) -> Optional[UserModel]:
         """
@@ -108,7 +108,7 @@ class UserManager:
             self.logger.error("No user found")
             return None
         
-    async def get_user_info(self, message: GetUserRequestMessage) -> GetUserResponseMessage:
+    async def get_user_info(self, message: GetUserRequestMessage) -> Union[GetUserResponseMessage, ResponseMessage]:
         """
         Retrieves the user information based on the provided criteria.
         """
@@ -132,8 +132,7 @@ class UserManager:
         user = result.scalars().first()
         
         if not user:
-            self.logger.error("No user found")
-            raise Exception("User not found")
+            return ResponseMessage(success=False, error="User not found")
         
         # TODO: Fix bug here
         # Get the list of owned tournaments

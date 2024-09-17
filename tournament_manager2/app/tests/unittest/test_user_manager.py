@@ -173,7 +173,8 @@ async def test_get_user_info():
         
         user_req = GetUserRequestMessage(user_code="123456")
         user = await user_manager.get_user_info(user_req)
-        assert user is None
+        assert type(user) is ResponseMessage
+        assert user.success is False
 
 @pytest.mark.asyncio
 async def test_get_user_info2():
