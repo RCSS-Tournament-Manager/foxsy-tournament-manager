@@ -165,10 +165,15 @@ class TeamManager:
             return ResponseMessage(success=False, error="Team not found or user does not own the team")
 
         # Update the team's base_team_name and team_config_json
-        team.base_team = message.base_team_name
-        team.config = message.team_config_json
+        if message.base_team_name is not None:
+            team.base_team = message.base_team_name
+        if message.team_config_json is not None:
+            team.config = message.team_config_json
         await session.commit()
         await session.refresh(team)
+        
+        print("H"*20)
+        print(team.base_team, team.name)
 
         team_message = GetTeamResponseMessage(
             user_code=message.user_code,
@@ -197,7 +202,8 @@ class TeamManager:
             team_message = TeamMessage(
                 team_id=team.id,
                 team_name=team.name,
-                base_team_name=team.base_team
+                base_team_name=team.base_team,
+                user_id=team.user_id
             )
             team_messages.append(team_message)
 

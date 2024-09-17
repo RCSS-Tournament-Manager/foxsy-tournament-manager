@@ -48,16 +48,28 @@ async def test_get_team():
     async with async_session() as session:
         await make_user(session)
         tm = TeamManager(db_session=session)
-        response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
+        team1 = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
+        assert team1 is not None
+        assert team1.team_name == "T1"
+        
+        team2 = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
+        assert team2 is not None
+        assert team2.team_name == "T1_1"
+        
+        response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team1.team_id))
         assert response is not None
         assert response.team_name == "T1"
+        assert response.base_team_name == "T1"
         
-        response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=response.team_id))
+        response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team2.team_id))
         assert response is not None
-        assert response.team_name == "T1"
+        assert response.team_name == "T1_1"
+        assert response.base_team_name == "T1"
         
-        with pytest.raises(Exception):
-            await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=999))
+        response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=999))
+        assert type(response) == ResponseMessage
+        assert response.success == False
+        assert response.error == "Team not found"
 
 @pytest.mark.asyncio
 async def test_get_team_by_name():
@@ -179,23 +191,26 @@ async def test_update_team():
         assert team.team_name == "T1"
         print(team.team_id)
         
-        with pytest.raises(Exception):
-            response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id='999', team_name="T3"))
-        
-        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team.team_id, team_name="T2"))
+        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id='999', base_team_name="T3"))
         assert response is not None
-        assert response.team_name == "T2"
+        assert type(response) == ResponseMessage
+        assert response.success == False
+        assert response.error == "Team not found or user does not own the team"
+        
+        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team.team_id, base_team_name="T2"))
+        assert response is not None
+        assert type(response) == GetTeamResponseMessage
+        assert response.base_team_name == "T2"
+        assert response.team_name == "T1"
         
         response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team.team_id))
         assert response is not None
-        assert response.team_name == "T2"
+        assert response.team_name == "T1"
         
-        with pytest.raises(Exception):
-            response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team.team_id))
-            
-        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team2.team_id, team_name="T2"))
+        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team2.team_id, base_team_name="T2"))
         assert response is not None
-        assert response.team_name == "T2_1"
+        assert response.team_name == "T10"
+        assert response.base_team_name == "T2"
         
 @pytest.mark.asyncio
 async def test_get_teams(): 
@@ -240,7 +255,7 @@ async def test_get_teams():
         assert response.teams[0].user_id == 1
         assert response.teams[1].user_id == 1
         assert response.teams[2].user_id == 2
-        assert response.teams[3].user_id == 2 # TODO Just add User ID
+        assert response.teams[3].user_id == 2
         
         
         
