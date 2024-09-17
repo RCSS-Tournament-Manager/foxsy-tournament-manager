@@ -30,6 +30,12 @@ class TournamentManager:
         user = user.scalars().first()
         user_id = user.id
         
+        # check times that start time should be after end registration time and end registration time should be before start registration time
+        if not (message.start_at > message.end_registration_at > message.start_registration_at):
+            self.logger.error(f'Invalid time range. start_at: {message.start_at}, end_registration_at: {message.end_registration_at}, start_registration_at: {message.start_registration_at}')
+            print(f'Invalid time range. start_at: {message.start_at}, end_registration_at: {message.end_registration_at}, start_registration_at: {message.start_registration_at}')
+            return ResponseMessage(success=False, error='Invalid time range')
+        
         # check tournament name is unique
         stmt = select(TournamentModel).filter_by(name=message.tournament_name)
         result = await session.execute(stmt)

@@ -35,7 +35,7 @@ async def make_team(session, user_code="123456", team_name="T1"):
     return response
 
 def now():
-    return datetime.now().date()
+    return datetime.now()
 
 @pytest.mark.asyncio
 async def test_add_tournament():
@@ -58,6 +58,7 @@ async def test_add_tournament():
                                                                        end_registration_at=now() + timedelta(hours=1) + timedelta(minutes=45)))
         assert response is not None
         assert response.success is False
+        assert response.error == 'Tournament name is not unique'
         
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
                                                                        tournament_name="T3",
@@ -74,14 +75,17 @@ async def test_add_tournament():
                                                                        end_registration_at=now() + timedelta(hours=3) + timedelta(minutes=45)))
         assert response is not None
         assert response.success is False
+        assert response.error == 'Invalid time range'
         
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
-                                                                       tournament_name="T4",
+                                                                       tournament_name="T5",
                                                                        start_at=now() + timedelta(hours=2),
                                                                        start_registration_at=now() + timedelta(hours=3) + timedelta(minutes=50),
                                                                        end_registration_at=now() + timedelta(hours=3) + timedelta(minutes=45)))
         assert response is not None
         assert response.success is False
+        assert response.error == 'Invalid time range'
+        
 
 @pytest.mark.asyncio
 async def test_register_team():
