@@ -221,6 +221,7 @@ class GetUsersResponseMessage(BaseModel):
 class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
+    value: Optional[str] = Field(None, example="")
 
 
 

@@ -1,11 +1,14 @@
+import asyncio
 import pytest
 from datetime import datetime, timedelta
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from managers.tournament_manager import TournamentManager
 from models.base import Base
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
+from models.tournament_model import TournamentModel, TournamentStatus
 from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
 
 async def get_db_session(): # TODO make new session for each connection
@@ -37,6 +40,24 @@ async def make_team(session, user_code="123456", team_name="T1"):
 def now():
     return datetime.now()
 
+async def update_tournament_status_to_registration(
+    session
+):
+    current_time = datetime.utcnow()
+    result = await session.execute(
+        select(TournamentModel)
+        .where(
+            TournamentModel.status == TournamentStatus.WAIT_FOR_REGISTRATION,
+            TournamentModel.start_registration_at <= current_time,
+            TournamentModel.status != TournamentStatus.REGISTRATION
+        )
+    )
+    tournaments = result.scalars().all()
+    print(f'{len(tournaments)=}')
+    for tournament in tournaments:
+        tournament.status = TournamentStatus.REGISTRATION
+    await session.commit()
+    
 @pytest.mark.asyncio
 async def test_add_tournament():
     async_session = await get_db_session()
@@ -98,9 +119,12 @@ async def test_register_team():
                                                                        start_at=now() + timedelta(hours=2),
                                                                        start_registration_at=now(),
                                                                        end_registration_at=now() + timedelta(hours=1) + timedelta(minutes=45)))
+        
         assert response is not None
         assert response.success is True
-        tournament_id = response.tournament_id
+        tournament_id = int(response.value)
+        
+        await update_tournament_status_to_registration(session)
         
         team1 = await make_team(session)
         response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
@@ -109,19 +133,25 @@ async def test_register_team():
         assert response is not None
         assert response.success is True
         
-        response = await tm.register_team(tournament_id=tournament_id, team_id=1)
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                 tournament_id=tournament_id,
+                                                                                team_id=team1.team_id))
         assert response is not None
         assert response.success is False
         assert response.error == 'Team is already registered'
 
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
                                                                 tournament_name="T2",
-                                                                start_at=now() - timedelta(hours=1),
-                                                                start_registration_at=now(),
-                                                                end_registration_at=now() - timedelta(hours=1) + timedelta(minutes=15)))
+                                                                start_at=now() + timedelta(hours=1),
+                                                                start_registration_at=now() - timedelta(hours=2),
+                                                                end_registration_at=now() + timedelta(seconds=5)))
         assert response is not None
         assert response.success is True    
-        tournament_id = response.tournament_id
+        tournament_id = int(response.value)
+        
+        await update_tournament_status_to_registration(session)
+        #sleep 10 seconds
+        await asyncio.sleep(10)
         
         response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
                                                                                 tournament_id=tournament_id,

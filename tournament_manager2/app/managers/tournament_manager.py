@@ -31,7 +31,9 @@ class TournamentManager:
         user_id = user.id
         
         # check times that start time should be after end registration time and end registration time should be before start registration time
-        if not (message.start_at > message.end_registration_at > message.start_registration_at):
+        if not (message.start_at > message.end_registration_at > message.start_registration_at) \
+                or message.start_at < datetime.now() \
+                or message.end_registration_at < datetime.now():
             self.logger.error(f'Invalid time range. start_at: {message.start_at}, end_registration_at: {message.end_registration_at}, start_registration_at: {message.start_registration_at}')
             print(f'Invalid time range. start_at: {message.start_at}, end_registration_at: {message.end_registration_at}, start_registration_at: {message.start_registration_at}')
             return ResponseMessage(success=False, error='Invalid time range')
@@ -51,7 +53,7 @@ class TournamentManager:
 
         self.logger.debug(f"Added tournament with id: {new_tournament.id} {new_tournament}")
 
-        return ResponseMessage(success=True, error=None)
+        return ResponseMessage(success=True, error=None, value=str(new_tournament.id))
 
     async def get_tournament(self, tournament_id: int) -> TournamentMessage:
         self.logger.info(f"get_tournament: {tournament_id}")
@@ -158,6 +160,8 @@ class TournamentManager:
     async def register_team(self, message: RegisterTeamInTournamentRequestMessage) -> ResponseMessage:
         self.logger.info(f"register_team: {message}")
         
+        now_time = datetime.now()
+        
         stmt = select(UserModel).filter_by(code=message.user_code)
         user = await self.db_session.execute(stmt)
         user = user.scalars().first()
@@ -175,16 +179,23 @@ class TournamentManager:
         tournament = await self.db_session.execute(stmt)
         tournament = tournament.scalars().first()
         
+        print(tournament, tournament.status)
+        
         if not team or not tournament:
+            self.logger.error(f"Team or tournament not found")
             return ResponseMessage(success=False, error='Team or tournament not found')
         
         if tournament.status != TournamentStatus.REGISTRATION:
+            self.logger.error(f"Tournament is not in registration phase")
             return ResponseMessage(success=False, error='Tournament is not in registration phase')
         
-        if datetime.now() < tournament.start_registration_at or datetime.now() > tournament.end_registration_at:
+        if now_time < tournament.start_registration_at or now_time > tournament.end_registration_at:
+            self.logger.error(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
+            print(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
             return ResponseMessage(success=False, error='Registration time is over')
         
         if team in tournament.teams:
+            self.logger.error(f"Team is already registered")
             return ResponseMessage(success=False, error='Team is already registered')
         
         team.tournaments.append(tournament)
