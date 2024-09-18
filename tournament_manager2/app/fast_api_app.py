@@ -6,6 +6,7 @@ from managers.tournament_manager import TournamentManager
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from managers.database_manager import DatabaseManager
+from managers.runner_manager import RunnerManager
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
@@ -79,7 +80,13 @@ class FastApiApp:
                 db_session=db_session
             )
             
-        
+        def get_runner_manager(
+            db_session: AsyncSession = Depends(get_db)
+        ) -> RunnerManager:
+            return RunnerManager(
+                db_session=db_session
+            )
+
         @self.app.get("/")
         def read_root():
             return {"message": "Hello World"}
@@ -338,15 +345,16 @@ class FastApiApp:
             url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/{game_id}/{rcg_file_name}'
             return {"url": url}
         
+
         @self.app.get("/runner/get/{runner_id}", response_model=GetRunnerResponseMessage)
         async def get_runner(
             runner_id: int,
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info(f"get_runner: {runner_id}")
             try:
-                runner = await tournament_manager.get_runner(runner_id)
+                runner = await runner_manager.get_runner(runner_id)
                 if not runner:
                     raise HTTPException(status_code=404, detail="Runner not found")
                 self.logger.info(f"get_runner: {runner}")
@@ -360,12 +368,12 @@ class FastApiApp:
 
         @self.app.get("/runner/get_all", response_model=GetAllRunnersResponseMessage)
         async def get_all_runners(
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info("get_all_runners")
             try:
-                runners = await tournament_manager.get_all_runners()
+                runners = await runner_manager.get_all_runners()
                 self.logger.info(f"get_all_runners: Retrieved {len(runners)} runners")
                 return GetAllRunnersResponseMessage(runners=runners)
             except Exception as e:
@@ -376,12 +384,12 @@ class FastApiApp:
         @self.app.get("/runner/get_log/{runner_id}", response_model=GetRunnerLogResponseMessage)
         async def get_runner_log(
             runner_id: int,
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info(f"get_runner_log: {runner_id}")
             try:
-                logs = await tournament_manager.get_runner_logs(runner_id)
+                logs = await runner_manager.get_runner_logs(runner_id)
                 if not logs:
                     raise HTTPException(status_code=404, detail="No logs found for the runner")
                 self.logger.info(f"get_runner_log: Retrieved {len(logs)} logs for runner {runner_id}")
@@ -393,17 +401,16 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-
         @self.app.post("/runner/game_started", response_model=SuccessResponse)
         async def game_started(
             json: AddGameResponse, 
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info(f"game_started: {json}")
             try:
-                await tournament_manager.handle_game_started(json)
-                return SuccessResponse(success=True)
+                response = await runner_manager.handle_game_started(json)
+                return response
             except Exception as e:
                 self.logger.error(f"game_started: {e}")
                 traceback.print_exc()
@@ -412,32 +419,33 @@ class FastApiApp:
         @self.app.post("/runner/game_finished", response_model=SuccessResponse)
         async def game_finished(
             json: GameInfoSummary, 
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info(f"game_finished: {json}")
             try:
-                await tournament_manager.handle_game_finished(json)
-                return SuccessResponse(success=True)
+                response = await runner_manager.handle_game_finished(json)
+                return response
             except Exception as e:
                 self.logger.error(f"game_finished: {e}")
                 traceback.print_exc()
                 return SuccessResponse(success=False, error=str(e))
 
         @self.app.post("/runner/register", response_model=SuccessResponse)
-        async def register(
+        async def runner_register(
             json: RegisterGameRunnerRequest, 
-            tournament_manager: TournamentManager = Depends(get_tournament_manager),
+            runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
-            self.logger.info(f"register: {json}")
+            self.logger.info(f"runner_register: {json}")
             try:
-                await tournament_manager.register(json)
+                await runner_manager.register(json)
                 return SuccessResponse(success=True)
             except Exception as e:
-                self.logger.error(f"register: {e}")
+                self.logger.error(f"runner_register: {e}")
                 traceback.print_exc()
                 return SuccessResponse(success=False, error=str(e))
+        
 
     async def run(self):
         self.logger.info('Starting FastAPI app')
