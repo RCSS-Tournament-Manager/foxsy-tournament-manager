@@ -243,6 +243,10 @@ class GetRunnerResponseMessage(BaseModel):
     status: str
     start_time: Optional[datetime]
     end_time: Optional[datetime]
+    ip: Optional[str]
+    port: Optional[int]
+    available_games_count: int
+    name: str
 
 class GetAllRunnersResponseMessage(BaseModel):
     runners: List[GetRunnerResponseMessage]
