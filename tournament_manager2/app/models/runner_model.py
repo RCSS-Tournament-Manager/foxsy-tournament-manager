@@ -22,12 +22,12 @@ class RunnerModel(Base):
     __tablename__ = 'runners'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False) 
+    name = Column(String, nullable=True) 
     status = Column(String, default=RunnerStatus.WAITING) 
     # status = Column(Enum(RunnerStatusEnum), default=RunnerStatusEnum.WAITING, nullable=False)
 
     ip = Column(String, nullable=True) # maybe?
-    port = Column(Integer, nullable=True) # maybe too?
+    port = Column(Integer, nullable=True) # maybe too? address unique?
     available_games_count = Column(Integer, default=0, nullable=False)
 
     start_time = Column(DateTime, nullable=True)
