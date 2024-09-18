@@ -7,12 +7,13 @@ class RunnerLogModel(Base):
     __tablename__ = 'runner_logs'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    runner_id = Column(Integer, ForeignKey('match_runners.id'))
+    runner_id = Column(Integer, ForeignKey('runners.id'))
     timestamp = Column(DateTime, default=datetime.now)
     message = Column(String)
 
     # Relationships
-    runner = relationship('MatchRunnerModel', back_populates='logs')
+    runner = relationship('RunnerModel', back_populates='logs')
 
     def __repr__(self):
-        return f"<RunnerLogModel(id={self.id}, runner_id={self.runner_id}, timestamp={self.timestamp}, message={self.message})>"
+        return (f"<RunnerLogModel(id={self.id}, runner_id={self.runner_id}, "
+                f"timestamp={self.timestamp}, message={self.message})>")
