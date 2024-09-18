@@ -100,6 +100,12 @@ async def test_add_tournament():
         assert response is not None
         assert response.success is False
         assert response.error == 'Invalid time range'
+    
+    async with db as session:
+        result = await session.execute(select(TournamentModel))
+        tournaments = result.scalars().all()
+        assert len(tournaments) == 1
+        assert tournaments[0].name == 'T1'
         
 
 @pytest.mark.asyncio

@@ -54,8 +54,9 @@ class FastApiApp:
         
                 # Define dependencies inside the setup_routes method to access self.db_manager
         async def get_db() -> AsyncGenerator[AsyncSession, None]:
-            async for session in self.db_manager.get_session():
+            async with self.db_manager as session:
                 yield session
+                
 
         def get_tournament_manager(
             db_session: AsyncSession = Depends(get_db)

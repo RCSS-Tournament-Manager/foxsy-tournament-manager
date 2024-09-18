@@ -28,9 +28,8 @@ class DatabaseManager:
             await conn.run_sync(Base.metadata.create_all)
             
     async def __aenter__(self):
-        async with self.async_session() as session:
-            self.session = session
-            return session
+        self.session = self.async_session()
+        return self.session
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
