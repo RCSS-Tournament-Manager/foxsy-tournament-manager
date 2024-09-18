@@ -9,20 +9,14 @@ from models.base import Base
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from models.tournament_model import TournamentModel, TournamentStatus
+from managers.database_manager import DatabaseManager
 from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
 
-async def get_db_session(): # TODO make new session for each connection
-    # Create in-memory SQLite engine
-    engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
-    async_session = sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
+async def get_db_session ()-> DatabaseManager:
+    db = DatabaseManager('sqlite+aiosqlite:///:memory:')
+    await db.init_db()
 
-    # Create tables in the in-memory database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    return async_session
+    return db
 
 async def make_user(session, user_name="U1", user_code="123456"):
     um = UserManager(db_session=session)
@@ -57,11 +51,11 @@ async def update_tournament_status_to_registration(
     for tournament in tournaments:
         tournament.status = TournamentStatus.REGISTRATION
     await session.commit()
-    
+
 @pytest.mark.asyncio
 async def test_add_tournament():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async with db.get_session() as session:
         await make_user(session)
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
@@ -171,7 +165,7 @@ async def test_games(): # TODO USE run_game_sender; RMQ
                                                                        tournament_name="T1",
                                                                        start_at=now() + timedelta(hours=2),
                                                                        start_registration_at=now() - timedelta(seconds=10),
-                                                                       end_registration_at=now() + timedelta(hours=1) + timedelta(minutes=45)))
+                                                                       end_registration_at=now() + timedelta(second==10)))
         assert response is not None
         assert response.success is True
         # tournament_id = response.tournament_id
