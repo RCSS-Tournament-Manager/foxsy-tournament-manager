@@ -1,43 +1,49 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+# runner_model.py
+
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from .base import Base
 from .game_model import GameStatus
 from .runner_log_model import RunnerLogModel 
 from datetime import datetime
 
-class RunnerStatus:
+class RunnerStatus: # should we this?
     WAITING = 'waiting'
     RUNNING = 'running'
-    COMPLETED = 'completed'
+    READY = 'READY'
 
+class RunnerStatusEnum(Enum): # or this one?
+    WAITING = 'waiting'
+    RUNNING = 'running'
+    READY = 'READY'
 class RunnerModel(Base):
     __tablename__ = 'runners'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tournament_id = Column(Integer, ForeignKey('tournaments.id'))
-    game_id = Column(Integer, ForeignKey('games.id'))
-    status = Column(String, default=RunnerStatus.WAITING)
+    status = Column(String, default=RunnerStatus.WAITING) # Column(Enum(RunnerStatusEnum), default=RunnerStatusEnum.PENDING) 
+
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     
     # Relationships
-    tournament = relationship('TournamentModel', back_populates='runners')
-    game = relationship('GameModel', back_populates='runner')
+    games = relationship('GameModel', back_populates='runner', cascade='all, delete-orphan') 
     logs = relationship('RunnerLogModel', back_populates='runner', cascade='all, delete-orphan')
 
-    def start_game(self):
-        """Start the game by updating the status and start time."""
+    def start_game(self, game):
+        """Start a specific game by updating the status and start time."""
         self.status = RunnerStatus.RUNNING
         self.start_time = datetime.now()
-        self.game.status = GameStatus.IN_PROGRESS
+        game.status = GameStatus.IN_PROGRESS
+        self.log_event(f"Game {game.id} started.")
 
-    def finish_game(self, left_score, right_score):
-        """Finish the game and record the results."""
-        self.status = RunnerStatus.COMPLETED
+    def finish_game(self, game, left_score, right_score):
+        """Finish a specific game and record the results."""
+        self.status = RunnerStatus.READY
         self.end_time = datetime.now()
-        self.game.status = GameStatus.FINISHED
-        self.game.left_score = left_score
-        self.game.right_score = right_score
+        game.status = GameStatus.FINISHED
+        game.left_score = left_score
+        game.right_score = right_score
+        self.log_event(f"Game {game.id} finished with scores {left_score}-{right_score}.")
 
     def log_event(self, message):
         """Add an event to the runner log."""
@@ -45,5 +51,5 @@ class RunnerModel(Base):
         self.logs.append(log)
 
     def __repr__(self):
-        return (f"<RunnerModel(id={self.id}, tournament_id={self.tournament_id}, "
-                f"game_id={self.game_id}, status={self.status})>")
+        game_ids = [game.id for game in self.games]
+        return (f"<RunnerModel(id={self.id}, games={game_ids}, status={self.status})>")
