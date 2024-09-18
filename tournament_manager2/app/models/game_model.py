@@ -1,6 +1,6 @@
 # game_model.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey #, CheckConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime #, CheckConstraint
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -21,6 +21,8 @@ class GameModel(Base):
     status = Column(String, default=GameStatus.PENDING)
     left_score = Column(Integer, default=0)
     right_score = Column(Integer, default=0)
+    start_time = Column(DateTime, nullable=True)
+    end_time = Column(DateTime, nullable=True)
 
     # Relationships
     tournament = relationship('TournamentModel', back_populates='games')
