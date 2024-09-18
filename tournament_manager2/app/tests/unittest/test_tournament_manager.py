@@ -55,7 +55,7 @@ async def update_tournament_status_to_registration(
 @pytest.mark.asyncio
 async def test_add_tournament():
     db = await get_db_session()
-    async with db.get_session() as session:
+    async with db as session:
         await make_user(session)
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
