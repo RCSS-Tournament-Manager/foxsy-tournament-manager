@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Union, List
 from datetime import datetime
 
 
@@ -221,6 +221,36 @@ class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
 
+class AddGameResponseModel(BaseModel):
+    game_id: int
+    runner_id: int
 
+class GameInfoSummaryModel(BaseModel):
+    game_id: int
+    left_score: int
+    right_score: int
 
+class RegisterGameRunnerRequestModel(BaseModel):
+    game_id: int
+    runner_id: int
 
+class SuccessResponse(BaseModel):
+    success: bool
+    error: Union[str, None] = None
+    
+class GetRunnerResponseMessage(BaseModel):
+    id: int
+    status: str
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+
+class GetAllRunnersResponseMessage(BaseModel):
+    runners: List[GetRunnerResponseMessage]
+
+class RunnerLog(BaseModel):
+    log_id: int
+    message: str
+    timestamp: datetime
+
+class GetRunnerLogResponseMessage(BaseModel):
+    logs: List[RunnerLog]
