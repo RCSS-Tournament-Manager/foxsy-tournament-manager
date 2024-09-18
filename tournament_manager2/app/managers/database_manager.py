@@ -10,6 +10,7 @@ class DatabaseManager:
         self.database_url = database_url
         self.engine: Optional[AsyncEngine] = None
         self.async_session: Optional[sessionmaker] = None
+        self.session = None
 
     async def init_db(self):
         # Create the async engine
@@ -28,10 +29,15 @@ class DatabaseManager:
             
     async def __aenter__(self):
         async with self.async_session() as session:
+            self.session = session
             return session
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        print("BYE BYE")
+        if exc_type is None:
+            await self.session.commit()
+        else:
+            await self.session.rollback()
+            
     
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
         if self.async_session is None:
