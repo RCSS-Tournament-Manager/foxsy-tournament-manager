@@ -17,9 +17,8 @@ async def make_user(session, user_name="U1", user_code="123456"):
 
 @pytest.mark.asyncio
 async def test_create_team():
-    async_session = await get_db_session()
-    
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
@@ -32,8 +31,8 @@ async def test_create_team():
         
 @pytest.mark.asyncio
 async def test_get_team():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         team1 = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
@@ -61,8 +60,8 @@ async def test_get_team():
 
 @pytest.mark.asyncio
 async def test_get_team_by_name():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
@@ -87,8 +86,8 @@ async def test_get_team_by_name():
 
 @pytest.mark.asyncio
 async def test_get_user_teams():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         um = UserManager(db_session=session)
@@ -115,8 +114,8 @@ async def test_get_user_teams():
             
 @pytest.mark.asyncio
 async def test_user_access():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         await make_user(session, user_name="U2", user_code="654321")
         tm = TeamManager(db_session=session)
@@ -145,8 +144,8 @@ async def test_user_access():
 
 @pytest.mark.asyncio
 async def test_remove_team():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
@@ -169,8 +168,8 @@ async def test_remove_team():
         
 @pytest.mark.asyncio
 async def test_update_team():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TeamManager(db_session=session)
         team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
@@ -202,8 +201,8 @@ async def test_update_team():
         
 @pytest.mark.asyncio
 async def test_get_teams(): 
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         await make_user(session, user_name="U2", user_code="654321")
         tm = TeamManager(db_session=session)

@@ -48,8 +48,8 @@ async def update_tournament_status_to_registration(
     
 @pytest.mark.asyncio
 async def test_add_tournament():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
@@ -98,8 +98,8 @@ async def test_add_tournament():
 
 @pytest.mark.asyncio
 async def test_register_team():
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
@@ -151,8 +151,8 @@ async def test_register_team():
 
 @pytest.mark.asyncio
 async def test_games(): # TODO USE run_game_sender; RMQ
-    async_session = await get_db_session()
-    async with async_session() as session:
+    db = await get_db_session()
+    async for session in db():
         await make_user(session)
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
