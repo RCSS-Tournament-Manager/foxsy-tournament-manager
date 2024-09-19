@@ -77,7 +77,13 @@ async def update_tournament_status_to_wait_for_start(
         
     if len(tournament_ids) > 0:
         await create_all_games(session, tournament_ids)
-    
+
+'''
+    Test
+    1. Add tournament
+    2. Add tournament with the same name
+    3. Add tournament with invalid time range
+'''
 @pytest.mark.asyncio
 async def test_add_tournament():
     db = await get_db_session()
@@ -128,6 +134,12 @@ async def test_add_tournament():
         assert response.error == 'Invalid time range'
         
 
+'''
+    Test
+    1. check update_tournament_status_to_registration
+    2. Register team
+    3. Register team after registration time is over
+'''
 @pytest.mark.asyncio
 async def test_register_team():
     db = await get_db_session()
@@ -181,8 +193,13 @@ async def test_register_team():
         assert response.error == 'Registration time is over'    
 
 
+'''
+    Test
+    1. check update_tournament_status_to_registration
+    2. check game creation
+'''
 @pytest.mark.asyncio
-async def test_games_creation(): # TODO USE run_game_sender; RMQ
+async def test_games_creation():
     db = await get_db_session()
     async for session in db():
         await make_user(session)
@@ -267,11 +284,18 @@ async def test_games_creation(): # TODO USE run_game_sender; RMQ
                 assert False
         
 
+'''
+    Test
+    1. check removing or updating teams after games are created
+    2. check the user info after creating and joining tournaments
+    3. check registering a team with a user who is not the owner of the team
+'''
 @pytest.mark.asyncio
 async def test_remove_or_update_teams_after_games_created():
     db = await get_db_session()
     async for session in db():
         await make_user(session)
+        await make_user(session, user_name="U2", user_code="654321")
         tm = TournamentManager(db_session=session, minio_client=None)
         response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
                                                                        tournament_name="T1",
@@ -291,8 +315,9 @@ async def test_remove_or_update_teams_after_games_created():
         team2 = await make_team(session, team_name="T2")
         team3 = await make_team(session, team_name="T3")
         team4 = await make_team(session, team_name="T4")
+        team5 = await make_team(session, user_code='654321', team_name="T5")
         
-        teams = [team1, team2, team3, team4]
+        teams = [team1, team2, team3, team4, team5]
         
         response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
                                                                                 tournament_id=tournament_id,
@@ -317,6 +342,19 @@ async def test_remove_or_update_teams_after_games_created():
                                                                                 team_id=team4.team_id))
         assert response is not None
         assert response.success is True
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                 tournament_id=tournament_id,
+                                                                                team_id=team5.team_id))
+        assert response is not None
+        assert response.success is False
+        assert response.error == 'Team or tournament not found'
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="654321",
+                                                                                    tournament_id=tournament_id,
+                                                                                    team_id=team5.team_id))
+        assert response is not None
+        assert response.success is True
     
     await asyncio.sleep(10)
     
@@ -329,6 +367,11 @@ async def test_remove_or_update_teams_after_games_created():
         assert response is not None
         assert response.in_tournament_ids == [tournament_id]
         assert response.owned_tournament_ids == [tournament_id]
+        
+        response = await um.get_user_info(GetUserRequestMessage(user_code="654321"))
+        assert response is not None
+        assert response.in_tournament_ids == [tournament_id]
+        assert response.owned_tournament_ids == []
     
     async for session in db():
         tm = TeamManager(session)
