@@ -9,20 +9,8 @@ from models.base import Base
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from models.tournament_model import TournamentModel, TournamentStatus
+from tests.db_utils import get_db_session
 from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
-
-async def get_db_session(): # TODO make new session for each connection
-    # Create in-memory SQLite engine
-    engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
-    async_session = sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    # Create tables in the in-memory database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    return async_session
 
 async def make_user(session, user_name="U1", user_code="123456"):
     um = UserManager(db_session=session)

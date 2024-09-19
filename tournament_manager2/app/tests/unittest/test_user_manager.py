@@ -7,19 +7,7 @@ from models import TournamentModel, UserModel
 from utils.messages import AddUserRequestMessage, GetUserRequestMessage, ResponseMessage
 from pytest import raises
 from sqlalchemy import select, exists, and_
-
-async def get_db_session():
-    # Create in-memory SQLite engine
-    engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
-    async_session = sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    # Create tables in the in-memory database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    return async_session
+from tests.db_utils import get_db_session
 
 @pytest.mark.asyncio
 async def test_add_two_same_users():
