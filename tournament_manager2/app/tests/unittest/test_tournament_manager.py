@@ -10,7 +10,7 @@ from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from models.tournament_model import TournamentModel, TournamentStatus
 from tests.db_utils import get_db_session
-from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
+from utils.messages import AddTeamRequestMessage, AddTournamentRequestMessage, AddUserRequestMessage, GetTeamRequestMessage, GetUserRequestMessage, RegisterTeamInTournamentRequestMessage, RemoveTeamRequestMessage, UpdateTeamRequestMessage
 
 async def make_user(session, user_name="U1", user_code="123456"):
     um = UserManager(db_session=session)
@@ -322,6 +322,13 @@ async def test_remove_or_update_teams_after_games_created():
     
     async for session in db():
         await update_tournament_status_to_wait_for_start(session)
+        
+    async for session in db():
+        um = UserManager(session)
+        response = await um.get_user_info(GetUserRequestMessage(user_code="123456"))
+        assert response is not None
+        assert response.in_tournament_ids == [tournament_id]
+        assert response.owned_tournament_ids == [tournament_id]
     
     async for session in db():
         tm = TeamManager(session)
