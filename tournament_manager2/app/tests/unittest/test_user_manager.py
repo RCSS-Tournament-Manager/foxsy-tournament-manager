@@ -9,6 +9,12 @@ from pytest import raises
 from sqlalchemy import select, exists, and_
 from tests.db_utils import get_db_session
 
+
+'''
+    Test
+    1. Add a user
+    2. Add a user with same username
+'''
 @pytest.mark.asyncio
 async def test_add_two_same_users():
     db = await get_db_session()
@@ -34,6 +40,12 @@ async def test_add_two_same_users():
         
         assert response.success is False
 
+
+'''
+    Test
+    1. Add a user
+    2. Add a user with the same code
+'''
 @pytest.mark.asyncio
 async def test_add_two_users_with_same_code():
     db = await get_db_session()
@@ -62,7 +74,13 @@ async def test_add_two_users_with_same_code():
         response = await user_manager.add_user(add_user_message)
         
         assert response.success is False
-        
+       
+'''
+    Test
+    1. Add a user=A
+    2. get the user using get_user_or_create with usercode with the A user
+    3. get the user using get_user_or_create with new usercode it should be created
+''' 
 @pytest.mark.asyncio
 async def test_get_user_or_create():
     db = await get_db_session()
@@ -100,7 +118,11 @@ async def test_get_user_or_create():
 
         assert new_user is not None
         assert new_user.name == "user_654321"
-        
+
+'''
+    Test
+    1. Get a user that does not exist with usercode and username
+'''        
 @pytest.mark.asyncio
 async def test_get_user():
     db = await get_db_session()
@@ -115,14 +137,17 @@ async def test_get_user():
         user = await user_manager.get_user(user_req)
         assert user is None
 
+'''
+    Test
+    1. Get users using username
+    2. Get users using usercode
+    3. Get users using both username and usercode
+'''
 @pytest.mark.asyncio
 async def test_get_user2():
     db = await get_db_session()
     async for session in db():
         user_manager = UserManager(db_session=session)
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User")
         
         await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
         await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
@@ -147,6 +172,11 @@ async def test_get_user2():
         assert user is not None
         assert user.name == "Test User2"
 
+
+'''
+    Test
+    1. Get a user info that does not exist with usercode
+'''
 @pytest.mark.asyncio
 async def test_get_user_info():
     db = await get_db_session()
@@ -158,6 +188,11 @@ async def test_get_user_info():
         assert type(user) is ResponseMessage
         assert user.success is False
 
+
+'''
+    Test
+    1. Get a user info that does exist with usercode
+'''
 @pytest.mark.asyncio
 async def test_get_user_info2():
     db = await get_db_session()
@@ -177,6 +212,10 @@ async def test_get_user_info2():
         assert user.owned_tournament_ids== []
         assert user.in_tournament_ids == []
 
+'''
+    Test
+    1. get all users that do not exist
+'''
 @pytest.mark.asyncio
 async def test_get_users():
     db = await get_db_session()
@@ -186,7 +225,12 @@ async def test_get_users():
         users = await user_manager.get_users()
         assert users is not None
         assert users.users == []
-        
+ 
+ 
+'''
+    Test
+    1. get all users
+'''       
 @pytest.mark.asyncio
 async def test_get_users2():
     db = await get_db_session()
