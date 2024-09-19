@@ -209,6 +209,7 @@ async def test_update_team():
     db = await get_db_session()
     async for session in db():
         await make_user(session)
+        await make_user(session, user_name="U2", user_code="654321")
         tm = TeamManager(db_session=session)
         team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
         team2 = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T10"))
@@ -236,6 +237,11 @@ async def test_update_team():
         assert response is not None
         assert response.team_name == "T10"
         assert response.base_team_name == "T2"
+        
+        response = await tm.update_team(UpdateTeamRequestMessage(user_code="654321", team_id=team2.team_id, base_team_name="T3"))
+        assert response is not None
+        assert response.success == False
+        assert response.error == "Team not found or user does not own the team"
 
 '''
     Test
