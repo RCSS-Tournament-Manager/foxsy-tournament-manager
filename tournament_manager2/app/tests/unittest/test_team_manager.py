@@ -15,6 +15,11 @@ async def make_user(session, user_name="U1", user_code="123456"):
     assert response.success is True
     return response
 
+'''
+    Test
+    1. Create a team
+    2. Create a team with the same name to see if the teamname is changed or not
+'''
 @pytest.mark.asyncio
 async def test_create_team():
     db = await get_db_session()
@@ -28,7 +33,13 @@ async def test_create_team():
         response = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
         assert response is not None
         assert response.team_name == "T1_1"
-        
+
+
+'''
+    Test
+    1. get a team that exists
+    2. get a team that does not exist
+'''
 @pytest.mark.asyncio
 async def test_get_team():
     db = await get_db_session()
@@ -58,6 +69,12 @@ async def test_get_team():
         assert response.success == False
         assert response.error == "Team not found"
 
+
+'''
+    Test
+    1. get a team by name that exists
+    2. get a team by name that the user code is not matched -> it should receive the team info, but not all of it (no config)
+'''
 @pytest.mark.asyncio
 async def test_get_team_by_name():
     db = await get_db_session()
@@ -84,6 +101,10 @@ async def test_get_team_by_name():
         assert response.team_config_json == None
             
 
+'''
+    Test
+    1. check the teams that the user has (multiple teams)
+'''
 @pytest.mark.asyncio
 async def test_get_user_teams():
     db = await get_db_session()
@@ -111,7 +132,11 @@ async def test_get_user_teams():
         
         with pytest.raises(Exception):
             await um.get_user_info("999")
-            
+
+'''
+    Test
+    1. remove or update teams with a user that is not the owner
+'''  
 @pytest.mark.asyncio
 async def test_user_access():
     db = await get_db_session()
@@ -141,7 +166,12 @@ async def test_user_access():
         assert response.error == "Team not found or user does not own the team"
 
         
-
+'''
+    Test
+    1. remove a team
+    2. remove a team that does not exist
+    3. check if the team is removed
+'''
 @pytest.mark.asyncio
 async def test_remove_team():
     db = await get_db_session()
@@ -165,7 +195,15 @@ async def test_remove_team():
         assert type(response) == ResponseMessage
         assert response.success == False
         assert response.error == "Team not found or user does not own the team"
-        
+
+
+'''
+    Test
+    1. update a team
+    2. update a team that does not exist
+    3. update a team that the user does not own # TODO NOT tested
+    4. check if the team is updated
+''' 
 @pytest.mark.asyncio
 async def test_update_team():
     db = await get_db_session()
@@ -198,7 +236,11 @@ async def test_update_team():
         assert response is not None
         assert response.team_name == "T10"
         assert response.base_team_name == "T2"
-        
+
+'''
+    Test
+    1. get all teams
+'''      
 @pytest.mark.asyncio
 async def test_get_teams(): 
     db = await get_db_session()
