@@ -182,7 +182,7 @@ async def test_register_team():
 
 
 @pytest.mark.asyncio
-async def test_games(): # TODO USE run_game_sender; RMQ
+async def test_games_creation(): # TODO USE run_game_sender; RMQ
     db = await get_db_session()
     async for session in db():
         await make_user(session)
@@ -267,5 +267,70 @@ async def test_games(): # TODO USE run_game_sender; RMQ
                 assert False
         
 
-# TODO test remove team when in the tournament or game
-# TODO test update team when in the tournament or game
+@pytest.mark.asyncio
+async def test_remove_or_update_teams_after_games_created():
+    db = await get_db_session()
+    async for session in db():
+        await make_user(session)
+        tm = TournamentManager(db_session=session, minio_client=None)
+        response = await tm.add_tournament(AddTournamentRequestMessage(user_code="123456",
+                                                                       tournament_name="T1",
+                                                                       start_at=now() + timedelta(hours=2),
+                                                                       start_registration_at=now() - timedelta(seconds=10),
+                                                                       end_registration_at=now() + timedelta(seconds=10)))
+        assert response is not None
+        assert response.success is True
+        # tournament_id = response.tournament_id
+        tournament_id = 1
+    
+    async for session in db():
+        await update_tournament_status_to_registration(session)
+    
+    async for session in db():
+        team1 = await make_team(session)
+        team2 = await make_team(session, team_name="T2")
+        team3 = await make_team(session, team_name="T3")
+        team4 = await make_team(session, team_name="T4")
+        
+        teams = [team1, team2, team3, team4]
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                tournament_id=tournament_id,
+                                                                                team_id=team1.team_id))
+        assert response is not None
+        assert response.success is True
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                tournament_id=tournament_id,
+                                                                                team_id=team2.team_id))
+        assert response is not None
+        assert response.success is True
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                tournament_id=tournament_id,
+                                                                                team_id=team3.team_id))
+        assert response is not None
+        assert response.success is True
+        
+        response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code="123456",
+                                                                                tournament_id=tournament_id,
+                                                                                team_id=team4.team_id))
+        assert response is not None
+        assert response.success is True
+    
+    await asyncio.sleep(10)
+    
+    async for session in db():
+        await update_tournament_status_to_wait_for_start(session)
+    
+    async for session in db():
+        tm = TeamManager(session)
+        response = await tm.remove_team(RemoveTeamRequestMessage(user_code="123456", team_id=team1.team_id))
+        assert response is not None
+        assert response.success is False
+        assert response.error == 'Team is in an ongoing tournament and cannot be deleted.'
+
+        response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team1.team_id, team_name="T5"))
+        assert response is not None
+        assert response.success is False
+        assert response.error == 'Team is in an ongoing tournament and cannot be updated.'
