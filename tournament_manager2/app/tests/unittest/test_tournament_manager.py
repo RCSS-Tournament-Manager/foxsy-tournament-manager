@@ -46,6 +46,38 @@ async def update_tournament_status_to_registration(
         tournament.status = TournamentStatus.REGISTRATION
     await session.commit()
     
+async def create_all_games(
+    session,
+    tournament_ids: list[int]
+):
+    tournament_manager = TournamentManager(session, None)
+    
+    for tournament_id in tournament_ids:
+        await tournament_manager.create_all_games(tournament_id)
+    
+    
+async def update_tournament_status_to_wait_for_start(
+    session
+):
+    tournament_ids = []
+    current_time = datetime.utcnow()
+    result = await session.execute(
+        select(TournamentModel)
+        .where(
+            TournamentModel.status == TournamentStatus.REGISTRATION,
+            TournamentModel.end_registration_at <= current_time,
+            TournamentModel.status != TournamentStatus.WAIT_FOR_START
+        )
+    )
+    tournaments = result.scalars().all()
+    for tournament in tournaments:
+        tournament.status = TournamentStatus.WAIT_FOR_START
+        tournament_ids.append(tournament.id)
+    await session.commit()
+        
+    if len(tournament_ids) > 0:
+        await create_all_games(session, tournament_ids)
+    
 @pytest.mark.asyncio
 async def test_add_tournament():
     db = await get_db_session()
@@ -159,12 +191,16 @@ async def test_games(): # TODO USE run_game_sender; RMQ
                                                                        tournament_name="T1",
                                                                        start_at=now() + timedelta(hours=2),
                                                                        start_registration_at=now() - timedelta(seconds=10),
-                                                                       end_registration_at=now() + timedelta(hours=1) + timedelta(minutes=45)))
+                                                                       end_registration_at=now() + timedelta(seconds=10)))
         assert response is not None
         assert response.success is True
         # tournament_id = response.tournament_id
         tournament_id = 1
-        
+    
+    async for session in db():
+        await update_tournament_status_to_registration(session)
+    
+    async for session in db():
         team1 = await make_team(session)
         team2 = await make_team(session, team_name="T2")
         team3 = await make_team(session, team_name="T3")
@@ -195,19 +231,39 @@ async def test_games(): # TODO USE run_game_sender; RMQ
                                                                                 team_id=team4.team_id))
         assert response is not None
         assert response.success is True
-        
-        await tm.create_all_games(tournament_id)
+    
+    # create games to check all are created in database
+    games = []
+    for i in range(len(teams)):
+        for j in range(i+1, len(teams)):
+            games.append((teams[i].team_id, teams[j].team_id))
+            
+    await asyncio.sleep(10)
+    
+    async for session in db():
+        await update_tournament_status_to_wait_for_start(session)
+    
+    async for session in db():
         response = await tm.get_tournament(tournament_id)
-        # check all games are created
-        for i in range(4):
-            for j in range(i+1, 4):
-                response.games[i*4+j].left_team_id == teams[i].team_id
-                response.games[i*4+j].right_team_id == teams[j].team_id
-                response.games[i*4+j].status == 'pending'
+        assert len(response.teams) == 4
+        assert len(response.games) == len(games)
+        
+        for g in response.games:
+            if (g.left_team_id, g.right_team_id) in games:
+                games.remove((g.left_team_id, g.right_team_id))
+                assert True
+            elif (g.right_team_id, g.left_team_id) in games:
+                games.remove((g.right_team_id, g.left_team_id))
+                assert True
+            else:
+                assert False
+            
+        assert len(games) == 0
         
         team_ids = list(map(lambda team: team.team_id,response.teams))
+        print(team_ids)
         for t in teams:
-            if t not in team_ids:
+            if t.team_id not in team_ids:
                 assert False
         
 
