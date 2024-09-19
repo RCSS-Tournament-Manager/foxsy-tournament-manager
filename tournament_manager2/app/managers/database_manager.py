@@ -27,24 +27,17 @@ class DatabaseManager:
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
-    async def __aenter__(self):
-        self.session = self.async_session()
-        return self.session
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is None:
-            await self.session.commit()
-        else:
-            await self.session.rollback()
-            
-    
+
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
         if self.async_session is None:
             raise RuntimeError("Database not initialized. Call init_db() first.")
-        async with self.async_session() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
+        session = self.async_session()
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+            

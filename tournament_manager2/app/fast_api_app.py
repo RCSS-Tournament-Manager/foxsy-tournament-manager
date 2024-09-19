@@ -52,14 +52,9 @@ class FastApiApp:
                     status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
                 )
         
-                # Define dependencies inside the setup_routes method to access self.db_manager
-        async def get_db() -> AsyncGenerator[AsyncSession, None]:
-            async with self.db_manager as session:
-                yield session
-                
 
         def get_tournament_manager(
-            db_session: AsyncSession = Depends(get_db)
+            db_session: AsyncSession = Depends(self.db_manager.get_session)
         ) -> TournamentManager:
             return TournamentManager(
                 db_session=db_session,
@@ -67,14 +62,14 @@ class FastApiApp:
             )
             
         def get_team_manager(
-            db_session: AsyncSession = Depends(get_db)
+            db_session: AsyncSession = Depends(self.db_manager.get_session)
         ) -> TeamManager:
             return TeamManager(
                 db_session=db_session
             )
             
         def get_user_manager(
-            db_session: AsyncSession = Depends(get_db)
+            db_session: AsyncSession = Depends(self.db_manager.get_session)
         ) -> UserManager:
             return UserManager(
                 db_session=db_session
