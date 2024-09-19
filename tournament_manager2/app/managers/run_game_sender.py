@@ -58,11 +58,12 @@ async def create_all_games(
     tournament_ids: list[int]
 ):
     logger = logging.getLogger("update_tournament_status")
-    tournament_manager = TournamentManager(db_manager)
-    
-    for tournament_id in tournament_ids:
-        await tournament_manager.create_all_games(tournament_id)
-        logger.info(f"Created games for tournament with id: {tournament_id}")
+    async for session in db_manager.get_session():
+        tournament_manager = TournamentManager(session)
+        
+        for tournament_id in tournament_ids:
+            await tournament_manager.create_all_games(tournament_id)
+            logger.info(f"Created games for tournament with id: {tournament_id}")
     
     
 async def update_tournament_status_to_wait_for_start(
@@ -88,7 +89,7 @@ async def update_tournament_status_to_wait_for_start(
         logger.info(f"Updated {len(tournaments)} tournaments to WAIT_FOR_START status")
         
     if len(tournament_ids) > 0:
-        await create_all_games(db_manager, [tournament_ids])
+        await create_all_games(db_manager, tournament_ids)
     
 
 async def update_tournament_status_to_in_progress(
