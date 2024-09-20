@@ -17,8 +17,8 @@ from tests.db_utils import get_db_session
 '''
 @pytest.mark.asyncio
 async def test_add_two_same_users():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
         user_code="123456",
@@ -48,8 +48,8 @@ async def test_add_two_same_users():
 '''
 @pytest.mark.asyncio
 async def test_add_two_users_with_same_code():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
         user_code="123456",
@@ -83,8 +83,8 @@ async def test_add_two_users_with_same_code():
 ''' 
 @pytest.mark.asyncio
 async def test_get_user_or_create():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
         user_code="123456",
@@ -125,8 +125,8 @@ async def test_get_user_or_create():
 '''        
 @pytest.mark.asyncio
 async def test_get_user():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     
     user_req = GetUserRequestMessage(user_code="123456")
@@ -145,8 +145,8 @@ async def test_get_user():
 '''
 @pytest.mark.asyncio
 async def test_get_user2():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     
     await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
@@ -179,8 +179,8 @@ async def test_get_user2():
 '''
 @pytest.mark.asyncio
 async def test_get_user_info():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     
     user_req = GetUserRequestMessage(user_code="123456")
@@ -195,8 +195,8 @@ async def test_get_user_info():
 '''
 @pytest.mark.asyncio
 async def test_get_user_info2():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
         user_code="123456",
@@ -218,8 +218,8 @@ async def test_get_user_info2():
 '''
 @pytest.mark.asyncio
 async def test_get_users():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     
     users = await user_manager.get_users()
@@ -233,8 +233,8 @@ async def test_get_users():
 '''       
 @pytest.mark.asyncio
 async def test_get_users2():
-    async_session = await get_db_session()
-    session = async_session()
+    session = await get_db_session()
+    
     user_manager = UserManager(db_session=session)
     await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
     await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
