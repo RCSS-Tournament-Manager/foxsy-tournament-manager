@@ -179,20 +179,20 @@ class TournamentManager:
         tournament = await self.db_session.execute(stmt)
         tournament = tournament.scalars().first()
         
-        print(tournament, tournament.status)
-        
         if not team or not tournament:
             self.logger.error(f"Team or tournament not found")
             return ResponseMessage(success=False, error='Team or tournament not found')
+        
+        print(tournament, tournament.status)
         
         if tournament.status != TournamentStatus.REGISTRATION:
             self.logger.error(f"Tournament is not in registration phase")
             return ResponseMessage(success=False, error='Tournament is not in registration phase')
         
-        if now_time < tournament.start_registration_at or now_time > tournament.end_registration_at:
-            self.logger.error(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
-            print(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
-            return ResponseMessage(success=False, error='Registration time is over')
+        # if now_time < tournament.start_registration_at or now_time > tournament.end_registration_at:
+        #     self.logger.error(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
+        #     print(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
+        #     return ResponseMessage(success=False, error='Registration time is over')
         
         if team in tournament.teams:
             self.logger.error(f"Team is already registered")
