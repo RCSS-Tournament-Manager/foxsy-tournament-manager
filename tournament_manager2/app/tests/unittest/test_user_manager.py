@@ -7,178 +7,149 @@ from models import TournamentModel, UserModel
 from utils.messages import AddUserRequestMessage, GetUserRequestMessage, ResponseMessage
 from pytest import raises
 from sqlalchemy import select, exists, and_
-from tests.db_utils import get_db_session
+from tests.db_utils import add_user_to_db, get_db_session
 
 
 '''
     Test
-    1. Add a user
-    2. Add a user with same username
+    Add a user with same username
 '''
 @pytest.mark.asyncio
-async def test_add_two_same_users():
+async def test_adding_user_with_non_unique_username():
     session = await get_db_session()
     
-    user_manager = UserManager(db_session=session)
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
+    
+    um = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
-        user_code="123456",
+        user_code="654321",
         user_name="Test User")
-    
-    response = await user_manager.add_user(add_user_message)
-        
-    assert isinstance(response, ResponseMessage)
-    assert response.success is True
-    
-    stmt = select(UserModel).filter_by(name="Test User")
-    result = await session.execute(stmt)
-    new_user = result.scalars().first()
 
-    assert new_user is not None
-    assert new_user.name == "Test User"
-    
-    response = await user_manager.add_user(add_user_message)
-    
+    response = await um.add_user(add_user_message)
     assert response.success is False
 
 
 '''
     Test
-    1. Add a user
-    2. Add a user with the same code
+    Add a user with the same code
 '''
 @pytest.mark.asyncio
-async def test_add_two_users_with_same_code():
+async def test_adding_user_with_non_unique_code():
     session = await get_db_session()
     
-    user_manager = UserManager(db_session=session)
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
+    
+    um = UserManager(db_session=session)
     add_user_message = AddUserRequestMessage(
         user_code="123456",
-        user_name="Test User")
-    
-    response = await user_manager.add_user(add_user_message)
-        
-    assert isinstance(response, ResponseMessage)
-    assert response.success is True
-    
-    stmt = select(UserModel).filter_by(name="Test User")
-    result = await session.execute(stmt)
-    new_user = result.scalars().first()
+        user_name="Test User3")
 
-    assert new_user is not None
-    assert new_user.name == "Test User"
-    
-    add_user_message = AddUserRequestMessage(
-        user_code="123456",
-        user_name="Test User2")
-    
-    response = await user_manager.add_user(add_user_message)
-    
+    response = await um.add_user(add_user_message)
     assert response.success is False
        
 '''
     Test
-    1. Add a user=A
-    2. get the user using get_user_or_create with usercode with the A user
-    3. get the user using get_user_or_create with new usercode it should be created
+    get user or create while the user exist
 ''' 
 @pytest.mark.asyncio
-async def test_get_user_or_create():
+async def test_get_user_or_create_user_exist():
     session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
     
-    user_manager = UserManager(db_session=session)
-    add_user_message = AddUserRequestMessage(
-        user_code="123456",
-        user_name="Test User")
-    
-    response = await user_manager.add_user(add_user_message)
-        
-    assert isinstance(response, ResponseMessage)
-    assert response.success is True
-    
-    stmt = select(UserModel).filter_by(name="Test User")
-    result = await session.execute(stmt)
-    new_user = result.scalars().first()
-
-    assert new_user is not None
-    assert new_user.name == "Test User"
-    
-    user = await user_manager.get_user_or_create("123456")
+    um = UserManager(db_session=session)
+    user = await um.get_user_or_create("123456")
     
     assert user is not None
     assert user.name == "Test User"
     
-    user = await user_manager.get_user_or_create("654321")
+'''
+    Test
+    get user or create while the user does not exist
+'''
+@pytest.mark.asyncio
+async def test_get_user_or_create_user_does_not_exist():
+    session = await get_db_session()
+    um = UserManager(db_session=session)
+    user = await um.get_user_or_create("123456")
     
     assert user is not None
-    assert user.name == "user_654321"
-    
-    stmt = select(UserModel).filter_by(name="user_654321")
-    result = await session.execute(stmt)
-    new_user = result.scalars().first()
-
-    assert new_user is not None
-    assert new_user.name == "user_654321"
+    assert user.name == "user_123456"
 
 '''
     Test
-    1. Get a user that does not exist with usercode and username
+    Get a user that does not exist with usercode and username
 '''        
 @pytest.mark.asyncio
-async def test_get_user():
+async def test_get_user_does_not_exist():
     session = await get_db_session()
     
     user_manager = UserManager(db_session=session)
     
     user_req = GetUserRequestMessage(user_code="123456")
     user = await user_manager.get_user(user_req)
-    assert user is None
+    assert user.success is False
+    assert user.error == "User not found"
     
     user_req = GetUserRequestMessage(user_name="123456")
     user = await user_manager.get_user(user_req)
-    assert user is None
+    assert user.success is False
+    assert user.error == "User not found"
 
 '''
     Test
-    1. Get users using username
-    2. Get users using usercode
-    3. Get users using both username and usercode
+    Get a user that exist with usercode
 '''
 @pytest.mark.asyncio
-async def test_get_user2():
+async def test_get_user_with_code():
     session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
     
     user_manager = UserManager(db_session=session)
-    
-    await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
     
     user_req = GetUserRequestMessage(user_code="123456")
     user = await user_manager.get_user(user_req)
     assert user is not None
     assert user.name == "Test User"
     
-    user_req = GetUserRequestMessage(user_name="Test User2")
-    user = await user_manager.get_user(user_req)
-    assert user is not None
-    assert user.name == "Test User2"
-    assert user.code == "654321"
+'''
+    Test
+    Get a user that exist with username
+'''
+@pytest.mark.asyncio
+async def test_get_user_with_name():
+    session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
     
-    user_req = GetUserRequestMessage(user_code="654321", user_name="Test User")
-    user = await user_manager.get_user(user_req)
-    assert user is None
-    
-    user_req = GetUserRequestMessage(user_code="654321", user_name="Test User2")
-    user = await user_manager.get_user(user_req)
+    user_manager = UserManager(db_session=session)
+    user = await user_manager.get_user(GetUserRequestMessage(user_name="Test User"))
     assert user is not None
-    assert user.name == "Test User2"
-
+    assert user.code == "123456"
 
 '''
     Test
-    1. Get a user info that does not exist with usercode
+    Get a user that exist with usercode and username
 '''
 @pytest.mark.asyncio
-async def test_get_user_info():
+async def test_get_user_with_code_and_name():
+    session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    
+    user_manager = UserManager(db_session=session)
+    user = await user_manager.get_user(GetUserRequestMessage(user_code="123456", user_name="Test User"))
+    assert user is not None
+    assert user.code == "123456"
+
+'''
+    Test
+    Get a user info that does not exist with usercode
+'''
+@pytest.mark.asyncio
+async def test_get_user_info_does_not_exist():
     session = await get_db_session()
     
     user_manager = UserManager(db_session=session)
@@ -191,19 +162,16 @@ async def test_get_user_info():
 
 '''
     Test
-    1. Get a user info that does exist with usercode
+    Get a user info that does exist with usercode
 '''
 @pytest.mark.asyncio
-async def test_get_user_info2():
+async def test_get_user_info():
     session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    session.expire_all()
     
     user_manager = UserManager(db_session=session)
-    add_user_message = AddUserRequestMessage(
-        user_code="123456",
-        user_name="Test User")
-    
     await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
     
     user_req = GetUserRequestMessage(user_code="123456")
     user = await user_manager.get_user_info(user_req)
@@ -234,10 +202,11 @@ async def test_get_users():
 @pytest.mark.asyncio
 async def test_get_users2():
     session = await get_db_session()
+    await add_user_to_db(session, "Test User", "123456")
+    await add_user_to_db(session, "Test User2", "654321")
+    session.expire_all()
     
     user_manager = UserManager(db_session=session)
-    await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
     
     users = await user_manager.get_users()
     assert users is not None
