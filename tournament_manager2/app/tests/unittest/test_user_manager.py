@@ -17,28 +17,28 @@ from tests.db_utils import get_db_session
 '''
 @pytest.mark.asyncio
 async def test_add_two_same_users():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User")
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    add_user_message = AddUserRequestMessage(
+        user_code="123456",
+        user_name="Test User")
+    
+    response = await user_manager.add_user(add_user_message)
         
-        response = await user_manager.add_user(add_user_message)
-            
-        assert isinstance(response, ResponseMessage)
-        assert response.success is True
-        
-        stmt = select(UserModel).filter_by(name="Test User")
-        result = await session.execute(stmt)
-        new_user = result.scalars().first()
+    assert isinstance(response, ResponseMessage)
+    assert response.success is True
+    
+    stmt = select(UserModel).filter_by(name="Test User")
+    result = await session.execute(stmt)
+    new_user = result.scalars().first()
 
-        assert new_user is not None
-        assert new_user.name == "Test User"
-        
-        response = await user_manager.add_user(add_user_message)
-        
-        assert response.success is False
+    assert new_user is not None
+    assert new_user.name == "Test User"
+    
+    response = await user_manager.add_user(add_user_message)
+    
+    assert response.success is False
 
 
 '''
@@ -48,32 +48,32 @@ async def test_add_two_same_users():
 '''
 @pytest.mark.asyncio
 async def test_add_two_users_with_same_code():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User")
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    add_user_message = AddUserRequestMessage(
+        user_code="123456",
+        user_name="Test User")
+    
+    response = await user_manager.add_user(add_user_message)
         
-        response = await user_manager.add_user(add_user_message)
-            
-        assert isinstance(response, ResponseMessage)
-        assert response.success is True
-        
-        stmt = select(UserModel).filter_by(name="Test User")
-        result = await session.execute(stmt)
-        new_user = result.scalars().first()
+    assert isinstance(response, ResponseMessage)
+    assert response.success is True
+    
+    stmt = select(UserModel).filter_by(name="Test User")
+    result = await session.execute(stmt)
+    new_user = result.scalars().first()
 
-        assert new_user is not None
-        assert new_user.name == "Test User"
-        
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User2")
-        
-        response = await user_manager.add_user(add_user_message)
-        
-        assert response.success is False
+    assert new_user is not None
+    assert new_user.name == "Test User"
+    
+    add_user_message = AddUserRequestMessage(
+        user_code="123456",
+        user_name="Test User2")
+    
+    response = await user_manager.add_user(add_user_message)
+    
+    assert response.success is False
        
 '''
     Test
@@ -83,41 +83,41 @@ async def test_add_two_users_with_same_code():
 ''' 
 @pytest.mark.asyncio
 async def test_get_user_or_create():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User")
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    add_user_message = AddUserRequestMessage(
+        user_code="123456",
+        user_name="Test User")
+    
+    response = await user_manager.add_user(add_user_message)
         
-        response = await user_manager.add_user(add_user_message)
-            
-        assert isinstance(response, ResponseMessage)
-        assert response.success is True
-        
-        stmt = select(UserModel).filter_by(name="Test User")
-        result = await session.execute(stmt)
-        new_user = result.scalars().first()
+    assert isinstance(response, ResponseMessage)
+    assert response.success is True
+    
+    stmt = select(UserModel).filter_by(name="Test User")
+    result = await session.execute(stmt)
+    new_user = result.scalars().first()
 
-        assert new_user is not None
-        assert new_user.name == "Test User"
-        
-        user = await user_manager.get_user_or_create("123456")
-        
-        assert user is not None
-        assert user.name == "Test User"
-        
-        user = await user_manager.get_user_or_create("654321")
-        
-        assert user is not None
-        assert user.name == "user_654321"
-        
-        stmt = select(UserModel).filter_by(name="user_654321")
-        result = await session.execute(stmt)
-        new_user = result.scalars().first()
+    assert new_user is not None
+    assert new_user.name == "Test User"
+    
+    user = await user_manager.get_user_or_create("123456")
+    
+    assert user is not None
+    assert user.name == "Test User"
+    
+    user = await user_manager.get_user_or_create("654321")
+    
+    assert user is not None
+    assert user.name == "user_654321"
+    
+    stmt = select(UserModel).filter_by(name="user_654321")
+    result = await session.execute(stmt)
+    new_user = result.scalars().first()
 
-        assert new_user is not None
-        assert new_user.name == "user_654321"
+    assert new_user is not None
+    assert new_user.name == "user_654321"
 
 '''
     Test
@@ -125,17 +125,17 @@ async def test_get_user_or_create():
 '''        
 @pytest.mark.asyncio
 async def test_get_user():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        
-        user_req = GetUserRequestMessage(user_code="123456")
-        user = await user_manager.get_user(user_req)
-        assert user is None
-        
-        user_req = GetUserRequestMessage(user_name="123456")
-        user = await user_manager.get_user(user_req)
-        assert user is None
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    
+    user_req = GetUserRequestMessage(user_code="123456")
+    user = await user_manager.get_user(user_req)
+    assert user is None
+    
+    user_req = GetUserRequestMessage(user_name="123456")
+    user = await user_manager.get_user(user_req)
+    assert user is None
 
 '''
     Test
@@ -145,32 +145,32 @@ async def test_get_user():
 '''
 @pytest.mark.asyncio
 async def test_get_user2():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        
-        await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-        await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
-        
-        user_req = GetUserRequestMessage(user_code="123456")
-        user = await user_manager.get_user(user_req)
-        assert user is not None
-        assert user.name == "Test User"
-        
-        user_req = GetUserRequestMessage(user_name="Test User2")
-        user = await user_manager.get_user(user_req)
-        assert user is not None
-        assert user.name == "Test User2"
-        assert user.code == "654321"
-        
-        user_req = GetUserRequestMessage(user_code="654321", user_name="Test User")
-        user = await user_manager.get_user(user_req)
-        assert user is None
-        
-        user_req = GetUserRequestMessage(user_code="654321", user_name="Test User2")
-        user = await user_manager.get_user(user_req)
-        assert user is not None
-        assert user.name == "Test User2"
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    
+    await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
+    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
+    
+    user_req = GetUserRequestMessage(user_code="123456")
+    user = await user_manager.get_user(user_req)
+    assert user is not None
+    assert user.name == "Test User"
+    
+    user_req = GetUserRequestMessage(user_name="Test User2")
+    user = await user_manager.get_user(user_req)
+    assert user is not None
+    assert user.name == "Test User2"
+    assert user.code == "654321"
+    
+    user_req = GetUserRequestMessage(user_code="654321", user_name="Test User")
+    user = await user_manager.get_user(user_req)
+    assert user is None
+    
+    user_req = GetUserRequestMessage(user_code="654321", user_name="Test User2")
+    user = await user_manager.get_user(user_req)
+    assert user is not None
+    assert user.name == "Test User2"
 
 
 '''
@@ -179,14 +179,14 @@ async def test_get_user2():
 '''
 @pytest.mark.asyncio
 async def test_get_user_info():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        
-        user_req = GetUserRequestMessage(user_code="123456")
-        user = await user_manager.get_user_info(user_req)
-        assert type(user) is ResponseMessage
-        assert user.success is False
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    
+    user_req = GetUserRequestMessage(user_code="123456")
+    user = await user_manager.get_user_info(user_req)
+    assert type(user) is ResponseMessage
+    assert user.success is False
 
 
 '''
@@ -195,22 +195,22 @@ async def test_get_user_info():
 '''
 @pytest.mark.asyncio
 async def test_get_user_info2():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        add_user_message = AddUserRequestMessage(
-            user_code="123456",
-            user_name="Test User")
-        
-        await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-        await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
-        
-        user_req = GetUserRequestMessage(user_code="123456")
-        user = await user_manager.get_user_info(user_req)
-        assert user is not None
-        assert user.user_name == "Test User"
-        assert user.owned_tournament_ids== []
-        assert user.in_tournament_ids == []
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    add_user_message = AddUserRequestMessage(
+        user_code="123456",
+        user_name="Test User")
+    
+    await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
+    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
+    
+    user_req = GetUserRequestMessage(user_code="123456")
+    user = await user_manager.get_user_info(user_req)
+    assert user is not None
+    assert user.user_name == "Test User"
+    assert user.owned_tournament_ids== []
+    assert user.in_tournament_ids == []
 
 '''
     Test
@@ -218,13 +218,13 @@ async def test_get_user_info2():
 '''
 @pytest.mark.asyncio
 async def test_get_users():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        
-        users = await user_manager.get_users()
-        assert users is not None
-        assert users.users == []
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    
+    users = await user_manager.get_users()
+    assert users is not None
+    assert users.users == []
  
  
 '''
@@ -233,15 +233,15 @@ async def test_get_users():
 '''       
 @pytest.mark.asyncio
 async def test_get_users2():
-    db = await get_db_session()
-    async for session in db():
-        user_manager = UserManager(db_session=session)
-        await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
-        await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
-        
-        users = await user_manager.get_users()
-        assert users is not None
-        assert len(users.users) == 2
-        assert users.users[0].user_name == "Test User"
-        assert users.users[1].user_name == "Test User2"
+    async_session = await get_db_session()
+    session = async_session()
+    user_manager = UserManager(db_session=session)
+    await user_manager.add_user(AddUserRequestMessage(user_code="123456", user_name="Test User"))
+    await user_manager.add_user(AddUserRequestMessage(user_code="654321", user_name="Test User2"))
+    
+    users = await user_manager.get_users()
+    assert users is not None
+    assert len(users.users) == 2
+    assert users.users[0].user_name == "Test User"
+    assert users.users[1].user_name == "Test User2"
         
