@@ -83,7 +83,7 @@ class UserManager:
                 self.logger.error(f"Error creating user: {e}")
                 return ResponseMessage(success=False, error=f"An error occurred while creating the user. Error: {e}")
             
-    async def get_user(self, message: GetUserRequestMessage) -> Optional[UserModel]:
+    async def get_user(self, message: GetUserRequestMessage) -> Union[UserModel, ResponseMessage]:
         """
         Retrieves the user based on the provided criteria.
         """
@@ -106,7 +106,7 @@ class UserManager:
             return user
         else:
             self.logger.error("No user found")
-            return None
+            return ResponseMessage(success=False, error="User not found")
         
     async def get_user_info(self, message: GetUserRequestMessage) -> Union[GetUserResponseMessage, ResponseMessage]:
         """
