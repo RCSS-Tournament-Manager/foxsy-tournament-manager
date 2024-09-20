@@ -28,6 +28,7 @@ async def add_team_to_db(session, user_id, team_name, tournament=None):
     team_model = TeamModel()
     team_model.user_id = user_id
     team_model.name = team_name
+    team_model.base_team = team_name
     if tournament is not None:
         team_model.tournaments.append(tournament)
     session.add(team_model)
@@ -68,8 +69,8 @@ class TestDBUtils:
     async def get_session(self) -> AsyncSession:
         if self.async_session is None:
             raise RuntimeError("Database not initialized. Call init_db() first.")
-        async with self.async_session() as session:
-            return session
+        session = self.async_session()
+        return session
 
 async def get_db_manager_and_session():
     db_manager = TestDBUtils()

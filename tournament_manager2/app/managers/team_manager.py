@@ -153,6 +153,9 @@ class TeamManager:
         stmt = select(UserModel).filter_by(code=message.user_code)
         user = await session.execute(stmt)
         user = user.scalars().first()
+        if user is None:
+            self.logger.error(f"User not found.")
+            return ResponseMessage(success=False, error="User not found")
         user_id = user.id
         
         # Ensure the user owns the team
