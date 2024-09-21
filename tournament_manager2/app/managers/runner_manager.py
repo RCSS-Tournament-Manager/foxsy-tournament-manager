@@ -3,7 +3,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from models.runner_model import RunnerModel, RunnerLogModel, RunnerStatus
+from models.runner_model import RunnerModel, RunnerLogModel, RunnerStatusEnum
 from models.game_model import GameModel, GameStatus
 import logging
 
@@ -37,14 +37,12 @@ class RunnerManager:
                 self.logger.warning(f"Runner with id {runner_id} not found")
                 return None
 
-            # Populate related fields based on actual relationships
             return GetRunnerResponseMessage(
                 id=runner.id,
                 start_time=runner.start_time,
                 end_time=runner.end_time,
                 status=runner.status.value,
-                ip=runner.ip,
-                port=runner.port,
+                address=runner.address,
                 available_games_count=runner.available_games_count
             )
         except SQLAlchemyError as e:
@@ -67,8 +65,7 @@ class RunnerManager:
                     start_time=runner.start_time,
                     end_time=runner.end_time,
                     status=runner.status.value,
-                    ip=runner.ip,
-                    port=runner.port,
+                    address=runner.address,
                     available_games_count=runner.available_games_count
                 ) for runner in runners
             ]
@@ -125,7 +122,7 @@ class RunnerManager:
                 self.logger.error(f"Game with id {json.game_id} not found")
                 return ResponseMessage(success=False, error="Game not found")
 
-            runner.status = RunnerStatus.RUNNING
+            runner.status = RunnerStatusEnum.RUNNING
             runner.start_time = datetime.utcnow()
 
             game.status = GameStatus.IN_PROGRESS
@@ -167,25 +164,15 @@ class RunnerManager:
                 self.logger.error(f"Game with id {json.game_id} not found")
                 return ResponseMessage(success=False, error="Game not found")
 
-            # Update 
-            runner.status = RunnerStatus.READY
+            # Update Runner and Game Statuses
+            runner.status = RunnerStatusEnum.RUNNING
             runner.end_time = datetime.utcnow()
             game.status = GameStatus.FINISHED
             game.left_score = json.left_score
             game.right_score = json.right_score
             game.end_time = datetime.utcnow()
 
-            # Check if tournament completion
-            # stmt_tournament = select(TournamentModel).options(
-            #     selectinload(TournamentModel.games)
-            # ).where(TournamentModel.id == game.tournament_id)
-            # result_tournament = await self.db_session.execute(stmt_tournament)
-            # tournament = result_tournament.scalars().first()
-
-            # if tournament and all(g.status == GameStatus.FINISHED for g in tournament.games):
-            #     tournament.done = True
-            #     self.logger.info(f"Tournament {tournament.id} is now done as all games are finished.")
-
+            # Commit Changes
             await self.db_session.commit()
             self.logger.info(f"Game {json.game_id} finished by Runner {json.runner_id}")
             return ResponseMessage(success=True, error=None)
@@ -199,13 +186,11 @@ class RunnerManager:
             return ResponseMessage(success=False, error=str(e))
 
     async def register(self, json: RegisterGameRunnerRequest) -> ResponseMessage:
-
         self.logger.info(f"register: {json}")
         try:
             new_runner = RunnerModel(
-                status=RunnerStatus.WAITING,
-                ip=json.ip,
-                port=json.port,
+                status=RunnerStatusEnum.RUNNING,  # Updated default status
+                address=json.address,
                 available_games_count=json.available_games_count
             )
             self.db_session.add(new_runner)

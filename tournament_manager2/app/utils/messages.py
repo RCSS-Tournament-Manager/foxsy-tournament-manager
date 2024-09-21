@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Union, List
 from datetime import datetime
+from enum import Enum
 
 
 class GameStatus(str):
@@ -8,6 +9,12 @@ class GameStatus(str):
     running = "running"
     finished = "finished"
     error = "error"
+
+class RunnerStatusEnum(str, Enum):
+    RUNNING = 'running'
+    PAUSED = 'paused'
+    UNKNOWN = 'unknown'
+    CRASHED = 'crashed'
 
 class BaseMessage(BaseModel):
     pass
@@ -242,9 +249,10 @@ class SuccessResponse(BaseModel):
     
 class GetRunnerResponseMessage(BaseModel):
     id: int
-    status: str
+    status: RunnerStatusEnum
     start_time: Optional[datetime]
     end_time: Optional[datetime]
+    address: Optional[str]
     ip: Optional[str]
     port: Optional[int]
     available_games_count: int

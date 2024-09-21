@@ -1,6 +1,6 @@
-# runner_model.py
+# models/runner_model.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .base import Base
 from .game_model import GameModel, GameStatus
@@ -8,26 +8,21 @@ from .runner_log_model import RunnerLogModel
 from datetime import datetime
 from enum import Enum
 
-class RunnerStatus: # should we this?
-    WAITING = 'waiting'
+class RunnerStatusEnum(Enum):
     RUNNING = 'running'
-    READY = 'ready'
-
-# class RunnerStatusEnum(Enum): # or should we this?
-#     WAITING = 'waiting'
-#     RUNNING = 'running'
-#     READY = 'ready'
+    INGAME = 'ingame'
+    PAUSED = 'paused'
+    UNKNOWN = 'unknown'
+    CRASHED = 'crashed'
 
 class RunnerModel(Base):
     __tablename__ = 'runners'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=True) 
-    status = Column(String, default=RunnerStatus.WAITING) 
-    # status = Column(Enum(RunnerStatusEnum), default=RunnerStatusEnum.WAITING, nullable=False)
+    status = Column(Enum(RunnerStatusEnum), default=RunnerStatusEnum.UNKNOWN, nullable=False)
 
-    ip = Column(String, nullable=True) # maybe?
-    port = Column(Integer, nullable=True) # maybe too? address unique?
+    address = Column(String, nullable=False, unique=True)  # Unique and required field
+
     available_games_count = Column(Integer, default=0, nullable=False)
 
     start_time = Column(DateTime, nullable=True)
@@ -37,16 +32,16 @@ class RunnerModel(Base):
     games = relationship('GameModel', back_populates='runner', cascade='all, delete-orphan') 
     logs = relationship('RunnerLogModel', back_populates='runner', cascade='all, delete-orphan')
 
-    def start_game(self, game: GameModel):
+    def start_game(self, game: 'GameModel'):
         """Start a specific game by updating the status and start time."""
-        self.status = RunnerStatus.RUNNING
+        self.status = RunnerStatusEnum.INGAME
         self.start_time = datetime.utcnow()
         game.status = GameStatus.IN_PROGRESS
         self.log_event(f"Game {game.id} started.")
 
-    def finish_game(self, game: GameModel, left_score: int, right_score: int):
+    def finish_game(self, game: 'GameModel', left_score: int, right_score: int):
         """Finish a specific game and record the results."""
-        self.status = RunnerStatus.READY
+        self.status = RunnerStatusEnum.RUNNING  
         self.end_time = datetime.utcnow()
         game.status = GameStatus.FINISHED
         game.left_score = left_score
@@ -60,4 +55,4 @@ class RunnerModel(Base):
 
     def __repr__(self):
         game_ids = [game.id for game in self.games]
-        return (f"<RunnerModel(id={self.id}, games={game_ids}, status={self.status.value})>")
+        return (f"<RunnerModel(id={self.id}, games={game_ids}, status={self.status.value}, address={self.address})>")
