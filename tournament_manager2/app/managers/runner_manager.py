@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from models.runner_model import RunnerModel, RunnerLogModel, RunnerStatusEnum
 from models.game_model import GameModel, GameStatus
 import logging
@@ -124,12 +124,15 @@ class RunnerManager:
 
             runner.status = RunnerStatusEnum.RUNNING
             runner.start_time = datetime.utcnow()
+            runner.end_time = None  # Reset end_time if previously set
 
             game.status = GameStatus.IN_PROGRESS
             game.start_time = datetime.utcnow()
 
             if game.runner_id != runner.id:
                 game.runner_id = runner.id
+
+            runner.log_event(f"Game {game.id} started.")
 
             await self.db_session.commit()
             self.logger.info(f"Game {json.game_id} started by Runner {json.runner_id}")
@@ -171,6 +174,8 @@ class RunnerManager:
             game.left_score = json.left_score
             game.right_score = json.right_score
             game.end_time = datetime.utcnow()
+
+            runner.log_event(f"Game {game.id} finished with scores {game.left_score}-{game.right_score}.")
 
             # Commit Changes
             await self.db_session.commit()

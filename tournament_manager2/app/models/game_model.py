@@ -17,7 +17,7 @@ class GameModel(Base):
     left_team_id = Column(Integer, ForeignKey('teams.id'))
     right_team_id = Column(Integer, ForeignKey('teams.id'))
     tournament_id = Column(Integer, ForeignKey('tournaments.id'))
-    runner_id = Column(Integer, ForeignKey('runners.id'), index=True)
+    runner_id = Column(Integer, ForeignKey('runners.id', ondelete='SET NULL'), nullable=True)
     status = Column(String, default=GameStatus.PENDING)
     left_score = Column(Integer, default=0)
     right_score = Column(Integer, default=0)

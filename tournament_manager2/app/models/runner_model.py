@@ -29,8 +29,8 @@ class RunnerModel(Base):
     end_time = Column(DateTime, nullable=True)
     
     # Relationships
-    games = relationship('GameModel', back_populates='runner', cascade='all, delete-orphan') 
-    logs = relationship('RunnerLogModel', back_populates='runner', cascade='all, delete-orphan')
+    games = relationship('GameModel', back_populates='runner', cascade='save-update, merge') 
+    logs = relationship('RunnerLogModel', back_populates='runner', cascade='save-update, merge')
 
     def start_game(self, game: 'GameModel'):
         """Start a specific game by updating the status and start time."""
