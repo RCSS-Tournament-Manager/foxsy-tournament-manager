@@ -165,11 +165,13 @@ class TournamentManager:
         stmt = select(UserModel).filter_by(code=message.user_code)
         user = await self.db_session.execute(stmt)
         user = user.scalars().first()
-        user_id = user.id
+        if not user:
+            self.logger.error(f"User not found")
+            return ResponseMessage(success=False, error='User not found')
         
         stmt = select(TeamModel).options(
             selectinload(TeamModel.tournaments)
-            ).filter_by(id=message.team_id, user_id=user_id)
+            ).filter_by(id=message.team_id, user_id=user.id)
         team = await self.db_session.execute(stmt)
         team = team.scalars().first()
         
@@ -199,6 +201,7 @@ class TournamentManager:
             return ResponseMessage(success=False, error='Team is already registered')
         
         team.tournaments.append(tournament)
+
         await self.db_session.commit()
         
         return ResponseMessage(success=True, error=None)

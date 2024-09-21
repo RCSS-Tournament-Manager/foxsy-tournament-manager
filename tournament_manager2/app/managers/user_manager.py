@@ -118,7 +118,6 @@ class UserManager:
         # Find user based on the provided criteria
         stmt = select(UserModel).options(
             selectinload(UserModel.owned_tournaments),
-            selectinload(UserModel.participating_tournaments),
             selectinload(UserModel.teams)
         )
         if message.user_code:
@@ -140,11 +139,6 @@ class UserManager:
         for tournament in user.owned_tournaments:
             owned_tournament_ids.append(tournament.id)
 
-        # # Get the list of tournaments the user is in
-        in_tournament_ids = []
-        for tournament in user.participating_tournaments:
-            in_tournament_ids.append(tournament.id)
-        
         # Get the list of teams the user owns
         team_ids = []
         for team in user.teams:
@@ -154,7 +148,7 @@ class UserManager:
             user_id=user.id,
             user_name=user.name,
             owned_tournament_ids=owned_tournament_ids,
-            in_tournament_ids=in_tournament_ids,
+            # in_tournament_ids=in_tournament_ids,
             team_ids=team_ids
         )
         

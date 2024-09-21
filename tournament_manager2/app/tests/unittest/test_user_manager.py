@@ -178,7 +178,6 @@ async def test_get_user_info():
     assert user is not None
     assert user.user_name == "Test User"
     assert user.owned_tournament_ids== []
-    assert user.in_tournament_ids == []
 
 '''
     Test

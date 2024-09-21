@@ -379,25 +379,25 @@ async def test_games_creation():
     
     response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code=user_model.code,
                                                                             tournament_id=tournament_id,
-                                                                            team_id=team_model1.team_id))
+                                                                            team_id=team_model1.id))
     assert response is not None
     assert response.success is True
     
     response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code=user_model.code,
                                                                             tournament_id=tournament_id,
-                                                                            team_id=team_model2.team_id))
+                                                                            team_id=team_model2.id))
     assert response is not None
     assert response.success is True
     
     response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code=user_model.code,
                                                                             tournament_id=tournament_id,
-                                                                            team_id=team_model3.team_id))
+                                                                            team_id=team_model3.id))
     assert response is not None
     assert response.success is True
     
     response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code=user_model.code,
                                                                             tournament_id=tournament_id,
-                                                                            team_id=team_model4.team_id))
+                                                                            team_id=team_model4.id))
     assert response is not None
     assert response.success is True
     
@@ -405,7 +405,7 @@ async def test_games_creation():
     games = []
     for i in range(len(teams)):
         for j in range(i+1, len(teams)):
-            games.append((teams[i].team_id, teams[j].team_id))
+            games.append((teams[i].id, teams[j].id))
             
     await asyncio.sleep(10)
     
@@ -430,7 +430,7 @@ async def test_games_creation():
     team_ids = list(map(lambda team: team.team_id,response.teams))
     print(team_ids)
     for t in teams:
-        if t.team_id not in team_ids:
+        if t.id not in team_ids:
             assert False
         
 
@@ -460,40 +460,8 @@ async def test_get_user_info_for_tournament_owner():
     um = UserManager(session)
     response = await um.get_user_info(GetUserRequestMessage(user_code=user_model1.code))
     assert response is not None
-    assert response.in_tournament_ids == []
     assert response.owned_tournament_ids == [tournament.id]
     
-
-@pytest.mark.asyncio
-async def test_get_user_info_for_tournament_participant():
-    session = await get_db_session()
-    user_model1 = await add_user_to_db(session, "U1", "123456")
-    user_model2 = await add_user_to_db(session, "U2", "654321")
-    
-    tournament_model = await add_tournament_to_db(session, user_model1.id, "T1", 
-                                                  start_at=now() + timedelta(hours=2),
-                                                  start_registration_at=now() - timedelta(seconds=10),
-                                                  end_registration_at=now() + timedelta(seconds=10),
-                                                  status=TournamentStatus.REGISTRATION)
-    
-    team1 = await add_team_to_db(session, user_model2.id, "T2")
-    
-    session.expunge_all()
-    tm = TournamentManager(db_session=session, minio_client=None)
-    response = await tm.register_team(RegisterTeamInTournamentRequestMessage(user_code=user_model2.code,
-                                                                             tournament_id=tournament_model.id,
-                                                                             team_id=team1.id))
-    assert response is not None
-    assert response.success is True
-
-    session.expunge_all()
-
-    um = UserManager(session)
-    response = await um.get_user_info(GetUserRequestMessage(user_code=user_model2.code))
-    assert response is not None
-    assert response.in_tournament_ids == [tournament_model.id]
-    assert response.owned_tournament_ids == []
-
 
 @pytest.mark.asyncio
 async def test_remove_team_success():
