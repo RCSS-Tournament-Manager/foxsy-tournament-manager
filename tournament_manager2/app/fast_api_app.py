@@ -468,8 +468,6 @@ class FastApiApp:
                     message=log.message,
                     log_level=log.log_level,
                     timestamp=log.timestamp # or datetime.utcnow()
-                    # previous_status=None,  
-                    # new_status=None        
                 )
                 
                 runner_manager.db_session.add(new_log)
