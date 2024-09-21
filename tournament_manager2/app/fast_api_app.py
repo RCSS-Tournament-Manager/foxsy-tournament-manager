@@ -7,6 +7,8 @@ from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from managers.database_manager import DatabaseManager
 from managers.runner_manager import RunnerManager
+from models.runner_log_model import RunnerLogModel
+
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
@@ -401,7 +403,7 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.post("/runner/game_started", response_model=ResponseMessage)
+        @self.app.post("/from_runner/game_started", response_model=ResponseMessage)
         async def game_started(
             json: AddGameResponse, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -416,7 +418,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/game_finished", response_model=ResponseMessage)
+        @self.app.post("/from_runner/game_finished", response_model=ResponseMessage)
         async def game_finished(
             json: GameInfoSummary, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -431,7 +433,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/register", response_model=ResponseMessage)
+        @self.app.post("/from_runner/register", response_model=ResponseMessage)
         async def runner_register(
             json: RegisterGameRunnerRequest, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -445,7 +447,43 @@ class FastApiApp:
                 self.logger.error(f"runner_register: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-        
+
+        @self.app.post("/from_runner/submit_log", response_model=ResponseMessage)
+        async def submit_runner_log(
+            log: SubmitRunnerLog,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"submit_runner_log: {log}")
+            try:
+                # check if runner exists
+                runner = await runner_manager.get_runner(log.runner_id)
+                if not runner:
+                    self.logger.error(f"Runner with id {log.runner_id} not found")
+                    raise HTTPException(status_code=404, detail="Runner not found")
+                
+                # RunnerLogModel instance
+                new_log = RunnerLogModel(
+                    runner_id=log.runner_id,
+                    message=log.message,
+                    log_level=log.log_level,
+                    timestamp=log.timestamp # or datetime.utcnow()
+                    # previous_status=None,  
+                    # new_status=None        
+                )
+                
+                runner_manager.db_session.add(new_log)
+                await runner_manager.db_session.commit()
+                
+                self.logger.info(f"Log submitted for runner {log.runner_id}")
+                return ResponseMessage(success=True, error=None)
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"submit_runner_log: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+
 
     async def run(self):
         self.logger.info('Starting FastAPI app')

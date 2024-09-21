@@ -270,3 +270,9 @@ class RunnerLog(BaseModel):
 
 class GetRunnerLogResponseMessage(BaseModel):
     logs: List[RunnerLog]
+    
+class SubmitRunnerLog(BaseModel):
+    runner_id: int = Field(..., example=1)
+    message: str = Field(..., example="Runner encountered an unexpected error.")
+    log_level: LogLevelEnum = Field(..., example="ERROR")
+    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
