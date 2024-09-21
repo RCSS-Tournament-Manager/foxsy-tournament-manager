@@ -17,7 +17,7 @@ class LogLevelEnum(str, Enum):
     ERROR = 'ERROR'
     CRITICAL = 'CRITICAL'
 
-class RunnerStatusEnum(str, Enum):
+class RunnerStatusMessageEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
     UNKNOWN = 'unknown'
@@ -249,12 +249,10 @@ class RegisterGameRunnerRequestModel(BaseModel):
     
 class GetRunnerResponseMessage(BaseModel):
     id: int
-    status: RunnerStatusEnum
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
+    status: Optional[RunnerStatusMessageEnum] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     address: str
-    ip: Optional[str]
-    port: Optional[int]
     available_games_count: int
 
 class GetAllRunnersResponseMessage(BaseModel):
@@ -265,8 +263,8 @@ class RunnerLog(BaseModel):
     message: str
     timestamp: datetime
     log_level: LogLevelEnum
-    previous_status: Optional[RunnerStatusEnum] = None
-    new_status: Optional[RunnerStatusEnum] = None
+    previous_status: Optional[RunnerStatusMessageEnum] = None
+    new_status: Optional[RunnerStatusMessageEnum] = None
 
 class GetRunnerLogResponseMessage(BaseModel):
     logs: List[RunnerLog]

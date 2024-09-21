@@ -1,10 +1,11 @@
 # game_model.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime #, CheckConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from .base import Base
+from enum import Enum
 
-class GameStatus:
+class GameStatusEnum(str, Enum):
     PENDING = 'pending'
     IN_QUEUE = 'in_queue'
     IN_PROGRESS = 'in_progress'
@@ -18,11 +19,12 @@ class GameModel(Base):
     right_team_id = Column(Integer, ForeignKey('teams.id'))
     tournament_id = Column(Integer, ForeignKey('tournaments.id'))
     runner_id = Column(Integer, ForeignKey('runners.id', ondelete='SET NULL'), nullable=True)
-    status = Column(String, default=GameStatus.PENDING)
+    status = Column(SQLEnum(GameStatusEnum, native_enum=False), default=GameStatusEnum.PENDING, nullable=False)
     left_score = Column(Integer, default=0)
     right_score = Column(Integer, default=0)
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
+    port=Column(Integer, default=0)
 
     # Relationships
     tournament = relationship('TournamentModel', back_populates='games')

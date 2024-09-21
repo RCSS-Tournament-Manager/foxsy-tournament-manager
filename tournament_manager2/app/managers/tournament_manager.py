@@ -2,7 +2,7 @@ from datetime import datetime
 from utils.messages import *
 from models.tournament_model import TournamentModel, TournamentStatus
 from models.team_model import TeamModel
-from models.game_model import GameModel, GameStatus
+from models.game_model import GameModel, GameStatusEnum
 from models.user_model import UserModel
 from models.message_convertor import MessageConvertor
 from sqlalchemy.orm import selectinload
@@ -110,7 +110,7 @@ class TournamentManager:
         if not json.success:
             return
 
-        game.status = GameStatus.IN_PROGRESS
+        game.status = GameStatusEnum.IN_PROGRESS
         await session.commit()
 
     async def handle_game_finished(self, json: GameInfoSummary):
@@ -128,13 +128,13 @@ class TournamentManager:
         if not game:
             return
 
-        game.status = GameStatus.FINISHED
+        game.status = GameStatusEnum.FINISHED
         game.left_score = json.left_score
         game.right_score = json.right_score
 
         # Check if all games in the tournament are finished
         tournament = game.tournament
-        if all(g.status == GameStatus.FINISHED for g in tournament.games):
+        if all(g.status == GameStatusEnum.FINISHED for g in tournament.games):
             tournament.done = True
 
         await session.commit()

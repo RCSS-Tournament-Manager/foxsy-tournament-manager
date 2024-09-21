@@ -1,12 +1,15 @@
 # managers/runner_manager.py
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from models.runner_model import RunnerModel, RunnerStatusEnum
-from models.game_model import GameModel, GameStatus
+from models.game_model import GameModel, GameStatusEnum
 from models.runner_log_model import RunnerLogModel, LogLevelEnum
+from models.tournament_model import TournamentModel, TournamentStatus
 import logging
+import traceback
 
 from datetime import datetime
 from utils.messages import (
@@ -27,7 +30,7 @@ class RunnerManager:
         self.logger.info('RunnerManager created')
         self.db_session = db_session
 
-    async def get_runner(self, runner_id: int) -> Optional[GetRunnerResponseMessage]:
+    async def get_runner(self, runner_id: int) -> Union[GetRunnerResponseMessage, ResponseMessage]:
         self.logger.info(f"get_runner: {runner_id}")
         try:
             stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
@@ -36,24 +39,24 @@ class RunnerManager:
 
             if not runner:
                 self.logger.warning(f"Runner with id {runner_id} not found")
-                return None
-
+                return ResponseMessage(success=False, error="Runner not found")
+            
             return GetRunnerResponseMessage(
                 id=runner.id,
                 start_time=runner.start_time,
                 end_time=runner.end_time,
-                status=runner.status.value,
+                status=runner.status.to_RunnerStatusMessageEnum(),
                 address=runner.address,
                 available_games_count=runner.available_games_count
             )
         except SQLAlchemyError as e:
             self.logger.error(f"Database error in get_runner: {e}")
-            return None
+            return ResponseMessage(success=False, error="Database error occurred")
         except Exception as e:
             self.logger.error(f"Unexpected error in get_runner: {e}")
-            return None
+            return ResponseMessage(success=False, error=str(e))
 
-    async def get_all_runners(self) -> List[GetRunnerResponseMessage]:
+    async def get_all_runners(self) -> Union[List[GetRunnerResponseMessage], ResponseMessage]:
         self.logger.info("get_all_runners")
         try:
             stmt = select(RunnerModel)
@@ -66,18 +69,18 @@ class RunnerManager:
                     id=runner.id,
                     start_time=runner.start_time,
                     end_time=runner.end_time,
-                    status=runner.status.value,
+                    status=runner.status.to_RunnerStatusMessageEnum(),
                     address=runner.address,
                     available_games_count=runner.available_games_count
                 ))
 
-            return runners_list
+            return GetAllRunnersResponseMessage(runners=runners_list)
         except SQLAlchemyError as e:
             self.logger.error(f"Database error in get_all_runners: {e}")
-            return []
+            return ResponseMessage(success=False, error="Database error occurred")
         except Exception as e:
             self.logger.error(f"Unexpected error in get_all_runners: {e}")
-            return []
+            return ResponseMessage(success=False, error=str(e))
 
     async def get_runner_logs(self, runner_id: int) -> List[RunnerLog]:
         self.logger.info(f"get_runner_logs: {runner_id}")
@@ -104,12 +107,12 @@ class RunnerManager:
         except Exception as e:
             self.logger.error(f"Unexpected error in get_runner_logs: {e}")
             return []
-
+          
     async def handle_game_started(self, json: AddGameResponse) -> ResponseMessage:
         self.logger.info(f"handle_game_started: {json}")
         try:
             # Retrieve Runner
-            stmt_runner = select(RunnerModel).where(RunnerModel.id == json.runner_id)
+            stmt_runner = select(RunnerModel).options(selectinload(RunnerModel.games)).where(RunnerModel.id == json.runner_id)
             result_runner = await self.db_session.execute(stmt_runner)
             runner = result_runner.scalars().first()
 
@@ -122,33 +125,22 @@ class RunnerManager:
                 return ResponseMessage(success=False, error="Failed to start game")
 
             # Retrieve Game
-            stmt_game = select(GameModel).where(GameModel.id == json.game_id)
+            stmt_game = select(GameModel).options(selectinload(GameModel.runner)).options(selectinload(GameModel.tournament)).options(selectinload(GameModel.left_team)).options(selectinload(GameModel.right_team)).where(GameModel.id == json.game_id)
             result_game = await self.db_session.execute(stmt_game)
             game = result_game.scalars().first()
-
             if not game:
                 self.logger.error(f"Game with id {json.game_id} not found")
                 return ResponseMessage(success=False, error="Game not found")
 
+            # Update runner
+            runner.games.append(game)
+
             # Start the game
-            previous_status = runner.status
-            runner.status = RunnerStatusEnum.INGAME
-            runner.start_time = datetime.utcnow()
-            game.status = GameStatus.IN_PROGRESS
+            game.status = GameStatusEnum.IN_PROGRESS
             game.start_time = datetime.utcnow()
+            game.port = json.port
+            game.runner = runner
 
-            if game.runner_id != runner.id:
-                game.runner_id = runner.id
-
-            # Create a new log entry
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message=f"Game {game.id} started.",
-                log_level=LogLevelEnum.INFO,
-                previous_status=previous_status,
-                new_status=runner.status
-            )
-            self.db_session.add(log)
 
             # Commit Changes
             await self.db_session.commit()
@@ -167,7 +159,7 @@ class RunnerManager:
         self.logger.info(f"handle_game_finished: {json}")
         try:
             # Runner
-            stmt_runner = select(RunnerModel).where(RunnerModel.id == json.runner_id)
+            stmt_runner = select(RunnerModel).options(selectinload(RunnerModel.games)).where(RunnerModel.id == json.runner_id)
             result_runner = await self.db_session.execute(stmt_runner)
             runner = result_runner.scalars().first()
 
@@ -176,7 +168,7 @@ class RunnerManager:
                 return ResponseMessage(success=False, error="Runner not found")
 
             # Game
-            stmt_game = select(GameModel).where(GameModel.id == json.game_id)
+            stmt_game = select(GameModel).options(selectinload(GameModel.runner)).options(selectinload(GameModel.tournament)).options(selectinload(GameModel.left_team)).options(selectinload(GameModel.right_team)).where(GameModel.id == json.game_id)
             result_game = await self.db_session.execute(stmt_game)
             game = result_game.scalars().first()
 
@@ -185,22 +177,22 @@ class RunnerManager:
                 return ResponseMessage(success=False, error="Game not found")
 
             # Finish the game
-            previous_status = runner.status
-            runner.status = RunnerStatusEnum.RUNNING
-            runner.end_time = datetime.utcnow()
-            game.status = GameStatus.FINISHED
+            game.status = GameStatusEnum.FINISHED
             game.left_score = json.left_score
             game.right_score = json.right_score
             game.end_time = datetime.utcnow()
 
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message=f"Game {game.id} finished with scores {json.left_score}-{json.right_score}.",
-                log_level=LogLevelEnum.INFO,
-                previous_status=previous_status,
-                new_status=runner.status
-            )
-            self.db_session.add(log)
+            # Remove game from runner
+            runner.games.remove(game)
+
+            # Update Tournament
+            # Check if all games in the tournament are finished
+            stmt_tournament = select(TournamentModel).options(selectinload(TournamentModel.owner)).options(selectinload(TournamentModel.games)).options(selectinload(TournamentModel.teams)).where(TournamentModel.id == game.tournament.id)
+            result_tournament = await self.db_session.execute(stmt_tournament)
+            tournament = result_tournament.scalars().first()
+            if all(g.status == GameStatusEnum.FINISHED for g in tournament.games):
+                tournament.done = True
+                tournament.status = TournamentStatus.FINISHED
 
             # Commit Changes
             await self.db_session.commit()
@@ -216,15 +208,16 @@ class RunnerManager:
             return ResponseMessage(success=False, error=str(e))
 
     async def register(self, json: RegisterGameRunnerRequest) -> ResponseMessage:
-        self.logger.info(f"Attempting to register runner with address: {json.address}")
+        self.logger.info(f"Attempting to register runner with address: {json.ip}:{json.port}")
+        address = f"{json.ip}:{json.port}"
         try:
             # Check if a runner with the same address already exists
-            stmt = select(RunnerModel).where(RunnerModel.address == json.address)
+            stmt = select(RunnerModel).where(RunnerModel.address == address)
             result = await self.db_session.execute(stmt)
             existing_runner = result.scalars().first()
 
             if existing_runner:
-                self.logger.info(f"Runner with address {json.address} already exists. Updating status to RUNNING.")
+                self.logger.info(f"Runner with address {address} already exists. Updating status to RUNNING.")
 
                 previous_status = existing_runner.status
 
@@ -245,15 +238,15 @@ class RunnerManager:
 
                 # Commit Changes
                 await self.db_session.commit()
-                self.logger.info(f"Runner with address {json.address} successfully updated to RUNNING.")
+                self.logger.info(f"Runner with address {address} successfully updated to RUNNING.")
                 return ResponseMessage(success=True, error=None)
             else:
-                self.logger.info(f"No existing runner with address {json.address}. Creating a new runner.")
+                self.logger.info(f"No existing runner with address {address}. Creating a new runner.")
 
                 # Create a new runner
                 new_runner = RunnerModel(
                     status=RunnerStatusEnum.RUNNING,  # Set status to RUNNING upon registration
-                    address=json.address,
+                    address=address,
                     available_games_count=json.available_games_count,
                     start_time=datetime.utcnow()
                 )

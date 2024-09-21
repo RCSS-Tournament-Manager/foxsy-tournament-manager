@@ -207,7 +207,7 @@ async def test_update_team():
     assert team is not None
     assert team.team_name == "T1"
     print(team.team_id)
-    
+    session.expunge_all()
     response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id='999', base_team_name="T3"))
     assert response is not None
     assert type(response) == ResponseMessage

@@ -3,7 +3,7 @@ from utils.messages import *
 from models.tournament_model import TournamentModel
 from models.team_model import TeamModel
 from models.user_model import UserModel
-from models.game_model import GameModel, GameStatus
+from models.game_model import GameModel, GameStatusEnum
 from models.message_convertor import MessageConvertor
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, exists, and_
@@ -12,6 +12,7 @@ import logging
 from storage.minio_client import MinioClient
 from typing import AsyncGenerator, List, Union
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class TeamManager:
@@ -147,47 +148,49 @@ class TeamManager:
         """
         Update a team's base_team_name and team_config_json if the user is the owner.
         """
-        self.logger.info(f"Updating team with id: {message.team_id} for user with code: {message.user_code}")
-        session = self.db_session
+        try:
+            self.logger.info(f"Updating team with id: {message.team_id} for user with code: {message.user_code}")
+            session = self.db_session
 
-        stmt = select(UserModel).filter_by(code=message.user_code)
-        user = await session.execute(stmt)
-        user = user.scalars().first()
-        if user is None:
-            self.logger.error(f"User not found.")
-            return ResponseMessage(success=False, error="User not found")
-        user_id = user.id
-        
-        # Ensure the user owns the team
-        stmt = select(TeamModel).filter_by(id=message.team_id, user_id=user_id)
-        result = await session.execute(stmt)
-        team = result.scalars().first()
+            stmt = select(UserModel).filter_by(code=message.user_code)
+            user = await session.execute(stmt)
+            user = user.scalars().first()
+            if user is None:
+                self.logger.error(f"User not found.")
+                return ResponseMessage(success=False, error="User not found")
+            user_id = user.id
+            
+            # Ensure the user owns the team
+            stmt = select(TeamModel).filter_by(id=message.team_id, user_id=user_id)
+            result = await session.execute(stmt)
+            team = result.scalars().first()
 
-        if not team:
-            self.logger.error(f"Team not found or user does not own the team.")
-            return ResponseMessage(success=False, error="Team not found or user does not own the team")
+            if not team:
+                self.logger.error(f"Team not found or user does not own the team.")
+                return ResponseMessage(success=False, error="Team not found or user does not own the team")
 
-        # Update the team's base_team_name and team_config_json
-        if message.base_team_name is not None:
-            team.base_team = message.base_team_name
-        if message.team_config_json is not None:
-            team.config = message.team_config_json
-        await session.commit()
-        await session.refresh(team)
-        
-        print("H"*20)
-        print(team.base_team, team.name)
+            # Update the team's base_team_name and team_config_json
+            if message.base_team_name is not None:
+                team.base_team = message.base_team_name
+            if message.team_config_json is not None:
+                team.config = message.team_config_json
+            await session.commit()
+            await session.refresh(team)
+            
+            team_message = GetTeamResponseMessage(
+                user_code=message.user_code,
+                team_id=team.id,
+                team_name=team.name,
+                base_team_name=team.base_team,
+                team_config_json=team.config
+            )
 
-        team_message = GetTeamResponseMessage(
-            user_code=message.user_code,
-            team_id=team.id,
-            team_name=team.name,
-            base_team_name=team.base_team,
-            team_config_json=team.config
-        )
-
-        self.logger.info(f"Team updated: {team_message}")
-        return team_message
+            self.logger.info(f"Team updated: {team_message}")
+            return team_message
+        except SQLAlchemyError as e:
+            return None
+        except Exception as e:
+            return None
 
     async def get_teams(self) -> GetTeamsResponseMessage:
         """

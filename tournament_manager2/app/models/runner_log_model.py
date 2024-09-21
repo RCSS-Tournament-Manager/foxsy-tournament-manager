@@ -1,13 +1,13 @@
 # models/runner_log_model.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from .base import Base
-from .runner_model import RunnerModel, RunnerStatusEnum  
+from .runner_model import RunnerStatusEnum  
 from datetime import datetime
 from enum import Enum
 
-class LogLevelEnum(str, Enum):
+class LogLevelEnum(Enum):
     DEBUG = 'DEBUG'
     INFO = 'INFO'
     WARNING = 'WARNING'
@@ -21,10 +21,10 @@ class RunnerLogModel(Base):
     runner_id = Column(Integer, ForeignKey('runners.id', ondelete='CASCADE'), nullable=False)
     message = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    log_level = Column(Enum(LogLevelEnum), default=LogLevelEnum.INFO, nullable=False)
+    log_level = Column(SqlEnum(LogLevelEnum), default=LogLevelEnum.INFO, nullable=False)
     
-    previous_status = Column(Enum(RunnerStatusEnum), nullable=True)
-    new_status = Column(Enum(RunnerStatusEnum), nullable=True)
+    previous_status = Column(SqlEnum(RunnerStatusEnum), nullable=True)
+    new_status = Column(SqlEnum(RunnerStatusEnum), nullable=True)
 
     # Relationship back to RunnerModel
-    runner = relationship('RunnerModel', back_populates='logs')
+    # runner = relationship('RunnerModel', back_populates='logs')
