@@ -10,8 +10,8 @@ class MessageConvertor:
         return TournamentModel(name=message.tournament_name, 
                                owner_id=user_id,
                                start_at=message.start_at,
-                               start_registration_at=message.start_at,
-                               end_registration_at=message.start_at,
+                               start_registration_at=message.start_registration_at,
+                               end_registration_at=message.end_registration_at,
                                done=False,
                                status=TournamentStatus.WAIT_FOR_REGISTRATION)
 

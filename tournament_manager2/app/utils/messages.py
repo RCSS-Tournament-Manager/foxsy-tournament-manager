@@ -169,8 +169,9 @@ class UpdateTeamRequestMessage(BaseMessage):
             self.team_config_json = self.team_config_json.replace("'", '"')
     
 class GetTeamRequestMessage(BaseMessage):
-    user_code: str = Field(None, example="123456")
-    team_id: int = Field(None, example=1)
+    user_code: Optional[str] = Field(None, example="123456")
+    team_id: Optional[int] = Field(None, example=1)
+    team_name: Optional[str] = Field(None, example="team1")
     
 class GetTeamResponseMessage(BaseModel):
     team_id: Optional[int] = Field(None, example=1)
@@ -220,6 +221,7 @@ class GetUsersResponseMessage(BaseModel):
 class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
+    value: Optional[str] = Field(None, example="")
 
 class AddGameResponseModel(BaseModel):
     game_id: int
