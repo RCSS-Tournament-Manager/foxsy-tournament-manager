@@ -10,6 +10,13 @@ class GameStatus(str):
     finished = "finished"
     error = "error"
 
+class LogLevelEnum(str, Enum):
+    DEBUG = 'DEBUG'
+    INFO = 'INFO'
+    WARNING = 'WARNING'
+    ERROR = 'ERROR'
+    CRITICAL = 'CRITICAL'
+
 class RunnerStatusEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
@@ -56,6 +63,7 @@ class AddGameResponse(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")
     success: bool = Field(None, example=True)
+    runner_id: Optional[int] = Field(None, example=1)
     error: Optional[str] = Field(None, example="")
     port: Optional[int] = Field(None, example=12345)
 
@@ -73,6 +81,7 @@ class GameInfoSummary(BaseModel):
     right_score: Optional[int] = Field(None, example=-1)
     left_penalty: Optional[int] = Field(None, example=-1)
     right_penalty: Optional[int] = Field(None, example=-1)
+    runner_id: Optional[int] = Field(None, example=1)
 
 class GetGamesResponse(BaseModel):
     games: list[GameInfoSummary] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
@@ -227,36 +236,26 @@ class GetUsersResponseMessage(BaseModel):
         
 class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
-    error: Optional[str] = Field(None, example="")
+    error: Optional[str] = Field(None, example="") # why not use error: Union[str, None] = None?
     value: Optional[str] = Field(None, example="")
-
-class AddGameResponseModel(BaseModel):
-    game_id: int
-    runner_id: int
-
-class GameInfoSummaryModel(BaseModel):
-    game_id: int
-    left_score: int
-    right_score: int
-
+    
+# class ResponseMessage(BaseModel):
+#     success: bool
+#     error: Union[str, None] = None
 class RegisterGameRunnerRequestModel(BaseModel):
     game_id: int
     runner_id: int
 
-class SuccessResponse(BaseModel):
-    success: bool
-    error: Union[str, None] = None
     
 class GetRunnerResponseMessage(BaseModel):
     id: int
     status: RunnerStatusEnum
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    address: Optional[str]
+    address: str
     ip: Optional[str]
     port: Optional[int]
     available_games_count: int
-    name: str
 
 class GetAllRunnersResponseMessage(BaseModel):
     runners: List[GetRunnerResponseMessage]
@@ -265,6 +264,9 @@ class RunnerLog(BaseModel):
     log_id: int
     message: str
     timestamp: datetime
+    log_level: LogLevelEnum
+    previous_status: Optional[RunnerStatusEnum] = None
+    new_status: Optional[RunnerStatusEnum] = None
 
 class GetRunnerLogResponseMessage(BaseModel):
     logs: List[RunnerLog]

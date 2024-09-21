@@ -401,7 +401,7 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.post("/runner/game_started", response_model=SuccessResponse)
+        @self.app.post("/runner/game_started", response_model=ResponseMessage)
         async def game_started(
             json: AddGameResponse, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -414,9 +414,9 @@ class FastApiApp:
             except Exception as e:
                 self.logger.error(f"game_started: {e}")
                 traceback.print_exc()
-                return SuccessResponse(success=False, error=str(e))
+                return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/game_finished", response_model=SuccessResponse)
+        @self.app.post("/runner/game_finished", response_model=ResponseMessage)
         async def game_finished(
             json: GameInfoSummary, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -429,9 +429,9 @@ class FastApiApp:
             except Exception as e:
                 self.logger.error(f"game_finished: {e}")
                 traceback.print_exc()
-                return SuccessResponse(success=False, error=str(e))
+                return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/register", response_model=SuccessResponse)
+        @self.app.post("/runner/register", response_model=ResponseMessage)
         async def runner_register(
             json: RegisterGameRunnerRequest, 
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -440,11 +440,11 @@ class FastApiApp:
             self.logger.info(f"runner_register: {json}")
             try:
                 await runner_manager.register(json)
-                return SuccessResponse(success=True)
+                return ResponseMessage(success=True)
             except Exception as e:
                 self.logger.error(f"runner_register: {e}")
                 traceback.print_exc()
-                return SuccessResponse(success=False, error=str(e))
+                return ResponseMessage(success=False, error=str(e))
         
 
     async def run(self):

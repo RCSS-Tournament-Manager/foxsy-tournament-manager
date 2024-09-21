@@ -1,14 +1,14 @@
 # models/runner_model.py
 
-from sqlalchemy import Column, Integer, String, DateTime, Enum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Enum, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
-from .game_model import GameModel, GameStatus
-from .runner_log_model import RunnerLogModel 
-from datetime import datetime
+from .game_model import GameModel
+from .runner_log_model import RunnerLogModel
 from enum import Enum
+from datetime import datetime
 
-class RunnerStatusEnum(Enum):
+class RunnerStatusEnum(str, Enum):
     RUNNING = 'running'
     INGAME = 'ingame'
     PAUSED = 'paused'
@@ -20,38 +20,14 @@ class RunnerModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     status = Column(Enum(RunnerStatusEnum), default=RunnerStatusEnum.UNKNOWN, nullable=False)
-
-    address = Column(String, nullable=False, unique=True)  # Unique and required field
-
+    address = Column(String, nullable=False, unique=True)
     available_games_count = Column(Integer, default=0, nullable=False)
-
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
     
     # Relationships
     games = relationship('GameModel', back_populates='runner', cascade='save-update, merge') 
     logs = relationship('RunnerLogModel', back_populates='runner', cascade='save-update, merge')
-
-    def start_game(self, game: 'GameModel'):
-        """Start a specific game by updating the status and start time."""
-        self.status = RunnerStatusEnum.INGAME
-        self.start_time = datetime.utcnow()
-        game.status = GameStatus.IN_PROGRESS
-        self.log_event(f"Game {game.id} started.")
-
-    def finish_game(self, game: 'GameModel', left_score: int, right_score: int):
-        """Finish a specific game and record the results."""
-        self.status = RunnerStatusEnum.RUNNING  
-        self.end_time = datetime.utcnow()
-        game.status = GameStatus.FINISHED
-        game.left_score = left_score
-        game.right_score = right_score
-        self.log_event(f"Game {game.id} finished with scores {left_score}-{right_score}.")
-
-    def log_event(self, message: str):
-        """Add an event to the runner log."""
-        log = RunnerLogModel(runner_id=self.id, message=message)
-        self.logs.append(log)
 
     def __repr__(self):
         game_ids = [game.id for game in self.games]
