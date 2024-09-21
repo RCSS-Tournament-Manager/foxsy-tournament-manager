@@ -6,6 +6,9 @@ from managers.tournament_manager import TournamentManager
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
 from managers.database_manager import DatabaseManager
+from managers.runner_manager import RunnerManager
+from models.runner_log_model import RunnerLogModel
+
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
@@ -79,7 +82,13 @@ class FastApiApp:
                 db_session=db_session
             )
             
-        
+        def get_runner_manager(
+            db_session: AsyncSession = Depends(get_db)
+        ) -> RunnerManager:
+            return RunnerManager(
+                db_session=db_session
+            )
+
         @self.app.get("/")
         def read_root():
             return {"message": "Hello World"}
@@ -338,44 +347,143 @@ class FastApiApp:
             url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/{game_id}/{rcg_file_name}'
             return {"url": url}
         
-        @self.app.post("/runner/game_started")
-        async def game_started(json: AddGameResponse, 
-                               tournament_manager: TournamentManager = Depends(get_tournament_manager),
-                               api_key: str = Depends(get_api_key)):
+
+        @self.app.get("/runner/get/{runner_id}", response_model=GetRunnerResponseMessage)
+        async def get_runner(
+            runner_id: int,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"get_runner: {runner_id}")
             try:
-                self.logger.info(f"game_started: {json}")
-                AddGameResponse.validate(json.dict())
-                await tournament_manager.handle_game_started(json)
-                return {"success": True}
+                runner = await runner_manager.get_runner(runner_id)
+                if not runner:
+                    raise HTTPException(status_code=404, detail="Runner not found")
+                self.logger.info(f"get_runner: {runner}")
+                return runner
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"get_runner: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/runner/get_all", response_model=GetAllRunnersResponseMessage)
+        async def get_all_runners(
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info("get_all_runners")
+            try:
+                runners = await runner_manager.get_all_runners()
+                self.logger.info(f"get_all_runners: Retrieved {len(runners)} runners")
+                return GetAllRunnersResponseMessage(runners=runners)
+            except Exception as e:
+                self.logger.error(f"get_all_runners: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/runner/get_log/{runner_id}", response_model=GetRunnerLogResponseMessage)
+        async def get_runner_log(
+            runner_id: int,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"get_runner_log: {runner_id}")
+            try:
+                logs = await runner_manager.get_runner_logs(runner_id)
+                if not logs:
+                    raise HTTPException(status_code=404, detail="No logs found for the runner")
+                self.logger.info(f"get_runner_log: Retrieved {len(logs)} logs for runner {runner_id}")
+                return GetRunnerLogResponseMessage(logs=logs)
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"get_runner_log: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.post("/from_runner/game_started", response_model=ResponseMessage)
+        async def game_started(
+            json: AddGameResponse, 
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"game_started: {json}")
+            try:
+                response = await runner_manager.handle_game_started(json)
+                return response
             except Exception as e:
                 self.logger.error(f"game_started: {e}")
-                return {"success": False, "error": str(e)}
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/game_finished")
-        async def game_finished(json: GameInfoSummary, 
-                                tournament_manager: TournamentManager = Depends(get_tournament_manager),
-                                api_key: str = Depends(get_api_key)):
+        @self.app.post("/from_runner/game_finished", response_model=ResponseMessage)
+        async def game_finished(
+            json: GameInfoSummary, 
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"game_finished: {json}")
             try:
-                self.logger.info(f"game_finished: {json}")
-                GameInfoSummary.validate(json.dict())
-                await tournament_manager.handle_game_finished(json)
-                return {"success": True}
+                response = await runner_manager.handle_game_finished(json)
+                return response
             except Exception as e:
                 self.logger.error(f"game_finished: {e}")
-                return {"success": False, "error": str(e)}
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/runner/register")
-        async def register(json: RegisterGameRunnerRequest, 
-                           tournament_manager: TournamentManager = Depends(get_tournament_manager),
-                           api_key: str = Depends(get_api_key)):
+        @self.app.post("/from_runner/register", response_model=ResponseMessage)
+        async def runner_register(
+            json: RegisterGameRunnerRequest, 
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"runner_register: {json}")
             try:
-                self.logger.info(f"register: {json}")
-                RegisterGameRunnerRequest.validate(json.dict())
-                # return await tournament_manager.register(json)
-                return {"success": True}
+                await runner_manager.register(json)
+                return ResponseMessage(success=True)
             except Exception as e:
-                self.logger.error(f"register: {e}")
-                return {"success": False, "error": str(e)}
+                self.logger.error(f"runner_register: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+
+        @self.app.post("/from_runner/submit_log", response_model=ResponseMessage)
+        async def submit_runner_log(
+            log: SubmitRunnerLog,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"submit_runner_log: {log}")
+            try:
+                # check if runner exists
+                runner = await runner_manager.get_runner(log.runner_id)
+                if not runner:
+                    self.logger.error(f"Runner with id {log.runner_id} not found")
+                    raise HTTPException(status_code=404, detail="Runner not found")
+                
+                # RunnerLogModel instance
+                new_log = RunnerLogModel(
+                    runner_id=log.runner_id,
+                    message=log.message,
+                    log_level=log.log_level,
+                    timestamp=log.timestamp # or datetime.utcnow()
+                    # previous_status=None,  
+                    # new_status=None        
+                )
+                
+                runner_manager.db_session.add(new_log)
+                await runner_manager.db_session.commit()
+                
+                self.logger.info(f"Log submitted for runner {log.runner_id}")
+                return ResponseMessage(success=True, error=None)
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"submit_runner_log: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+
 
     async def run(self):
         self.logger.info('Starting FastAPI app')

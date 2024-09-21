@@ -5,6 +5,8 @@ from models.base import Base
 from models.user_model import UserModel
 from models.team_model import TeamModel
 from models.tournament_model import TournamentModel, TournamentStatus
+from models.runner_model import RunnerModel, RunnerStatus
+from models.game_model import GameModel, GameStatus
 from tests.db_utils import *
 from utils.messages import *
 import datetime
@@ -67,3 +69,48 @@ async def test_add_tournament_success():
     assert new_tournament is not None
     assert new_tournament.name == "T1"
     assert new_tournament.owner_id == user_model.id
+
+
+@pytest.mark.asyncio
+async def test_add_runner_success():
+    session = await get_db_session()
+    response = await add_runner_to_db(session, RunnerStatus.RUNNING, "127.0.0.1:8000", 10, datetime.now() - timedelta(days=2), None)
+    assert response is not None
+    assert response.status == RunnerStatus.RUNNING
+
+    session.expunge_all()
+    stmt = select(RunnerModel).filter_by(id=response.id)
+    result = await session.execute(stmt)
+    new_runner = result.scalars().first()
+    assert new_runner is not None
+    assert new_runner.status == RunnerStatus.RUNNING
+    assert new_runner.address == "127.0.0.1:8000"
+    assert new_runner.available_games_count == 10
+    assert new_runner.start_time is not None
+    assert new_runner.end_time is None
+
+
+@pytest.mark.asyncio
+async def test_add_game_success():
+    session = await get_db_session()
+    user_model = await add_user_to_db(session, "U1", "123456")
+    tournament_model = await add_tournament_to_db(session, user_model.id, "T1", 
+                                                  datetime.datetime.now() + timedelta(hours=2), 
+                                                  datetime.datetime.now(), 
+                                                  datetime.datetime.now() + timedelta(hours=1) + timedelta(minutes=45), 
+                                                  TournamentStatus.WAIT_FOR_REGISTRATION)
+    team1_model = await add_team_to_db(session, user_model.id, "T1", tournament_model)
+    team2_model = await add_team_to_db(session, user_model.id, "T2", tournament_model)
+    response = await add_game_to_db(session, tournament_model.id, team1_model.id, team2_model.id, GameStatus.PENDING)
+    assert response is not None
+    assert response.status == GameStatus.PENDING
+
+    session.expunge_all()
+    stmt = select(GameModel).filter_by(id=response.id)
+    result = await session.execute(stmt)
+    new_game = result.scalars().first()
+    assert new_game is not None
+    assert new_game.status == GameStatus.PENDING
+    assert new_game.tournament_id == tournament_model.id
+    assert new_game.left_team_id == team1_model.id
+    assert new_game.right_team_id == team2_model.id

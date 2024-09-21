@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Union, List
 from datetime import datetime
+from enum import Enum
 
 
 class GameStatus(str):
@@ -8,6 +9,19 @@ class GameStatus(str):
     running = "running"
     finished = "finished"
     error = "error"
+
+class LogLevelEnum(str, Enum):
+    DEBUG = 'DEBUG'
+    INFO = 'INFO'
+    WARNING = 'WARNING'
+    ERROR = 'ERROR'
+    CRITICAL = 'CRITICAL'
+
+class RunnerStatusEnum(str, Enum):
+    RUNNING = 'running'
+    PAUSED = 'paused'
+    UNKNOWN = 'unknown'
+    CRASHED = 'crashed'
 
 class BaseMessage(BaseModel):
     pass
@@ -49,6 +63,7 @@ class AddGameResponse(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")
     success: bool = Field(None, example=True)
+    runner_id: Optional[int] = Field(None, example=1)
     error: Optional[str] = Field(None, example="")
     port: Optional[int] = Field(None, example=12345)
 
@@ -66,6 +81,7 @@ class GameInfoSummary(BaseModel):
     right_score: Optional[int] = Field(None, example=-1)
     left_penalty: Optional[int] = Field(None, example=-1)
     right_penalty: Optional[int] = Field(None, example=-1)
+    runner_id: Optional[int] = Field(None, example=1)
 
 class GetGamesResponse(BaseModel):
     games: list[GameInfoSummary] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
@@ -220,9 +236,43 @@ class GetUsersResponseMessage(BaseModel):
         
 class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
-    error: Optional[str] = Field(None, example="")
+    error: Optional[str] = Field(None, example="") # why not use error: Union[str, None] = None?
     value: Optional[str] = Field(None, example="")
+    
+# class ResponseMessage(BaseModel):
+#     success: bool
+#     error: Union[str, None] = None
+class RegisterGameRunnerRequestModel(BaseModel):
+    game_id: int
+    runner_id: int
 
+    
+class GetRunnerResponseMessage(BaseModel):
+    id: int
+    status: RunnerStatusEnum
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    address: str
+    ip: Optional[str]
+    port: Optional[int]
+    available_games_count: int
 
+class GetAllRunnersResponseMessage(BaseModel):
+    runners: List[GetRunnerResponseMessage]
 
+class RunnerLog(BaseModel):
+    log_id: int
+    message: str
+    timestamp: datetime
+    log_level: LogLevelEnum
+    previous_status: Optional[RunnerStatusEnum] = None
+    new_status: Optional[RunnerStatusEnum] = None
 
+class GetRunnerLogResponseMessage(BaseModel):
+    logs: List[RunnerLog]
+    
+class SubmitRunnerLog(BaseModel):
+    runner_id: int = Field(..., example=1)
+    message: str = Field(..., example="Runner encountered an unexpected error.")
+    log_level: LogLevelEnum = Field(..., example="ERROR")
+    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")

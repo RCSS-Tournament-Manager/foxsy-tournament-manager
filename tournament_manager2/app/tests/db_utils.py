@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from managers.database_manager import DatabaseManager
-from models import UserModel, TeamModel, TournamentModel
+from models import UserModel, TeamModel, TournamentModel, RunnerModel, RunnerLogModel, GameModel
 
 async def get_db_session():
     engine = create_async_engine('sqlite+aiosqlite:///:memory:', echo=False)
@@ -46,6 +46,38 @@ async def add_tournament_to_db(session, owner_id, tournament_name, start_at, sta
     session.add(tournament_model)
     await session.commit()
     return tournament_model
+
+async def add_runner_to_db(session, status, address, available_games_count, start_time, end_time) -> RunnerModel:
+    runner_model = RunnerModel()
+    runner_model.status = status
+    runner_model.address = address
+    runner_model.available_games_count = available_games_count
+    runner_model.start_time = start_time
+    runner_model.end_time = end_time
+    session.add(runner_model)
+    await session.commit()
+    return runner_model
+
+async def add_runner_log_to_db(session, runner_id, message, timestamp):
+    runner_log_model = RunnerLogModel()
+    runner_log_model.runner_id = runner_id
+    runner_log_model.message = message
+    runner_log_model.timestamp = timestamp
+    session.add(runner_log_model)
+    await session.commit()
+    return runner_log_model
+
+async def add_game_to_db(session, tournament_id, team1_id, team2_id, status, runner_id=None):
+    game_model = GameModel()
+    game_model.tournament_id = tournament_id
+    game_model.left_team_id = team1_id
+    game_model.right_team_id = team2_id
+    game_model.status = status
+    if runner_id is not None:
+        game_model.runner_id = runner_id
+    session.add(game_model)
+    await session.commit()
+    return game_model
 
 class TestDBUtils:
     def __init__(self) -> None:
