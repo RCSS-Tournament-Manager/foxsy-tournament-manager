@@ -31,11 +31,6 @@ class TournamentModel(Base):
     # Relationships
     owner = relationship('UserModel', back_populates='owned_tournaments')  # Tournament owner
     
-    participants = relationship(
-        'UserModel',
-        secondary=tournament_participants_association,
-        back_populates='participating_tournaments'
-    )  # Users participating in this tournament
 
     teams = relationship(
         'TeamModel',
