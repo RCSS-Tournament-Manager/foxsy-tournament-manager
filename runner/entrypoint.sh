@@ -6,6 +6,7 @@
 : "${API_KEY:=api-key}"
 : "${MAX_GAMES_COUNT:=5}"
 : "${USE_FAST_API:=true}"
+: "${FAST_API_IP:=127.0.0.1}"
 : "${FAST_API_PORT:=8082}"
 : "${USE_RABBITMQ:=true}"
 : "${RABBITMQ_HOST:=localhost}"
@@ -29,7 +30,7 @@
 cd app
 
 exec python -m main --data-dir "$DATA_DIR" --log-dir "$LOG_DIR" --api-key "$API_KEY" --max-games-count "$MAX_GAMES_COUNT" \
-    --use-fast-api "$USE_FAST_API" --fast-api-port "$FAST_API_PORT" \
+    --use-fast-api "$USE_FAST_API" --fast-api-port "$FAST_API_PORT" ----fast-api-ip "$FAST_API_IP" \
     --use-rabbitmq "$USE_RABBITMQ" --rabbitmq-host "$RABBITMQ_HOST" --rabbitmq-port "$RABBITMQ_PORT" \
     --rabbitmq-username "$RABBITMQ_USERNAME" --rabbitmq-password "$RABBITMQ_PASSWORD" \
     --connect-to-tournament-manager "$CONNECT_TO_TOURNAMENT_MANAGER" --tournament-manager-ip "$TOURNAMENT_MANAGER_IP" --tournament-manager-port "$TOURNAMENT_MANAGER_PORT" --tournament-manager-api-key "$TOURNAMENT_MANAGER_API_KEY" \
