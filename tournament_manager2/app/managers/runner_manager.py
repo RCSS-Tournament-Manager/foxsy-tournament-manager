@@ -253,6 +253,29 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
+
+    async def send_command(self, runner_id: int, command: str) -> ResponseMessage:#, command_type: Optional[RunnerCommandTypeEnum] = None, parameters: Optional[Dict[str, str]] = None) -> ResponseMessage:
+        self.logger.info(f"send_command: Sending command '{command}' to runner {runner_id} ") # with type '{command_type}' and parameters {parameters}")
+        try:
+            # Retrieve the runner
+            runner_response = await self.get_runner(runner_id)
+            if isinstance(runner_response, ResponseMessage) and not runner_response.success:
+                self.logger.error(f"send_command: Runner with id {runner_id} not found")
+                return ResponseMessage(success=False, error="Runner not found")
+            
+            runner = runner_response  # Type: GetRunnerResponseMessage
+
+            # Publish the command to RabbitMQ
+            # TODO: Implement RabbitMQ Publisher?
+
+            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+            return ResponseMessage(success=True, error=None)
+        except Exception as e:
+            self.logger.error(f"send_command: Unexpected error: {e}")
+            traceback.print_exc()
+            return ResponseMessage(success=False, error=str(e))
+
+    
     async def pause_runner(self, runner_id: int) -> ResponseMessage:
         self.logger.info(f"pause_runner: Runner ID {runner_id}")
         try:

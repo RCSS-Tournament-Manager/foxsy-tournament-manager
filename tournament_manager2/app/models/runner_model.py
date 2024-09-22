@@ -1,6 +1,6 @@
 # models/runner_model.py
 
-from sqlalchemy import Column, Integer, String, DateTime, Enum, UniqueConstraint, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, Enum, UniqueConstraint, ForeignKey, Enum as SQLEnum # TODO: ask about fist Enum
 from sqlalchemy.orm import relationship
 from .base import Base
 from .game_model import GameModel
@@ -25,6 +25,15 @@ class RunnerStatusEnum(str, Enum):
             return RunnerStatusMessageEnum.CRASHED
         else:
             return RunnerStatusMessageEnum.UNKNOWN
+    
+    # def to_RunnerStatusMessageEnum(self): # TODO: what about this?
+    #     mapping = {
+    #         RunnerStatusEnum.RUNNING: RunnerStatusMessageEnum.RUNNING,
+    #         RunnerStatusEnum.PAUSED: RunnerStatusMessageEnum.PAUSED,
+    #         RunnerStatusEnum.UNKNOWN: RunnerStatusMessageEnum.UNKNOWN,
+    #         RunnerStatusEnum.CRASHED: RunnerStatusMessageEnum.CRASHED,
+    #     }
+    #     return mapping.get(self, RunnerStatusMessageEnum.UNKNOWN)
 
 class RunnerModel(Base):
     __tablename__ = 'runners'

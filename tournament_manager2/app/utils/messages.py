@@ -24,6 +24,12 @@ class RunnerStatusMessageEnum(str, Enum):
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
 
+
+# class RunnerCommandTypeEnum(str, Enum): # TODO: should be like this?  
+#     START_GAME = 'start_game'
+#     STOP_GAME = 'stop_game'
+#     PAUSE = 'pause'
+
 class BaseMessage(BaseModel):
     pass
 
@@ -91,6 +97,8 @@ class GameFinishedMessage(BaseModel):
     left_penalty: Optional[int] = Field(None, example=-1)
     right_penalty: Optional[int] = Field(None, example=-1)
     runner_id: Optional[int] = Field(None, example=1)
+
+
 
 class GetGamesResponse(BaseModel):
     games: list[GameFinishedMessage] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
@@ -277,3 +285,10 @@ class SubmitRunnerLog(BaseModel):
     message: str = Field(..., example="Runner encountered an unexpected error.")
     log_level: LogLevelMessageEnum = Field(..., example="ERROR")
     timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
+
+class SendCommandRequest(BaseModel):
+    runner_id: int = Field(..., example=1, description="ID of the runner to send the command to.")
+    command: str = Field(..., description="Command to send to the runner.")
+    # command_type: RunnerCommandTypeEnum = Field(..., example="start_game", description="Type of command to send.")
+    # parameters: Optional[Dict[str, str]] = Field(None, example={"game_id": "42"}, description="Additional parameters for the command.")
+    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z", description="Time the command was issued.")
