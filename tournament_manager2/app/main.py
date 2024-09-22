@@ -11,7 +11,7 @@ from managers.database_manager import DatabaseManager
 from utils.rmq_message_sender import RmqMessageSender
 from storage.minio_client import MinioClient
 from managers.scheduler import Scheduler
-from managers.run_game_sender import run_game_sender
+from managers.run_game_sender import run_game_sender_by_manager
 
 
 logging.warning("This is a warning message")
@@ -100,9 +100,9 @@ async def main():
             return
         scheduler = Scheduler(
             interval=10,  # Run every 10 seconds
-            function=run_game_sender,
-            db_manager=database_manager,
-            rabbitmq_manager=rmq_message_sender
+            function=run_game_sender_by_manager,
+            rabbitmq_manager=rmq_message_sender,
+            db_manager=database_manager
         )
         scheduler.run()
 
