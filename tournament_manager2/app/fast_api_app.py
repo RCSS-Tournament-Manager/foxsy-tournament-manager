@@ -458,8 +458,7 @@ class FastApiApp:
         ):
             self.logger.info(f"runner_register: {json}")
             try:
-                await runner_manager.register(json)
-                return ResponseMessage(success=True)
+                return await runner_manager.register(json)
             except Exception as e:
                 self.logger.error(f"runner_register: {e}")
                 traceback.print_exc()

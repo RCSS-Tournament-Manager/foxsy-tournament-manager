@@ -212,14 +212,12 @@ class RunnerManager:
         address = f"{json.ip}:{json.port}"
         try:
             # Check if a runner with the same address already exists
-            stmt = select(RunnerModel).where(RunnerModel.address == address)
+            stmt = select(RunnerModel).options(selectinload(RunnerModel.games)).where(RunnerModel.address == address)
             result = await self.db_session.execute(stmt)
             existing_runner = result.scalars().first()
 
             if existing_runner:
                 self.logger.info(f"Runner with address {address} already exists. Updating status to RUNNING.")
-
-                previous_status = existing_runner.status
 
                 # Update the runner's status to RUNNING
                 existing_runner.status = RunnerStatusEnum.RUNNING
@@ -227,19 +225,10 @@ class RunnerManager:
                 existing_runner.end_time = None  # Reset end_time if previously set
                 existing_runner.available_games_count = json.available_games_count  # Optionally update this field
 
-                log = RunnerLogModel(
-                    runner_id=existing_runner.id,
-                    message="Runner re-registered. Status updated to RUNNING.",
-                    log_level=LogLevelEnum.INFO,
-                    previous_status=previous_status,
-                    new_status=existing_runner.status
-                )
-                self.db_session.add(log)
-
                 # Commit Changes
                 await self.db_session.commit()
                 self.logger.info(f"Runner with address {address} successfully updated to RUNNING.")
-                return ResponseMessage(success=True, error=None)
+                return ResponseMessage(success=True, error=None, value=str(existing_runner.id))
             else:
                 self.logger.info(f"No existing runner with address {address}. Creating a new runner.")
 
@@ -254,7 +243,7 @@ class RunnerManager:
                 await self.db_session.commit()
                 await self.db_session.refresh(new_runner)
                 self.logger.info(f"Registered new runner with id: {new_runner.id} and address: {new_runner.address}")
-                return ResponseMessage(success=True, error=None)
+                return ResponseMessage(success=True, error=None, value=str(new_runner.id))
         except SQLAlchemyError as e:
             await self.db_session.rollback()
             self.logger.error(f"Database error in register: {e}")
