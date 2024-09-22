@@ -7,7 +7,7 @@ from sqlalchemy.future import select
 from sqlalchemy import exists
 from sqlalchemy.orm import selectinload
 from models.tournament_model import TournamentModel, TournamentStatus
-from models.game_model import GameModel, GameStatus
+from models.game_model import GameModel, GameStatusEnum
 from models.team_model import TeamModel
 from typing import Dict
 from managers.database_manager import DatabaseManager
@@ -126,7 +126,7 @@ async def update_tournament_status_to_in_progress(
                     queue_name="to_runner_queue",
                     message=game_info_message
                 )
-                game.status = GameStatus.IN_QUEUE
+                game.status = GameStatusEnum.IN_QUEUE
             await session.commit()
         
         

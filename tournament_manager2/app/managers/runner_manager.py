@@ -136,7 +136,7 @@ class RunnerManager:
             runner.games.append(game)
 
             # Start the game
-            game.status = GameStatusEnum.IN_PROGRESS
+            game.status = GameStatusEnum.RUNNING
             game.start_time = datetime.utcnow()
             game.port = json.port
             game.runner = runner

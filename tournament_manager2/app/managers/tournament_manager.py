@@ -110,7 +110,7 @@ class TournamentManager:
         if not json.success:
             return
 
-        game.status = GameStatusEnum.IN_PROGRESS
+        game.status = GameStatusEnum.RUNNING
         await session.commit()
 
     async def handle_game_finished(self, json: GameFinishedMessage):

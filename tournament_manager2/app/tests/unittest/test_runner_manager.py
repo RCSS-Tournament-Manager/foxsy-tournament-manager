@@ -215,7 +215,7 @@ async def test_handle_game_started_success():
     result = await session.execute(stmt)
     game:GameModel = result.scalars().first()
     assert game is not None
-    assert game.status == GameStatusEnum.IN_PROGRESS
+    assert game.status == GameStatusEnum.RUNNING
     assert game.port == 6000
     assert game.runner_id == runner_model.id
 
@@ -231,8 +231,8 @@ async def test_handle_game_finished_success_tournament_not_finished():
     team_model2 = await add_team_to_db(session, user_model.id, "team2")
     team_model3 = await add_team_to_db(session, user_model.id, "team3")
     tournament_model = await add_tournament_to_db(session, user_model.id, "tournament1", datetime.now(), datetime.now(), datetime.now(), TournamentStatus.IN_PROGRESS, [team_model1, team_model2, team_model3])
-    game_model1 = await add_game_to_db(session, tournament_model.id, team_model1.id, team_model2.id, GameStatusEnum.IN_PROGRESS, runner_model.id)
-    game_model2 = await add_game_to_db(session, tournament_model.id, team_model2.id, team_model3.id, GameStatusEnum.IN_PROGRESS, runner_model.id)
+    game_model1 = await add_game_to_db(session, tournament_model.id, team_model1.id, team_model2.id, GameStatusEnum.RUNNING, runner_model.id)
+    game_model2 = await add_game_to_db(session, tournament_model.id, team_model2.id, team_model3.id, GameStatusEnum.RUNNING, runner_model.id)
 
     session.expunge_all()
 
@@ -270,7 +270,7 @@ async def test_handle_game_finished_success_tournament_not_finished():
     result = await session.execute(stmt)
     game: GameModel = result.scalars().first()
     assert game is not None
-    assert game.status == GameStatusEnum.IN_PROGRESS
+    assert game.status == GameStatusEnum.RUNNING
     assert game.runner.id == runner_model.id
 
     stmt = select(TournamentModel).options(selectinload(TournamentModel.games)).options(selectinload(TournamentModel.teams)).where(TournamentModel.id == tournament_model.id)
@@ -290,7 +290,7 @@ async def test_handle_game_finished_success():
     team_model1 = await add_team_to_db(session, user_model.id, "team1")
     team_model2 = await add_team_to_db(session, user_model.id, "team2")
     tournament_model = await add_tournament_to_db(session, user_model.id, "tournament1", datetime.now(), datetime.now(), datetime.now(), TournamentStatus.IN_PROGRESS, [team_model1, team_model2])
-    game_model1 = await add_game_to_db(session, tournament_model.id, team_model1.id, team_model2.id, GameStatusEnum.IN_PROGRESS, runner_model.id)
+    game_model1 = await add_game_to_db(session, tournament_model.id, team_model1.id, team_model2.id, GameStatusEnum.RUNNING, runner_model.id)
 
     session.expunge_all()
 

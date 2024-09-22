@@ -106,9 +106,9 @@ class FastApiApp:
             except Exception as e:
                 self.logger.error(f"add_user: {e}")
                 return ResponseMessage(success=False, error=str(e))
-        
+
         @self.app.post("/user/get", response_model=Union[ResponseMessage, GetUserResponseMessage])
-        async def get_user(message_json: GetUserRequestMessage, 
+        async def get_user(message_json: GetUserRequestMessage,
                            user_manager: UserManager = Depends(get_user_manager),
                            api_key: str = Depends(get_api_key)) -> Union[ResponseMessage, GetUserResponseMessage]:
             self.logger.info(f"get_user: {message_json}")
@@ -117,14 +117,14 @@ class FastApiApp:
                 GetUserRequestMessage.model_validate(message.model_dump())
                 if message.is_empty():
                     raise Exception("GetUserRequestMessage is empty")
-                
+
                 res = GetUserResponseMessage()
                 return await user_manager.get_user_info(message)
             except Exception as e:
                 self.logger.error(f"get_user: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-                           
+
         @self.app.get("/user/get_all", response_model=Union[ResponseMessage, GetUsersResponseMessage])
         async def get_users(user_manager: UserManager = Depends(get_user_manager),
                             api_key: str = Depends(get_api_key)):
@@ -135,9 +135,9 @@ class FastApiApp:
                 self.logger.error(f"get_users: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/team/add", response_model=Union[GetTeamResponseMessage, ResponseMessage])
-        async def add_team(message_json: AddTeamRequestMessage, 
+        async def add_team(message_json: AddTeamRequestMessage,
                            team_manager: TeamManager = Depends(get_team_manager),
                            user_manager: UserManager = Depends(get_user_manager),
                            api_key: str = Depends(get_api_key)):
@@ -152,9 +152,9 @@ class FastApiApp:
                 self.logger.error(f"add_team: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/team/get", response_model=Union[GetTeamResponseMessage, ResponseMessage])
-        async def get_team(message_json: GetTeamRequestMessage, 
+        async def get_team(message_json: GetTeamRequestMessage,
                            team_manager: TeamManager = Depends(get_team_manager),
                            user_manager: UserManager = Depends(get_user_manager),
                            api_key: str = Depends(get_api_key)):
@@ -169,7 +169,7 @@ class FastApiApp:
                 self.logger.error(f"get_team: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/team/get_all", response_model=Union[ResponseMessage, GetTeamsResponseMessage])
         async def get_teams(team_manager: TeamManager = Depends(get_team_manager),
                             user_manager: UserManager = Depends(get_user_manager),
@@ -181,9 +181,9 @@ class FastApiApp:
                 self.logger.error(f"get_teams: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-        
+
         @self.app.post("/team/remove", response_model=ResponseMessage)
-        async def remove_team(message_json: RemoveTeamRequestMessage, 
+        async def remove_team(message_json: RemoveTeamRequestMessage,
                               team_manager: TeamManager = Depends(get_team_manager),
                               user_manager: UserManager = Depends(get_user_manager),
                               api_key: str = Depends(get_api_key)):
@@ -198,9 +198,9 @@ class FastApiApp:
                 self.logger.error(f"remove_team: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/team/update", response_model=Union[GetTeamResponseMessage, ResponseMessage])
-        async def update_team(message_json: UpdateTeamRequestMessage, 
+        async def update_team(message_json: UpdateTeamRequestMessage,
                               team_manager: TeamManager = Depends(get_team_manager),
                               user_manager: UserManager = Depends(get_user_manager),
                               api_key: str = Depends(get_api_key)):
@@ -215,9 +215,9 @@ class FastApiApp:
                 self.logger.error(f"update_team: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/tournament/add", response_model=ResponseMessage)
-        async def add_tournament(message_json: AddTournamentRequestMessage, 
+        async def add_tournament(message_json: AddTournamentRequestMessage,
                                  tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                  user_manager: UserManager = Depends(get_user_manager),
                                  api_key: str = Depends(get_api_key)):
@@ -234,7 +234,7 @@ class FastApiApp:
                 return ResponseMessage(success=False, error=str(e))
 
         @self.app.get("/tournament/get/{tournament_id}", response_model=Union[TournamentMessage, ResponseMessage])
-        async def get_tournament(tournament_id: int, 
+        async def get_tournament(tournament_id: int,
                                  tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                  api_key: str = Depends(get_api_key)):
             try:
@@ -246,7 +246,7 @@ class FastApiApp:
                 self.logger.error(f"get_tournament: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-        
+
         @self.app.post("/tournament/get_all", response_model=Union[ResponseMessage, GetTournamentsResponseMessage])
         async def get_tournaments(tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                   api_key: str = Depends(get_api_key)):
@@ -257,9 +257,9 @@ class FastApiApp:
                 self.logger.error(f"get_tournaments: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/tournament/register_team", response_model=ResponseMessage)
-        async def register_team(message_json: RegisterTeamInTournamentRequestMessage, 
+        async def register_team(message_json: RegisterTeamInTournamentRequestMessage,
                                 tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                 team_manager: TeamManager = Depends(get_team_manager),
                                 user_manager: UserManager = Depends(get_user_manager),
@@ -295,7 +295,7 @@ class FastApiApp:
                     return ResponseMessage(success=False, error=str(e))
 
         @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage])
-        async def get_game(game_id: int, 
+        async def get_game(game_id: int,
                            tournament_manager: TournamentManager = Depends(get_tournament_manager),
                            api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_game: {game_id}")
@@ -303,7 +303,7 @@ class FastApiApp:
             self.logger.info(f"get_game: {res}")
             return res
 
-        @self.app.get("/game/download_log/{game_id}", response_class=FileResponse)
+        @self.app.get("/game/download_log/{game_id}")
         async def download_log(game_id: int,
                                tournament_manager: TournamentManager = Depends(get_tournament_manager)):
             self.logger.info(f"download_log: {game_id}")
@@ -319,10 +319,10 @@ class FastApiApp:
             except Exception as e:
                 raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
 
-        @self.app.get("/game/tmp_get_url/{game_id}", response_model=map)
-        async def tmp_get_url(game_id: int, 
+        @self.app.get("/game/tmp_get_url/{game_id}", response_model=dict)
+        async def tmp_get_url(game_id: int,
                               tournament_manager: TournamentManager = Depends(get_tournament_manager),
-                              api_key: str = Depends(get_api_key)):
+                              api_key: str = Depends(get_api_key)) -> dict:
             self.logger.info(f"tmp_get_url: {game_id}")
             game_log_tmp_path = self.game_log_tmp_path
             if not os.path.exists(game_log_tmp_path):
@@ -363,7 +363,7 @@ class FastApiApp:
                 raise HTTPException(status_code=404, detail=f"File not found: {game_id}")
             url = f'http://165.22.28.139/JaSMIn/player.html?replay=http://165.22.28.139/gamelog/{game_id}/{rcg_file_name}'
             return {"url": url}
-        
+
 
         @self.app.get("/runner/get/{runner_id}", response_model=GetRunnerResponseMessage)
         async def get_runner(
@@ -452,7 +452,7 @@ class FastApiApp:
 
         @self.app.post("/from_runner/register", response_model=ResponseMessage)
         async def runner_register(
-            json: RegisterGameRunnerRequest, 
+            json: RegisterGameRunnerRequest,
             runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
@@ -478,7 +478,7 @@ class FastApiApp:
                 if not runner:
                     self.logger.error(f"Runner with id {log.runner_id} not found")
                     raise HTTPException(status_code=404, detail="Runner not found")
-                
+
                 # RunnerLogModel instance
                 new_log = RunnerLogModel(
                     runner_id=log.runner_id,
@@ -486,10 +486,10 @@ class FastApiApp:
                     log_level=log.log_level,
                     timestamp=log.timestamp # or datetime.utcnow()
                 )
-                
+
                 runner_manager.db_session.add(new_log)
                 await runner_manager.db_session.commit()
-                
+
                 self.logger.info(f"Log submitted for runner {log.runner_id}")
                 return ResponseMessage(success=True, error=None)
             except HTTPException as he:

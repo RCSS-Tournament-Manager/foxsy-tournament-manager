@@ -8,8 +8,9 @@ from enum import Enum
 class GameStatusEnum(str, Enum):
     PENDING = 'pending'
     IN_QUEUE = 'in_queue'
-    IN_PROGRESS = 'in_progress'
+    RUNNING = 'running'
     FINISHED = 'finished'
+    ERROR = "error"
 
 class GameModel(Base):
     __tablename__ = 'games'
