@@ -4,13 +4,14 @@ from datetime import datetime
 from enum import Enum
 
 
-class GameStatus(str):
-    starting = "starting"
-    running = "running"
-    finished = "finished"
-    error = "error"
+class GameStatusMessageEnum(str, Enum):
+    PENDING = "pending"
+    IN_QUEUE = "in_queue"
+    RUNNING = "running"
+    FINISHED = "finished"
+    ERROR = "error"
 
-class LogLevelEnum(str, Enum):
+class LogLevelMessageEnum(str, Enum):
     DEBUG = 'DEBUG'
     INFO = 'INFO'
     WARNING = 'WARNING'
@@ -31,9 +32,32 @@ class RegisterGameRunnerRequest(BaseMessage):
     port: int = Field(None, example=12345)
     available_games_count: int = Field(None, example=2)
 
-class RegisterResponse(BaseModel):
-    success: bool = Field(None, example=True)
-    error: Optional[str] = Field(None, example="")
+def fix_json(json_str):
+    if json_str:
+        json_str = json_str.replace(' ', '')
+        json_str = json_str.replace('\r\n', '')
+        json_str = json_str.replace('\r', '')
+        json_str = json_str.replace("'", '"')
+    return json_str
+
+def encode_json(json_str):
+    # replace single quotes with ##q##
+    # replace double quotes with ##qq##
+    # replace comma with ##c##
+    fix_json(json_str)
+    json_str = json_str.replace("'", "##q##")
+    json_str = json_str.replace('"', "##qq##")
+    json_str = json_str.replace(',', "##c##")
+    return json_str
+
+def decode_json(json_str):
+    # replace ##q## with single quotes
+    # replace ##qq## with double quotes
+    # replace ##c## with comma
+    json_str = json_str.replace("##q##", "'")
+    json_str = json_str.replace("##qq##", '"')
+    json_str = json_str.replace("##c##", ',')
+    return json_str
 
 class GameInfoMessage(BaseModel):
     game_id: int = Field(None, example=1)
@@ -49,31 +73,36 @@ class GameInfoMessage(BaseModel):
 
     def fix_json(self):
         if self.left_team_config_json:
-            self.left_team_config_json = self.left_team_config_json.replace(' ', '')
-            self.left_team_config_json = self.left_team_config_json.replace('\r\n', '')
-            self.left_team_config_json = self.left_team_config_json.replace('\r', '')
-            self.left_team_config_json = self.left_team_config_json.replace("'", '"')
+            fix_json(self.left_team_config_json)
         if self.right_team_config_json:
-            self.right_team_config_json = self.right_team_config_json.replace(' ', '')
-            self.right_team_config_json = self.right_team_config_json.replace('\r\n', '')
-            self.right_team_config_json = self.right_team_config_json.replace('\r', '')
-            self.right_team_config_json = self.right_team_config_json.replace("'", '"')
+            fix_json(self.right_team_config_json)
 
-class AddGameResponse(BaseModel):
+    def encode_json(self):
+        if self.left_team_config_json:
+            self.left_team_config_json = encode_json(self.left_team_config_json)
+        if self.right_team_config_json:
+            self.right_team_config_json = encode_json(self.right_team_config_json)
+
+    def decode_json(self):
+        if self.left_team_config_json:
+            self.left_team_config_json = decode_json(self.left_team_config_json)
+        if self.right_team_config_json:
+            self.right_team_config_json = decode_json(self.right_team_config_json)
+
+class GameStartedMessage(BaseModel):
     game_id: int = Field(None, example=1)
-    status: str = Field(None, example="starting")
     success: bool = Field(None, example=True)
     runner_id: Optional[int] = Field(None, example=1)
     error: Optional[str] = Field(None, example="")
     port: Optional[int] = Field(None, example=12345)
 
-class StopGameResponse(BaseModel):
+class StopGameResponse(BaseModel): # TODO remove?
     game_id: Optional[int] = Field(None, example=1)
     game_port: Optional[int] = Field(None, example=12345)
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="")
 
-class GameInfoSummary(BaseModel):
+class GameFinishedMessage(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")
     port: Optional[int] = Field(None, example=12345)
@@ -84,7 +113,7 @@ class GameInfoSummary(BaseModel):
     runner_id: Optional[int] = Field(None, example=1)
 
 class GetGamesResponse(BaseModel):
-    games: list[GameInfoSummary] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
+    games: list[GameFinishedMessage] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])
 
 class TeamMessage(BaseModel):
     user_id: int = Field(None, example=1)
@@ -95,10 +124,15 @@ class TeamMessage(BaseModel):
 
     def fix_json(self):
         if self.team_config_json:
-            self.team_config_json = self.team_config_json.replace(' ', '')
-            self.team_config_json = self.team_config_json.replace('\r\n', '')
-            self.team_config_json = self.team_config_json.replace('\r', '')
-            self.team_config_json = self.team_config_json.replace("'", '"')
+            fix_json(self.team_config_json)
+
+    def encode_json(self):
+        if self.team_config_json:
+            self.team_config_json = encode_json(self.team_config_json)
+
+    def decode_json(self):
+        if self.team_config_json:
+            self.team_config_json = decode_json(self.team_config_json)
 
 class AddTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
@@ -179,10 +213,15 @@ class UpdateTeamRequestMessage(BaseMessage):
     
     def fix_json(self):
         if self.team_config_json:
-            self.team_config_json = self.team_config_json.replace(' ', '')
-            self.team_config_json = self.team_config_json.replace('\r\n', '')
-            self.team_config_json = self.team_config_json.replace('\r', '')
-            self.team_config_json = self.team_config_json.replace("'", '"')
+            fix_json(self.team_config_json)
+
+    def encode_json(self):
+        if self.team_config_json:
+            self.team_config_json = encode_json(self.team_config_json)
+
+    def decode_json(self):
+        if self.team_config_json:
+            self.team_config_json = decode_json(self.team_config_json)
     
 class GetTeamRequestMessage(BaseMessage):
     user_code: Optional[str] = Field(None, example="123456")
@@ -238,14 +277,8 @@ class ResponseMessage(BaseModel):
     success: bool = Field(None, example=True)
     error: Optional[str] = Field(None, example="") # why not use error: Union[str, None] = None?
     value: Optional[str] = Field(None, example="")
-    
-# class ResponseMessage(BaseModel):
-#     success: bool
-#     error: Union[str, None] = None
-class RegisterGameRunnerRequestModel(BaseModel):
-    game_id: int
-    runner_id: int
-
+    # dict: Optional[dict] = Field(None, example={})
+    obj: Optional[BaseModel] = Field(None, example={})
     
 class GetRunnerResponseMessage(BaseModel):
     id: int
@@ -262,9 +295,7 @@ class RunnerLog(BaseModel):
     log_id: int
     message: str
     timestamp: datetime
-    log_level: LogLevelEnum
-    previous_status: Optional[RunnerStatusMessageEnum] = None
-    new_status: Optional[RunnerStatusMessageEnum] = None
+    log_level: LogLevelMessageEnum
 
 class GetRunnerLogResponseMessage(BaseModel):
     logs: List[RunnerLog]
@@ -272,5 +303,5 @@ class GetRunnerLogResponseMessage(BaseModel):
 class SubmitRunnerLog(BaseModel):
     runner_id: int = Field(..., example=1)
     message: str = Field(..., example="Runner encountered an unexpected error.")
-    log_level: LogLevelEnum = Field(..., example="ERROR")
+    log_level: LogLevelMessageEnum = Field(..., example="ERROR")
     timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")

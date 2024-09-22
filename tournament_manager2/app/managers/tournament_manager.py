@@ -97,7 +97,7 @@ class TournamentManager:
             self.logger.info("Sending request to smart contract")
             await asyncio.sleep(60)
 
-    async def handle_game_started(self, json: AddGameResponse):
+    async def handle_game_started(self, json: GameStartedMessage):
         self.logger.info(f"game_started: {json}")
         session = self.db_session
 
@@ -113,7 +113,7 @@ class TournamentManager:
         game.status = GameStatusEnum.IN_PROGRESS
         await session.commit()
 
-    async def handle_game_finished(self, json: GameInfoSummary):
+    async def handle_game_finished(self, json: GameFinishedMessage):
         self.logger.info(f"game_finished: {json}")
         session = self.db_session
 
@@ -157,7 +157,7 @@ class TournamentManager:
         self.logger.info(f"get_game: {game_message}")
         return game_message
     
-    async def register_team(self, message: RegisterTeamInTournamentRequestMessage) -> ResponseMessage:
+    async def register_team_in_tournament(self, message: RegisterTeamInTournamentRequestMessage) -> ResponseMessage:
         self.logger.info(f"register_team: {message}")
         
         now_time = datetime.now()
@@ -185,16 +185,9 @@ class TournamentManager:
             self.logger.error(f"Team or tournament not found")
             return ResponseMessage(success=False, error='Team or tournament not found')
         
-        print(tournament, tournament.status)
-        
         if tournament.status != TournamentStatus.REGISTRATION:
             self.logger.error(f"Tournament is not in registration phase")
             return ResponseMessage(success=False, error='Tournament is not in registration phase')
-        
-        # if now_time < tournament.start_registration_at or now_time > tournament.end_registration_at:
-        #     self.logger.error(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
-        #     print(f"Registration time is over, now_time: {now_time}, start_registration_at: {tournament.start_registration_at}, end_registration_at: {tournament.end_registration_at}")
-        #     return ResponseMessage(success=False, error='Registration time is over')
         
         if team in tournament.teams:
             self.logger.error(f"Team is already registered")
@@ -205,7 +198,46 @@ class TournamentManager:
         await self.db_session.commit()
         
         return ResponseMessage(success=True, error=None)
-        
+
+    async def remove_team_from_tournament(self, message: RemoveTeamFromTournamentRequestMessage) -> ResponseMessage:
+        self.logger.info(f"remove_team_from_tournament: {message}")
+
+        stmt = select(UserModel).filter_by(code=message.user_code)
+        user = await self.db_session.execute(stmt)
+        user = user.scalars().first()
+        if not user:
+            self.logger.error(f"User not found")
+            return ResponseMessage(success=False, error='User not found')
+
+        stmt = select(TeamModel).options(
+            selectinload(TeamModel.tournaments)
+        ).filter_by(id=message.team_id, user_id=user.id)
+        team = await self.db_session.execute(stmt)
+        team = team.scalars().first()
+
+        stmt = select(TournamentModel).options(
+            selectinload(TournamentModel.teams)
+        ).filter_by(id=message.tournament_id)
+        tournament = await self.db_session.execute(stmt)
+        tournament = tournament.scalars().first()
+
+        if not team or not tournament:
+            self.logger.error(f"Team or tournament not found")
+            return ResponseMessage(success=False, error='Team or tournament not found')
+
+        if tournament.status != TournamentStatus.REGISTRATION:
+            self.logger.error(f"Tournament is not in registration phase")
+            return ResponseMessage(success=False, error='Tournament is not in registration phase')
+
+        if team not in tournament.teams:
+            self.logger.error(f"Team is not registered")
+            return ResponseMessage(success=False, error='Team is not registered')
+
+        tournament.teams.remove(team)
+
+        await self.db_session.commit()
+
+        return ResponseMessage(success=True, error=None)
     async def create_all_games(self, tournament_id: int):
         # Get all teams in the tournament
         stmt = select(TeamModel).options(

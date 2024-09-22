@@ -190,7 +190,7 @@ async def test_handle_game_started_success():
     session.expunge_all()
 
     runner_manager = RunnerManager(session)
-    response = await runner_manager.handle_game_started(AddGameResponse(
+    response = await runner_manager.handle_game_started(GameStartedMessage(
         runner_id=runner_model.id,
         game_id=game_model.id,
         success=True,
@@ -237,7 +237,7 @@ async def test_handle_game_finished_success_tournament_not_finished():
     session.expunge_all()
 
     runner_manager = RunnerManager(session)
-    response = await runner_manager.handle_game_finished(GameInfoSummary(
+    response = await runner_manager.handle_game_finished(GameFinishedMessage(
         runner_id=runner_model.id,
         game_id=game_model1.id,
         left_score=1,
@@ -295,7 +295,7 @@ async def test_handle_game_finished_success():
     session.expunge_all()
 
     runner_manager = RunnerManager(session)
-    response = await runner_manager.handle_game_finished(GameInfoSummary(
+    response = await runner_manager.handle_game_finished(GameFinishedMessage(
         runner_id=runner_model.id,
         game_id=game_model1.id,
         left_score=1,
@@ -319,7 +319,7 @@ async def test_handle_game_finished_success():
     result = await session.execute(stmt)
     game: GameModel = result.scalars().first()
     assert game is not None
-    assert game.status == GameStatus.finished
+    assert game.status == GameStatusMessageEnum.FINISHED
     assert game.left_score == 1
     assert game.right_score == 2
     assert game.runner == None

@@ -13,8 +13,8 @@ import traceback
 
 from datetime import datetime
 from utils.messages import (
-    AddGameResponse,
-    GameInfoSummary,
+    GameStartedMessage,
+    GameFinishedMessage,
     RegisterGameRunnerRequest,
     ResponseMessage,
     GetRunnerResponseMessage,
@@ -108,7 +108,7 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in get_runner_logs: {e}")
             return []
           
-    async def handle_game_started(self, json: AddGameResponse) -> ResponseMessage:
+    async def handle_game_started(self, json: GameStartedMessage) -> ResponseMessage:
         self.logger.info(f"handle_game_started: {json}")
         try:
             # Retrieve Runner
@@ -155,7 +155,7 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in handle_game_started: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def handle_game_finished(self, json: GameInfoSummary) -> ResponseMessage:
+    async def handle_game_finished(self, json: GameFinishedMessage) -> ResponseMessage:
         self.logger.info(f"handle_game_finished: {json}")
         try:
             # Runner

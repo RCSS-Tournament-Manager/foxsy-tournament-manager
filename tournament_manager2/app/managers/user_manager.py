@@ -45,7 +45,7 @@ class UserManager:
             await session.commit()
             await session.refresh(new_user)
             self.logger.info(f"User added with id: {new_user.id}")
-            return ResponseMessage(success=True, message="User added successfully")
+            return ResponseMessage(success=True, message="User added successfully") # TODO add user id to the response
         except Exception as e:
             await session.rollback()
             self.logger.error(f"Error adding user: {e}")
@@ -133,7 +133,6 @@ class UserManager:
         if not user:
             return ResponseMessage(success=False, error="User not found")
         
-        # TODO: Fix bug here
         # Get the list of owned tournaments
         owned_tournament_ids = []
         for tournament in user.owned_tournaments:
@@ -143,6 +142,8 @@ class UserManager:
         team_ids = []
         for team in user.teams:
             team_ids.append(team.id)
+
+        # TODO add in_tournament_ids
         
         user_message = GetUserResponseMessage(
             user_id=user.id,

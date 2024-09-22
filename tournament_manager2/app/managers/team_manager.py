@@ -21,7 +21,7 @@ class TeamManager:
         self.logger.info('TeamManager created')
         self.db_session = db_session
         
-    async def create_team(self, message: AddTeamRequestMessage) -> GetTeamResponseMessage:
+    async def create_team(self, message: AddTeamRequestMessage) -> Union[GetTeamResponseMessage, ResponseMessage]:
         """
         Create a team with a unique name for the user. If the team name already exists, 
         find a unique name by appending '_n' where 'n' is an incrementing integer.
@@ -32,6 +32,10 @@ class TeamManager:
         stmt = select(UserModel).filter_by(code=message.user_code)
         user = await session.execute(stmt)
         user = user.scalars().first()
+        if user is None:
+            self.logger.error(f"User not found.") # TODO Add Test
+            return GetTeamResponseMessage(success=False, error="User not found")
+
         user_id = user.id
         
         # Check if the team name is unique
