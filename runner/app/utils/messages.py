@@ -58,8 +58,8 @@ class GameInfoMessage(BaseModel):
     right_team_config_id: Optional[int] = Field(None, example=2)
     left_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433-433\"}"')
     right_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433-433\"}"')
-    left_team_config_json_encoded: Optional[str] = Field(None, example='{##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}')
-    right_team_config_json_encoded: Optional[str] = Field(None, example='{##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}')
+    left_team_config_json_encoded: Optional[str] = Field(None, example='{#qq#version#qq#:1#c##qq#formation_name#qq#:#qq#433#qq#}')
+    right_team_config_json_encoded: Optional[str] = Field(None, example='{#qq#version#qq#:1#c##qq#formation_name#qq#:#qq#433#qq#}')
     left_base_team_name: str = Field(None, example="cyrus")
     right_base_team_name: str = Field(None, example="cyrus")
     server_config: Optional[str] = Field(None, example="--server::auto_mode=true")
@@ -85,12 +85,12 @@ class StopGameResponse(BaseModel): # TODO remove?
 
 class GameFinishedMessage(BaseModel):
     game_id: int = Field(None, example=1)
-    status: str = Field(None, example="starting")
     left_score: Optional[int] = Field(None, example=-1)
     right_score: Optional[int] = Field(None, example=-1)
     left_penalty: Optional[int] = Field(None, example=-1)
     right_penalty: Optional[int] = Field(None, example=-1)
     runner_id: Optional[int] = Field(None, example=1)
+    success: bool = Field(None, example=True)
 
 class GetGamesResponse(BaseModel):
     games: list[GameFinishedMessage] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])

@@ -91,9 +91,15 @@ class RunnerManager:
             try:
                 self.logger.info(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
                 self.free_port(game.port)
-                game_finished_message = GameFinishedMessage(game_id=game.game_info.game_id, port=game.port, success=True, runner_id=self.runner_id)
+                game_finished_message = GameFinishedMessage(game_id=game.game_info.game_id, 
+                                                            success=True, 
+                                                            left_score=game.game_result[0],
+                                                            right_score=game.game_result[1],
+                                                            left_penalty=game.game_result[2],
+                                                            right_penalty=game.game_result[3],
+                                                            runner_id=self.runner_id)
                 if self.message_sender is not None:
-                    await self.message_sender.send_message('from_runner/game_finished', game_finished_message)
+                    await self.message_sender.send_message('from_runner/game_finished', game_finished_message.model_dump())
                 del self.games[game.port]
             except Exception as e:
                 self.logger.error(f'GameRunnerManager on_finished_game: {e}')

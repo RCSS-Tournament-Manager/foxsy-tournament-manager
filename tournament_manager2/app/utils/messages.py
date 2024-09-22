@@ -85,12 +85,12 @@ class StopGameResponse(BaseModel): # TODO remove?
 
 class GameFinishedMessage(BaseModel):
     game_id: int = Field(None, example=1)
-    status: str = Field(None, example="starting")
     left_score: Optional[int] = Field(None, example=-1)
     right_score: Optional[int] = Field(None, example=-1)
     left_penalty: Optional[int] = Field(None, example=-1)
     right_penalty: Optional[int] = Field(None, example=-1)
     runner_id: Optional[int] = Field(None, example=1)
+    success: bool = Field(None, example=True)
 
 class GetGamesResponse(BaseModel):
     games: list[GameFinishedMessage] = Field(None, example=[{"game_id": 1, "status": "starting", "port": 12345}])

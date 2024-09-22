@@ -50,7 +50,7 @@ class ServerConfig:
         if game_info.left_team_config_json_encoded is not None:
             self.left_team_config_json_encoded = game_info.left_team_config_json_encoded
         if game_info.right_team_config_json_encoded is not None:
-            self.right_team_config_json_encoded = game_info.right_team_config_json
+            self.right_team_config_json_encoded = game_info.right_team_config_json_encoded
 
 
     def get_config(self):

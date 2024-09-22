@@ -38,7 +38,7 @@ def get_args():
     parser.add_argument("--rabbitmq-username", type=str, default="guest", help="RabbitMQ username")
     parser.add_argument("--rabbitmq-password", type=str, default="guest1234", help="RabbitMQ password")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
-    parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=False, help="Connect to Tournament Manager (true/false or 1/0)")
+    parser.add_argument("--connect-to-tournament-manager", type=ArgsHelper.str_to_bool, default=True, help="Connect to Tournament Manager (true/false or 1/0)")
     parser.add_argument("--tournament-manager-ip", type=str, default="localhost", help="Tournament manager IP address")
     parser.add_argument("--tournament-manager-port", type=int, default=8085, help="Tournament manager port")
     parser.add_argument("--tournament-manager-api-key", type=str, default="api-key", help="Tournament manager API key")
