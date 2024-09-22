@@ -56,19 +56,19 @@ class GameInfoMessage(BaseModel):
     right_team_name: str = Field(None, example="team2")
     left_team_config_id: Optional[int] = Field(None, example=1)
     right_team_config_id: Optional[int] = Field(None, example=2)
-    left_team_config_json: Optional[str] = Field(None, example='{"left_team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
-    right_team_config_json: Optional[str] = Field(None, example='{"right_team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
-    left_team_config_json_encoded: Optional[str] = Field(None, example='{"left_team_config_json_encoded": {##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}}')
-    right_team_config_json_encoded: Optional[str] = Field(None, example='{"right_team_config_json_encoded": {##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}}')
+    left_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433-433\"}"')
+    right_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433-433\"}"')
+    left_team_config_json_encoded: Optional[str] = Field(None, example='{##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}')
+    right_team_config_json_encoded: Optional[str] = Field(None, example='{##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}')
     left_base_team_name: str = Field(None, example="cyrus")
     right_base_team_name: str = Field(None, example="cyrus")
-    server_config: str = Field(None, example="--server::port=6000")
+    server_config: Optional[str] = Field(None, example="--server::auto_mode=true")
 
     def fix_json(self):
         if self.left_team_config_json:
-            fix_json(self.left_team_config_json)
+            self.left_team_config_json = fix_json(self.left_team_config_json)
         if self.right_team_config_json:
-            fix_json(self.right_team_config_json)
+            self.right_team_config_json = fix_json(self.right_team_config_json)
 
 class GameStartedMessage(BaseModel):
     game_id: int = Field(None, example=1)
@@ -86,7 +86,6 @@ class StopGameResponse(BaseModel): # TODO remove?
 class GameFinishedMessage(BaseModel):
     game_id: int = Field(None, example=1)
     status: str = Field(None, example="starting")
-    port: Optional[int] = Field(None, example=12345)
     left_score: Optional[int] = Field(None, example=-1)
     right_score: Optional[int] = Field(None, example=-1)
     left_penalty: Optional[int] = Field(None, example=-1)
