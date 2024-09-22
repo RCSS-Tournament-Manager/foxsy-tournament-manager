@@ -178,6 +178,7 @@ class TeamManager:
                 team.base_team = message.base_team_name
             if message.team_config_json is not None:
                 team.config = message.team_config_json
+                team.config_encoded = message.encode_json()
             await session.commit()
             await session.refresh(team)
             
@@ -186,7 +187,7 @@ class TeamManager:
                 team_id=team.id,
                 team_name=team.name,
                 base_team_name=team.base_team,
-                team_config_json=team.config
+                team_config_json=team.config,
             )
 
             self.logger.info(f"Team updated: {team_message}")

@@ -50,15 +50,6 @@ def encode_json(json_str):
     json_str = json_str.replace(',', "##c##")
     return json_str
 
-def decode_json(json_str):
-    # replace ##q## with single quotes
-    # replace ##qq## with double quotes
-    # replace ##c## with comma
-    json_str = json_str.replace("##q##", "'")
-    json_str = json_str.replace("##qq##", '"')
-    json_str = json_str.replace("##c##", ',')
-    return json_str
-
 class GameInfoMessage(BaseModel):
     game_id: int = Field(None, example=1)
     left_team_name: str = Field(None, example="team1")
@@ -67,6 +58,8 @@ class GameInfoMessage(BaseModel):
     right_team_config_id: Optional[int] = Field(None, example=2)
     left_team_config_json: Optional[str] = Field(None, example='{"left_team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
     right_team_config_json: Optional[str] = Field(None, example='{"right_team_config_json": "{\"version\":1, \"formation_name\":\"433-433\"}"}')
+    left_team_config_json_encoded: Optional[str] = Field(None, example='{"left_team_config_json_encoded": {##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}}')
+    right_team_config_json_encoded: Optional[str] = Field(None, example='{"right_team_config_json_encoded": {##qq##version##qq##:1##c####qq##formation_name##qq##:##qq##433##qq##}}')
     left_base_team_name: str = Field(None, example="cyrus")
     right_base_team_name: str = Field(None, example="cyrus")
     server_config: str = Field(None, example="--server::port=6000")
@@ -76,18 +69,6 @@ class GameInfoMessage(BaseModel):
             fix_json(self.left_team_config_json)
         if self.right_team_config_json:
             fix_json(self.right_team_config_json)
-
-    def encode_json(self):
-        if self.left_team_config_json:
-            self.left_team_config_json = encode_json(self.left_team_config_json)
-        if self.right_team_config_json:
-            self.right_team_config_json = encode_json(self.right_team_config_json)
-
-    def decode_json(self):
-        if self.left_team_config_json:
-            self.left_team_config_json = decode_json(self.left_team_config_json)
-        if self.right_team_config_json:
-            self.right_team_config_json = decode_json(self.right_team_config_json)
 
 class GameStartedMessage(BaseModel):
     game_id: int = Field(None, example=1)
@@ -128,11 +109,7 @@ class TeamMessage(BaseModel):
 
     def encode_json(self):
         if self.team_config_json:
-            self.team_config_json = encode_json(self.team_config_json)
-
-    def decode_json(self):
-        if self.team_config_json:
-            self.team_config_json = decode_json(self.team_config_json)
+            return encode_json(self.team_config_json)
 
 class AddTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
@@ -219,10 +196,6 @@ class UpdateTeamRequestMessage(BaseMessage):
         if self.team_config_json:
             self.team_config_json = encode_json(self.team_config_json)
 
-    def decode_json(self):
-        if self.team_config_json:
-            self.team_config_json = decode_json(self.team_config_json)
-    
 class GetTeamRequestMessage(BaseMessage):
     user_code: Optional[str] = Field(None, example="123456")
     team_id: Optional[int] = Field(None, example=1)

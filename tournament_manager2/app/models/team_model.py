@@ -10,6 +10,7 @@ class TeamModel(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     base_team = Column(String)
     config = Column(String)
+    config_encoded = Column(String)
 
     # Relationships
     user = relationship('UserModel', back_populates='teams')
