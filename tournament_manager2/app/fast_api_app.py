@@ -153,7 +153,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/get", response_model=Union[GetTeamResponseMessage, ResponseMessage])
+        @self.app.post("/team/get", response_model=Union[GetTeamResponseMessage, ResponseMessage]) # TODO merge GetTeamResponseMessage and TeamMessage
         async def get_team(message_json: GetTeamRequestMessage,
                            team_manager: TeamManager = Depends(get_team_manager),
                            user_manager: UserManager = Depends(get_user_manager),

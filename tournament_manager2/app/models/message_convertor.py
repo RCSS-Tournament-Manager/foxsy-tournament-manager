@@ -81,6 +81,7 @@ class MessageConvertor:
                                  start_registration_at=tournament.start_registration_at,
                                  end_registration_at=tournament.end_registration_at,
                                  done=tournament.done,
+                                 status=TournamentStatus.convert_to_str(tournament.status),
                                  user_id=tournament.owner_id,
                                  teams=[MessageConvertor.convert_team_model_to_team_message(team) for team in tournament.teams],
                                  games=[MessageConvertor.convert_game_model_to_game_message(game) for game in tournament.games],

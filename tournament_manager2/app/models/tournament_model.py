@@ -9,6 +9,21 @@ class TournamentStatus:
     IN_PROGRESS = 'in_progress'
     FINISHED = 'finished'
 
+    @staticmethod
+    def convert_to_str(status: str) -> str:
+        if status == TournamentStatus.WAIT_FOR_REGISTRATION:
+            return 'wait_for_registration'
+        elif status == TournamentStatus.REGISTRATION:
+            return 'registration'
+        elif status == TournamentStatus.WAIT_FOR_START:
+            return 'wait_for_start'
+        elif status == TournamentStatus.IN_PROGRESS:
+            return 'in_progress'
+        elif status == TournamentStatus.FINISHED:
+            return 'finished'
+        else:
+            raise ValueError(f'Unknown status: {status}')
+
 # Association table for participants
 tournament_participants_association = Table(
     'tournament_participants_association', Base.metadata,

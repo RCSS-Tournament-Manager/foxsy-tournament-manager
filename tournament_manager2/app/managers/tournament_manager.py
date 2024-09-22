@@ -174,7 +174,7 @@ class TournamentManager:
             ).filter_by(id=message.team_id, user_id=user.id)
         team = await self.db_session.execute(stmt)
         team = team.scalars().first()
-        
+
         stmt = select(TournamentModel).options(
             selectinload(TournamentModel.teams)
             ).filter_by(id=message.tournament_id)
@@ -184,6 +184,10 @@ class TournamentManager:
         if not team or not tournament:
             self.logger.error(f"Team or tournament not found")
             return ResponseMessage(success=False, error='Team or tournament not found')
+        
+        if not team.base_team or len(team.base_team) == 0:
+            self.logger.error(f"Team has no base team")
+            return ResponseMessage(success=False, error='Team has no base team')
         
         if tournament.status != TournamentStatus.REGISTRATION:
             self.logger.error(f"Tournament is not in registration phase")

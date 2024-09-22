@@ -52,7 +52,7 @@ class TeamManager:
             i += 1
         
         # Create a new team
-        new_team = TeamModel(name=team_name, user_id=user_id, base_team=base_name, config="{}")
+        new_team = TeamModel(name=team_name, user_id=user_id, base_team="", config="{}")
         session.add(new_team)
         await session.commit()
         await session.refresh(new_team)
@@ -95,7 +95,8 @@ class TeamManager:
             team_id=team.id,
             team_name=team.name,
             base_team_name=team.base_team,
-            team_config_json=team.config if user_id == team.user_id else None
+            team_config_json=team.config if user_id == team.user_id else None,
+            team_config_json_encoded=team.config_encoded if user_id == team.user_id else None
         )
 
         self.logger.info(f"Team retrieved: {team_message}")
@@ -188,6 +189,7 @@ class TeamManager:
                 team_name=team.name,
                 base_team_name=team.base_team,
                 team_config_json=team.config,
+                team_config_json_encoded=team.config_encoded
             )
 
             self.logger.info(f"Team updated: {team_message}")

@@ -17,6 +17,8 @@ import logging
 from managers.tournament_manager import TournamentManager
 
 
+logger = logging.getLogger("update_tournament_status")
+
 def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: TeamModel) -> GameInfoMessage:
     game_info_message = GameInfoMessage(
         game_id=game.id,
@@ -35,7 +37,6 @@ def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: 
 async def update_tournament_status_to_registration(
     session: AsyncSession
 ):
-    logger = logging.getLogger("update_tournament_status")
     current_time = datetime.utcnow()
     result = await session.execute(
         select(TournamentModel)
@@ -56,7 +57,6 @@ async def create_all_games(
     session: AsyncSession,
     tournament_ids: list[int]
 ):
-    logger = logging.getLogger("update_tournament_status")
     tournament_manager = TournamentManager(session, None)
     
     for tournament_id in tournament_ids:
@@ -67,7 +67,6 @@ async def create_all_games(
 async def update_tournament_status_to_wait_for_start(
     session: AsyncSession
 ):
-    logger = logging.getLogger("update_tournament_status")
     tournament_ids = []
     current_time = datetime.utcnow()
     result = await session.execute(
@@ -94,7 +93,6 @@ async def update_tournament_status_to_in_progress(
     rabbitmq_manager: RmqMessageSender = None,
     game_list: list[GameInfoMessage] = None
 ):
-    logger = logging.getLogger("update_tournament_status")
     current_time = datetime.utcnow()
     result = await session.execute(
         select(TournamentModel)
@@ -130,7 +128,6 @@ async def update_tournament_status_to_in_progress(
             game_info_message = create_game_info_message(game_model, left_team, right_team)
             if rabbitmq_manager is not None:
                 await rabbitmq_manager.publish_message(
-                    queue_name="to_runner_queue",
                     message=game_info_message
                 )
             else:
@@ -152,5 +149,6 @@ async def run_game_sender_by_manager(
     rabbitmq_manager: RmqMessageSender,
     db_manager: DatabaseManager
 ):
+    logger.info("Running game sender by manager")
     async for session in db_manager.get_session():
         await run_game_sender_by_session(rabbitmq_manager, session)
