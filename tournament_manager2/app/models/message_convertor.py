@@ -84,7 +84,8 @@ class MessageConvertor:
                                  user_id=tournament.owner_id,
                                  teams=[MessageConvertor.convert_team_model_to_team_message(team) for team in tournament.teams],
                                  games=[MessageConvertor.convert_game_model_to_game_message(game) for game in tournament.games],
-                                 results=tournament_results)
+                                 results=tournament_results,
+                                 status=tournament.status)
         
     @staticmethod
     def convert_tournament_model_to_tournament_summary_message(tournament: TournamentModel) -> TournamentSummaryMessage:
