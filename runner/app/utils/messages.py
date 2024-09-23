@@ -41,13 +41,13 @@ def fix_json(json_str):
     return json_str
 
 def encode_json(json_str):
-    # replace single quotes with ##q##
-    # replace double quotes with ##qq##
-    # replace comma with ##c##
+    # replace single quotes with @q@
+    # replace double quotes with @qq@
+    # replace comma with @c@
     fix_json(json_str)
-    json_str = json_str.replace("'", "#q#")
-    json_str = json_str.replace('"', "#qq#")
-    json_str = json_str.replace(',', "#c#")
+    json_str = json_str.replace("'", "@q@")
+    json_str = json_str.replace('"', "@qq@")
+    json_str = json_str.replace(',', "@c@")
     return json_str
 
 class GameInfoMessage(BaseModel):
@@ -58,8 +58,8 @@ class GameInfoMessage(BaseModel):
     right_team_config_id: Optional[int] = Field(None, example=2)
     left_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433\"}"')
     right_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433\"}"')
-    left_team_config_json_encoded: Optional[str] = Field(None, example='{#qq#version#qq#:1#c##qq#formation_name#qq#:#qq#433#qq#}')
-    right_team_config_json_encoded: Optional[str] = Field(None, example='{#qq#version#qq#:1#c##qq#formation_name#qq#:#qq#433#qq#}')
+    left_team_config_json_encoded: Optional[str] = Field(None, example='{@qq@version@qq@:1@c@@qq@formation_name@qq@:@qq@433@qq@}')
+    right_team_config_json_encoded: Optional[str] = Field(None, example='{@qq@version@qq@:1@c@@qq@formation_name@qq@:@qq@433@qq@}')
     left_base_team_name: str = Field(None, example="cyrus")
     right_base_team_name: str = Field(None, example="cyrus")
     server_config: Optional[str] = Field(None, example="--server::auto_mode=true")
@@ -207,7 +207,7 @@ class GetTeamResponseMessage(BaseModel):
     team_name: str = Field(None, example="team1")
     base_team_name: str = Field(None, example="cyrus")
     team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433\"}"')
-    team_config_json_encoded: Optional[str] = Field(None, example='{#qq#version#qq#:1#c##qq#formation_name#qq#:#qq#433#qq#}')
+    team_config_json_encoded: Optional[str] = Field(None, example='{@qq@version@qq@:1@c@@qq@formation_name@qq@:@qq@433@qq@}')
 
 class GetTeamsResponseMessage(BaseModel):
     teams: list[TeamMessage] = Field(None, example=[{"team_id": 1, "team_name": "team1", "base_team_name": "cyrus"}])
@@ -280,3 +280,11 @@ class SubmitRunnerLog(BaseModel):
     message: str = Field(..., example="Runner encountered an unexpected error.")
     log_level: LogLevelMessageEnum = Field(..., example="ERROR")
     timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
+
+class UpdateTournamentRequestMessage(BaseModel):
+    tournament_id: int = Field(..., example=1)
+    start_registration_at: Optional[bool] = Field(None, example=False)
+    end_registration_at: Optional[bool] = Field(None, example=False)
+    start_at: Optional[bool] = Field(None, example=False)
+    
+    
