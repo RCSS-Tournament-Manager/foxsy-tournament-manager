@@ -155,88 +155,123 @@ async def test_user_access():
     assert response.error == "Team not found or user does not own the team"
 
 '''
-================================UPDATED UNTIL HERE================================================== 
-'''        
+    Test
+    Remove a team that does not exist
+'''
+@pytest.mark.asyncio
+async def test_remove_team_does_not_exist():
+    dbm, session = await get_db_manager_and_session()
+    
+    await make_user(session)
+    tm = TeamManager(db_session=session)
+    response = await tm.remove_team(RemoveTeamRequestMessage(user_code="123456", team_id=1))
+    assert response is not None
+    assert type(response) == ResponseMessage
+    assert response.success == False
+    assert response.error == "Team not found or user does not own the team"
+    
 '''
     Test
-    1. remove a team
-    2. remove a team that does not exist
-    3. check if the team is removed
+    remove a team that exists
 '''
 @pytest.mark.asyncio
 async def test_remove_team():
-    session = await get_db_session()
+    dbm, session = await get_db_manager_and_session()
     
     await make_user(session)
+    await add_team_to_db(session, 1, "T1")
+    session.close()
+    
+    session = await dbm.get_session()
     tm = TeamManager(db_session=session)
-    team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
-    assert team is not None
-    assert team.team_name == "T1"
-    
-    response = await tm.remove_team(RemoveTeamRequestMessage(user_code="123456", team_id=team.team_id))
+    response = await tm.remove_team(RemoveTeamRequestMessage(user_code="123456", team_id=1))
     assert response is not None
-    assert response.success is True
+    assert response.success == True
+    session.close()
     
-    response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team.team_id))
-    assert type(response) == ResponseMessage
-    assert response.success == False
-    assert response.error == "Team not found"
-    
-    response = await tm.remove_team(RemoveTeamRequestMessage(user_code="123456", team_id=999))
-    assert type(response) == ResponseMessage
-    assert response.success == False
-    assert response.error == "Team not found or user does not own the team"
+    session = await dbm.get_session()
+    stmt = select(TeamModel).where(TeamModel.name == 'T1')
+    result = await session.execute(stmt)
+    team = result.scalars().first()
+    assert team is None    
 
 
 '''
     Test
-    1. update a team
-    2. update a team that does not exist
-    3. update a team that the user does not own # TODO NOT tested
-    4. check if the team is updated
-''' 
+    Update a team that does not exist
+'''
 @pytest.mark.asyncio
-async def test_update_team():
-    session = await get_db_session()
+async def test_update_team_does_not_exist():
+    dbm, session = await get_db_manager_and_session()
     
     await make_user(session)
-    await make_user(session, user_name="U2", user_code="654321")
     tm = TeamManager(db_session=session)
-    team = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T1"))
-    team2 = await tm.create_team(AddTeamRequestMessage(user_code="123456", team_name="T10"))
-    assert team is not None
-    assert team.team_name == "T1"
-    print(team.team_id)
-    session.expunge_all()
-    response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id='999', base_team_name="T3"))
+    response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=1, base_team_name="T1"))
     assert response is not None
     assert type(response) == ResponseMessage
     assert response.success == False
     assert response.error == "Team not found or user does not own the team"
     
-    response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team.team_id, base_team_name="T2"))
+'''
+    Test
+    Update a team that exists
+'''
+@pytest.mark.asyncio
+async def test_update_team_by_owner():
+    dbm, session = await get_db_manager_and_session()
+    
+    await make_user(session)
+    await add_team_to_db(session, 1, "T1")
+    session.close()
+    
+    session = await dbm.get_session()
+    tm = TeamManager(db_session=session)
+    response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=1, base_team_name="T2"))
     assert response is not None
     assert type(response) == GetTeamResponseMessage
     assert response.base_team_name == "T2"
     assert response.team_name == "T1"
+    session.close()
     
-    response = await tm.get_team(GetTeamRequestMessage(user_code="123456", team_id=team.team_id))
-    assert response is not None
-    assert response.team_name == "T1"
-    
-    response = await tm.update_team(UpdateTeamRequestMessage(user_code="123456", team_id=team2.team_id, base_team_name="T2"))
-    assert response is not None
-    assert response.team_name == "T10"
-    assert response.base_team_name == "T2"
-    
-    response = await tm.update_team(UpdateTeamRequestMessage(user_code="654321", team_id=team2.team_id, base_team_name="T3"))
-    assert response is not None
-    assert response.success == False
-    assert response.error == "Team not found or user does not own the team"
+    session = await dbm.get_session()
+    stmt = select(TeamModel).where(TeamModel.name == 'T1')
+    result = await session.execute(stmt)
+    team = result.scalars().first()
+    assert team is not None
+    assert team.base_team == 'T2'
 
 '''
     Test
-    1. get all teams
+    Update a team with non-owner
+'''
+@pytest.mark.asyncio
+async def test_update_team_by_non_owner():
+    dbm, session = await get_db_manager_and_session()
+    
+    await make_user(session)
+    await make_user(session, user_name="U2", user_code="654321")
+    await add_team_to_db(session, 1, "T1")
+    session.close()
+    
+    session = await dbm.get_session()
+    tm = TeamManager(db_session=session)
+    response = await tm.update_team(UpdateTeamRequestMessage(user_code="654321", team_id=1, base_team_name="T2"))
+    assert response is not None
+    assert type(response) == ResponseMessage
+    assert response.success == False
+    assert response.error == "Team not found or user does not own the team"
+    session.close()
+    
+    session = await dbm.get_session()
+    stmt = select(TeamModel).where(TeamModel.name == 'T1')
+    result = await session.execute(stmt)
+    team = result.scalars().first()
+    assert team is not None
+    assert team.base_team == 'T1'
+
+'''
+    Test
+    get all teams
 '''      
 @pytest.mark.asyncio
 async def test_get_teams(): 
@@ -282,6 +317,8 @@ async def test_get_teams():
     assert response.teams[1].user_id == 1
     assert response.teams[2].user_id == 2
     assert response.teams[3].user_id == 2
+    for t in response.teams:
+        assert t.team_config_json is None
         
         
         
