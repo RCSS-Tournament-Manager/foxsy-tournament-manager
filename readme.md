@@ -54,3 +54,49 @@ sequenceDiagram
     R->>TM: Game Status (GameFinished)
     TM->>RMDB: Update Game
 ```
+
+## Entity Relations
+
+```mermaid
+erDiagram
+    USER {
+        int id
+        string name
+        string email
+    }
+    
+    TEAM {
+        int id
+        string name
+        int user_id
+    }
+
+    TOURNAMENT {
+        int id
+        string name
+        datetime start_register_time
+        datetime stop_register_time
+        datetime start_time
+        int user_id
+    }
+
+    GAME {
+        int id
+        string name
+        datetime start_time
+        int tournament_id
+        int runner_id
+    }
+
+    RUNNER {
+        int id
+        string name
+    }
+
+    USER ||--o{ TEAM : owns
+    USER ||--o{ TOURNAMENT : creates
+    TEAM ||--o{ TOURNAMENT : participates
+    TOURNAMENT ||--o{ GAME : has
+    GAME ||--o| RUNNER : run_by
+    RUNNER ||--o{ GAME : runs
+```
