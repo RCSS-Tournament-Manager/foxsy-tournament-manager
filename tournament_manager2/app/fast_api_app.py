@@ -409,8 +409,8 @@ class FastApiApp:
             self.logger.info("get_all_runners")
             try:
                 runners = await runner_manager.get_all_runners()
-                self.logger.info(f"get_all_runners: Retrieved {len(runners)} runners")
-                return GetAllRunnersResponseMessage(runners=runners)
+                self.logger.info(f"get_all_runners: Retrieved {len(runners.runners)} runners")
+                return runners
             except Exception as e:
                 self.logger.error(f"get_all_runners: {e}")
                 traceback.print_exc()

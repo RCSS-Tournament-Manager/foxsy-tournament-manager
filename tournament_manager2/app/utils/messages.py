@@ -113,9 +113,9 @@ class TeamMessage(BaseModel):
 class AddTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
     tournament_name: str = Field(None, example="RoboCup 2024")
-    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
-    start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
-    end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    start_registration_at: datetime = Field(None, example="2025-10-01 00:00:00")
+    end_registration_at: datetime = Field(None, example="2025-11-30 00:00:00")
+    start_at: datetime = Field(None, example="2025-12-01 00:00:00")
     
 class RemoveTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
@@ -160,9 +160,9 @@ class TournamentMessage(BaseModel):
 class TournamentSummaryMessage(BaseModel):
     tournament_id: int = Field(None, example=1)
     tournament_name: str = Field(None, example="RoboCup 2024")
-    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
     start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
     end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
     status: str = Field(None, example="pending")
     
 class GetTournamentsResponseMessage(BaseModel):

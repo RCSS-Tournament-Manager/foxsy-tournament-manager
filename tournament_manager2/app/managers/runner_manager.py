@@ -56,7 +56,7 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in get_runner: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def get_all_runners(self) -> Union[List[GetRunnerResponseMessage], ResponseMessage]:
+    async def get_all_runners(self) -> Union[GetAllRunnersResponseMessage, ResponseMessage]:
         self.logger.info("get_all_runners")
         try:
             stmt = select(RunnerModel)
