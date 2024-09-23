@@ -100,3 +100,12 @@ erDiagram
     GAME ||--o| RUNNER : run_by
     RUNNER ||--o{ GAME : runs
 ```
+
+
+## Run Development
+
+go to tournoment manager and run
+uv sync
+
+go to runner folder and run 
+uv sync
