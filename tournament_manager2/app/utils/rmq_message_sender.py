@@ -32,7 +32,7 @@ class RmqMessageSender:
                 await asyncio.sleep(5)
 
     async def publish_message(self, message: BaseModel):
-        message_json = message.model_dump()
+        message_json = json.dumps(message.model_dump())
         await self.channel.default_exchange.publish(
             pika.Message(body=message_json.encode(), delivery_mode=pika.DeliveryMode.PERSISTENT),
             routing_key=self.queue_name
