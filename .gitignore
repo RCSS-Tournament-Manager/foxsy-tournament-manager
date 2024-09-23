@@ -7,3 +7,4 @@ runner/composes/rabbit-minio-runner/data2/logs/
 runner/composes/rabbit-minio-runner/data2/server/rcssserver
 storage/data/tournament.db
 .venv/
+data/
