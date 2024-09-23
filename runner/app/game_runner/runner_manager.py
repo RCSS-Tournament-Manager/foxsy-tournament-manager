@@ -58,25 +58,25 @@ class RunnerManager:
         self.available_games_count += 1
         self.available_ports.append(port)
 
-    async def add_game(self, game_info: GameInfoMessage, called_from_rabbitmq: bool = False) -> GameInfoMessage:
+    async def add_game(self, game_info: GameInfoMessage, called_from_rabbitmq: bool = False) -> GameStartedMessage:
         async with self.lock:
             #TODO try except
             self.logger.info(f'GameRunnerManager adding game: {game_info}')
             if self.available_games_count == 0:
-                return GameInfoMessage(game_id=game_info.game_id, status='failed',
-                                       success=False, error='No available games')
+                self.logger.warning(f'GameRunnerManager add_game: No available games')
+                return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available games')
             self.logger.info(f'GameRunnerManager add_game: {game_info}')
             port = self.get_available_port()
             if port is None:
-                return GameInfoMessage(game_id=game_info.game_id, status='failed',
-                                       success=False, error='No available ports')
+                self.logger.warning(f'GameRunnerManager add_game: No available ports')
+                return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available ports')
             self.available_games_count -= 1
             game = Game(game_info, port, self.data_dir, self.storage_client)
             game.finished_event = self.on_finished_game
             self.games[port] = game
             self.games[port].check()
             asyncio.create_task(game.run_game())
-            res = GameInfoMessage(game_id=game_info.game_id, status='starting', success=True, port=port)
+            res = GameStartedMessage(game_id=game_info.game_id, success=True, port=port, runner_id=self.runner_id)
             if called_from_rabbitmq:
                 try:
                     game_started_message = GameStartedMessage(game_id=game_info.game_id, port=port, success=True, runner_id=self.runner_id)

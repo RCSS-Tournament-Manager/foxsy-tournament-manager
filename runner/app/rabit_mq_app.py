@@ -70,7 +70,7 @@ class RabbitMQConsumer:
                     try:
                         game_info_message = GameInfoMessage(**data)
                         GameInfoMessage.model_validate(game_info_message.model_dump())
-                        res: GameInfoMessage = await self.manager.add_game(game_info_message, True)
+                        res: GameStartedMessage = await self.manager.add_game(game_info_message, True)
                     except Exception as e:
                         await handle_error(e)
                         continue

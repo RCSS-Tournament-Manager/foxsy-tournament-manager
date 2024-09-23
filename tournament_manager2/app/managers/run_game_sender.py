@@ -24,13 +24,12 @@ def create_game_info_message(game: GameModel, left_team: TeamModel, right_team: 
         game_id=game.id,
         left_team_name=left_team.name,
         right_team_name=right_team.name,
-        left_team_config_json=left_team.config,
-        right_team_config_json=right_team.config,
+        left_team_config_json_encoded=left_team.config_encoded,
+        right_team_config_json_encoded=right_team.config_encoded,
         left_base_team_name=left_team.base_team,
         right_base_team_name=right_team.base_team,
         server_config=""
     )
-    game_info_message.fix_json()
     return game_info_message
 
 
@@ -126,9 +125,10 @@ async def update_tournament_status_to_in_progress(
             right_team = game_model.right_team
             logger.info(f"Sending game: {left_team.name} vs {right_team.name} to runner")
             game_info_message = create_game_info_message(game_model, left_team, right_team)
+            logger.info(f"Game info message: {game_info_message}")
             if rabbitmq_manager is not None:
                 await rabbitmq_manager.publish_message(
-                    message=game_info_message
+                    message=game_info_message.model_dump(),
                 )
             else:
                 game_list.append(game_info_message)
