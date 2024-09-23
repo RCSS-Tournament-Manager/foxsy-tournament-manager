@@ -130,7 +130,6 @@ async def update_tournament_status_to_in_progress(
             game_info_message = create_game_info_message(game_model, left_team, right_team)
             if rabbitmq_manager is not None:
                 await rabbitmq_manager.publish_message(
-                    queue_name="to_runner_queue",
                     message=game_info_message
                 )
             else:
