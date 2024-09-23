@@ -3,6 +3,8 @@ import aio_pika as pika
 import json
 import logging
 
+from pydantic import BaseModel
+
 class RmqMessageSender:
     def __init__(self, host: str, port: int, queue_name: str, username: str, password: str):
         self.logger = logging.getLogger(__name__)
@@ -29,8 +31,8 @@ class RmqMessageSender:
                 self.logger.error('Failed to connect to RabbitMQ. Retrying...')
                 await asyncio.sleep(5)
 
-    async def publish_message(self, message: dict):
-        message_json = json.dumps(message)
+    async def publish_message(self, message: BaseModel):
+        message_json = message.model_dump()
         await self.channel.default_exchange.publish(
             pika.Message(body=message_json.encode(), delivery_mode=pika.DeliveryMode.PERSISTENT),
             routing_key=self.queue_name
