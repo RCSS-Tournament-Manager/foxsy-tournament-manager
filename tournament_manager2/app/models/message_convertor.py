@@ -94,4 +94,5 @@ class MessageConvertor:
                                         start_at=tournament.start_at,
                                         start_registration_at=tournament.start_registration_at,
                                         end_registration_at=tournament.end_registration_at,
-                                        done=tournament.done)
+                                        done=tournament.done,
+                                        status=TournamentStatus.convert_to_str(tournament.status))

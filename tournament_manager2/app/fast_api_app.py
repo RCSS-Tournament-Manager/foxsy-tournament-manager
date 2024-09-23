@@ -293,6 +293,22 @@ class FastApiApp:
                     self.logger.error(f"remove_team_from_tournament: {e}")
                     traceback.print_exc()
                     return ResponseMessage(success=False, error=str(e))
+                
+        @self.app.post("/tournament/update", response_model=ResponseMessage)
+        async def update_tournament(message_json: UpdateTournamentRequestMessage,
+                                    tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                    user_manager: UserManager = Depends(get_user_manager),
+                                    api_key: str = Depends(get_api_key)):
+            self.logger.info(f"update_tournament: {message_json}")
+            try:
+                message = message_json
+                UpdateTournamentRequestMessage.model_validate(message.model_dump())
+                self.logger.info(f"update_tournament: adding message to manager: {message}")
+                return await tournament_manager.update_tournament(message)
+            except Exception as e:
+                self.logger.error(f"update_tournament: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
 
         @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage])
         async def get_game(game_id: int,

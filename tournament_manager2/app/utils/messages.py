@@ -280,3 +280,11 @@ class SubmitRunnerLog(BaseModel):
     message: str = Field(..., example="Runner encountered an unexpected error.")
     log_level: LogLevelMessageEnum = Field(..., example="ERROR")
     timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
+
+class UpdateTournamentRequestMessage(BaseModel):
+    tournament_id: int = Field(..., example=1)
+    start_registration_at: Optional[bool] = Field(None, example=False)
+    end_registration_at: Optional[bool] = Field(None, example=False)
+    start_at: Optional[bool] = Field(None, example=False)
+    
+    

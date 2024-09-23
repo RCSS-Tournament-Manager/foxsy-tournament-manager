@@ -278,3 +278,21 @@ class TournamentManager:
             self.logger.info(f"Log file for game_id {game_id} downloaded successfully.")
         else:
             self.logger.error(f"Failed to download log file for game_id {game_id}.")
+
+    async def update_tournament(self, message: UpdateTournamentRequestMessage):
+        now = datetime.utcnow()
+        stmt = select(TournamentModel).filter_by(id=message.tournament_id)
+        tournament = await self.db_session.execute(stmt)
+        tournament = tournament.scalars().first()
+        if not tournament:
+            return ResponseMessage(success=False, error='Tournament not found')
+        
+        if message.start_at:
+            tournament.start_at = now
+        if message.start_registration_at:
+            tournament.start_registration_at = now
+        if message.end_registration_at:
+            tournament.end_registration_at = now
+
+        await self.db_session.commit()
+        return ResponseMessage(success=True, error=None)
