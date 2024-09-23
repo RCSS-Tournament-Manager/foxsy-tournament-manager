@@ -87,13 +87,13 @@ class FastApiApp:
             return RunnerManager(db_session=db_session)
 
         @self.app.get(
-            "/health-check", response_model=ResponseMessage, tags=["Health Check"]
+            "/health-check", tags=["Health Check"]
         )
         def read_root():
             return {"message": "Hello World"}
 
         @self.app.post(
-            "/user/add", response_model=ResponseMessage, tags=["User Management"]
+            "/user/add", tags=["User Management"]
         )
         async def add_user(
             message_json: AddUserRequestMessage,
