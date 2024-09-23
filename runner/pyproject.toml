@@ -13,4 +13,5 @@ dependencies = [
     "psutil>=6.0.0",
     "requests>=2.32.3",
     "unicorn>=2.1.0",
+    "uvicorn>=0.30.6",
 ]
