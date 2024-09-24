@@ -102,7 +102,7 @@ body.swagger-dark-mode .swagger-ui textarea::placeholder {
 
 /* Buttons */
 body.swagger-dark-mode .swagger-ui button {
-    background-color: #b35800; /* Muted Orange */
+    /* background-color: #b35800;  */
     color: #ffffff;
     border: none;
     border-radius: 3px;
@@ -163,15 +163,19 @@ body.swagger-dark-mode ::-webkit-scrollbar-thumb {
 }
 
 /* Span Text Styling */
-/* body.swagger-dark-mode span {
+body.swagger-dark-mode span {
     color: #ffffff; 
-} */
+}
 
 body.swagger-dark-mode .swagger-ui .opblock-tag {
     color: #ffffff; /* White */
 }
 
 body.swagger-dark-mode .swagger-ui .opblock-description-wrapper p {
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-summary-description {
     color: #ffffff; /* White */
 }
 
@@ -215,9 +219,16 @@ body.swagger-dark-mode .swagger-ui .footer a:hover {
 body.swagger-dark-mode h1,
 body.swagger-dark-mode h2,
 body.swagger-dark-mode h3,
-/* body.swagger-dark-mode h4, */
+body.swagger-dark-mode h4,
 body.swagger-dark-mode h5,
-body.swagger-dark-mode h6 {
+body.swagger-dark-mode h6,
+body.swagger-dark-mode .renderedMarkdown p,
+body.swagger-dark-mode .renderedMarkdown h2 {
+    color: #ffffff; /* White */
+}
+
+/* Style opblock-section-header for dark mode */
+body.swagger-dark-mode .swagger-ui .opblock-section-header h4{
     color: #ffffff; /* White */
 }
 
@@ -252,11 +263,6 @@ body.swagger-dark-mode .swagger-ui ul li {
     color: #e0e0e0; /* Light Gray */
 }
 
-body.swagger-dark-mode .swagger-ui .opblock-summary {
-    display: flex;
-    gap: 2px;
-}
-
 /* Change GET method colors */
 body.swagger-dark-mode .swagger-ui .opblock-summary-get .opblock-summary-method {
     background-color: #4CAF50; /* Green */
@@ -275,4 +281,12 @@ body.swagger-dark-mode .swagger-ui .opblock-summary-post .opblock-summary-method
 
 body.swagger-dark-mode .swagger-ui .opblock-summary-post  .opblock-summary-method:hover {
     background-color: #1976D2; /* Darker Blue on Hover */
+}
+
+/* Style opblock-section-header for dark mode */
+body.swagger-dark-mode .swagger-ui .opblock-section-header {
+    background-color: #3a3a3a; /* Medium Dark Gray */
+    color: #ffffff; /* White */
+    border-bottom: 1px solid #555555; /* Medium Gray Border */
+    border-radius: 3px;
 }
