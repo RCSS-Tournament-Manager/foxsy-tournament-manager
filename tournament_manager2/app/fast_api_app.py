@@ -20,6 +20,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator, List
 from storage.minio_client import MinioClient
 
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
 description = """
 Welcome to the **Tournament Manager API**! This API allows you to manage tournaments, teams, games, and runners seamlessly.
 
@@ -52,6 +56,12 @@ class FastApiApp:
                 "url": "https://foxsy.ai/",
                 "email": "contact@foxsy.ai",
             },
+            license_info={
+                "name": "Apache 2.0",
+                "url": "https://foxsy.ai",
+            },
+            redoc_url="/redoc",
+            docs_url=None, 
             )
         self.db_manager = db_manager
         self.minio_client = minio_client
@@ -68,6 +78,9 @@ class FastApiApp:
             allow_methods=["*"],  # Allow all methods
             allow_headers=["*"],  # Allow all headers
         )
+
+        # Mount static files
+        self.app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
         self.setup_routes()
 
@@ -116,9 +129,9 @@ class FastApiApp:
                 db_session=db_session
             )
 
-        @self.app.get("/", tags=["Health Check"])
+        @self.app.get("/", tags=["Health Check"], include_in_schema=False)
         def read_root():
-            return {"message": "Hello World"}
+            return {"message": "Welcome to the Tournament Manager API. Visit /docs or /redoc for API documentation."}
         @self.app.get("/api-check", tags=["Health Check"])
         def read_root2():
             return {"message": "Hello World"}
@@ -544,6 +557,38 @@ class FastApiApp:
                 self.logger.error(f"submit_runner_log: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
+
+        @self.app.get("/docs", include_in_schema=False)
+        async def custom_swagger_ui_html():
+            html_response = get_swagger_ui_html(
+                openapi_url=self.app.openapi_url,
+                title=self.app.title + " - Swagger UI",
+                swagger_favicon_url="/static/icon.png",  
+            )
+            dark_mode_button = '''
+            <button id="dark-mode-toggle" style="
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 10px 20px;
+                background-color: #ff5722;
+                color: #ffffff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                z-index: 1000;
+            ">🌙 Dark Mode</button>
+            '''
+            
+            # Inject custom JavaScript before </body>
+
+            html_str = html_response.body.decode('utf-8')
+            logo = '<img src="/static/icon.png" alt="Foxsy Logo" class="foxsy-logo">'
+            html_str = html_str.replace('</head>', '<style>.foxsy-logo { max-width: 100px; }</style></head>')
+            html_str = html_str.replace('</body>', '<script src="/static/dark_mode.js"></script></body>')
+            html_str = html_str.replace('<div id="swagger-ui">', logo + '<div id="swagger-ui">')
+            html_str = html_str.replace('<div id="swagger-ui">', dark_mode_button + '<div id="swagger-ui">')
+            return HTMLResponse(content=html_str, media_type="text/html")
 
 
     async def run(self):
