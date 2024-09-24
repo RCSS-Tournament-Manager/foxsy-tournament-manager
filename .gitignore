@@ -9,3 +9,4 @@ storage/data/tournament.db
 .venv/
 deploy/data/
 deploy/.env
+data/
