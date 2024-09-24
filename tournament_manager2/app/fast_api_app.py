@@ -151,6 +151,21 @@ class FastApiApp:
                 self.logger.error(f"add_user: {e}")
                 return ResponseMessage(success=False, error=str(e))
 
+
+        @self.app.delete("/user/{user_id}" , response_model=ResponseMessage, tags=["User Management"])
+        async def delete_user(
+            user_id: int,
+            user_manager: UserManager = Depends(get_user_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"delete_user: {user_id}")            
+            try:
+                return await user_manager.delete_user(user_id)
+            except Exception as e:
+                self.logger.error(f"delete_user: {e}")
+                return ResponseMessage(success=False, error=str(e))
+
+
         @self.app.post("/user/get", response_model=Union[ResponseMessage, GetUserResponseMessage], tags=["User Management"])
         async def get_user(message_json: GetUserRequestMessage,
                            user_manager: UserManager = Depends(get_user_manager),

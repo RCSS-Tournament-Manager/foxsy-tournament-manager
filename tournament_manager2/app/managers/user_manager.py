@@ -3,7 +3,7 @@ from utils.messages import *
 from models.user_model import UserModel
 from models.message_convertor import MessageConvertor
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select, exists, and_
+from sqlalchemy import select, exists, and_, delete
 import asyncio
 import logging
 from typing import AsyncGenerator, List, Optional, Union
@@ -178,3 +178,28 @@ class UserManager:
         self.logger.info(f"Users retrieved: {user_messages}")
         return GetUsersResponseMessage(users=user_messages)
     
+    async def delete_user(self,id) :
+        """
+        Deletes the user based on the provided id.
+        """
+        self.logger.info(f"Deleting user with id: '{id}'")
+        session = self.db_session
+        
+        stmt = select(UserModel).where(UserModel.id == id)
+        result = await session.execute(stmt)
+        user = result.scalars().first()
+        
+        if not user:
+            self.logger.error("User not found")
+            return ResponseMessage(success=False, error="User not found")
+
+        try:
+            delete_cmd = delete(UserModel).where(UserModel.id == id)
+            await session.execute(delete_cmd)
+            await session.commit()
+            self.logger.info(f"User deleted with id: {id}")
+            return ResponseMessage(success=True, message="User deleted successfully")
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Error deleting user: {e}")
+            return ResponseMessage(success=False, error="An error occurred while deleting the user")
