@@ -20,12 +20,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator, List
 from storage.minio_client import MinioClient
 
+description = """
+Welcome to the **Tournament Manager API**! This API allows you to manage tournaments, teams, games, and runners seamlessly.
 
+## Features
+- **Users**: Register and manage users.
+- **Teams**: Register and manage teams participating in tournaments.
+- **Tournaments**: Create, update, and manage tournaments.
+- **Games**: Start, finish, and monitor games within tournaments.
+- **Runners**: Register runners, send commands, and monitor runner logs.
+
+## Getting Started
+To get started with the Tournament Manager API, you'll need to obtain an API key and include it in your requests.
+
+## Contact
+For any inquiries or support, please contact:
+- **Email**: contact@foxsy.ai
+- **GitHub**: [TournamentManager](https://github.com/RCSS-Tournament-Manager/foxsy-tournament-manager)
+"""
 
 class FastApiApp:
     def __init__(self, db_manager: DatabaseManager, minio_client: MinioClient, api_key: str, api_key_name: str = "api_key", port: int = 8000):
         self.logger = logging.getLogger(__name__)
-        self.app = FastAPI()
+        self.app = FastAPI(
+            title="Tournament Manager API",
+            version="0.1.0",
+            description=description,
+            terms_of_service='https://drive.google.com/file/d/1bwmAuBHYOUQUA2z0Gw8bj7XKaLXaYtOc/view',
+            contact={
+                "name": "Foxsy Support",
+                "url": "https://foxsy.ai/",
+                "email": "contact@foxsy.ai",
+            },
+            )
         self.db_manager = db_manager
         self.minio_client = minio_client
         self.api_key = api_key
