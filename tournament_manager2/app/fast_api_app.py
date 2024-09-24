@@ -80,7 +80,15 @@ class FastApiApp:
         )
 
         # Mount static files
-        self.app.mount("/static", StaticFiles(directory="app/static"), name="static")
+        self.is_static_mounted = False
+        try:
+            self.app.mount("/static", StaticFiles(directory="app/static"), name="static")
+            self.is_static_mounted = True
+            self.logger.info(f"Static files mounted: {self.is_static_mounted}")
+        except Exception as e:
+            self.is_static_mounted = False
+            self.logger.error(f"Failed to mount static files: {e}")
+            
 
         self.setup_routes()
 
@@ -560,35 +568,48 @@ class FastApiApp:
 
         @self.app.get("/docs", include_in_schema=False)
         async def custom_swagger_ui_html():
-            html_response = get_swagger_ui_html(
-                openapi_url=self.app.openapi_url,
-                title=self.app.title + " - Swagger UI",
-                swagger_favicon_url="/static/icon.png",  
-            )
-            dark_mode_button = '''
-            <button id="dark-mode-toggle" style="
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 10px 20px;
-                background-color: #ff5722;
-                color: #ffffff;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                z-index: 1000;
-            ">🌙 Dark Mode</button>
-            '''
-            
-            # Inject custom JavaScript before </body>
+            if self.is_static_mounted:
+                try:
+                    html_response = get_swagger_ui_html(
+                        openapi_url=self.app.openapi_url,
+                        title=self.app.title + " - Swagger UI",
+                        swagger_favicon_url="/static/icon.png",  
+                    )
+                    dark_mode_button = '''
+                    <button id="dark-mode-toggle" style="
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        padding: 10px 20px;
+                        background-color: #ff5722;
+                        color: #ffffff;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        z-index: 1000;
+                    ">🌙 Dark Mode</button>
+                    '''
+                    
+                    # Inject custom JavaScript before </body>
 
-            html_str = html_response.body.decode('utf-8')
-            logo = '<img src="/static/icon.png" alt="Foxsy Logo" class="foxsy-logo">'
-            html_str = html_str.replace('</head>', '<style>.foxsy-logo { max-width: 100px; }</style></head>')
-            html_str = html_str.replace('</body>', '<script src="/static/dark_mode.js"></script></body>')
-            html_str = html_str.replace('<div id="swagger-ui">', logo + '<div id="swagger-ui">')
-            html_str = html_str.replace('<div id="swagger-ui">', dark_mode_button + '<div id="swagger-ui">')
-            return HTMLResponse(content=html_str, media_type="text/html")
+                    html_str = html_response.body.decode('utf-8')
+                    logo = '<img src="/static/icon.png" alt="Foxsy Logo" class="foxsy-logo">'
+                    html_str = html_str.replace('</head>', '<style>.foxsy-logo { max-width: 100px; }</style></head>')
+                    html_str = html_str.replace('</body>', '<script src="/static/dark_mode.js"></script></body>')
+                    html_str = html_str.replace('<div id="swagger-ui">', logo + '<div id="swagger-ui">')
+                    html_str = html_str.replace('<div id="swagger-ui">', dark_mode_button + '<div id="swagger-ui">')
+                except Exception as e:
+                    self.logger.info(f"custom_swagger_ui_html: {e}")
+                    html_str = get_swagger_ui_html(
+                        openapi_url=self.app.openapi_url,
+                        title=self.app.title + " - Swagger UI",
+                    ).body.decode('utf-8')
+                return HTMLResponse(content=html_str, media_type="text/html")
+            else:
+                return get_swagger_ui_html(
+                    openapi_url=self.app.openapi_url,
+                    title=self.app.title + " - Swagger UI",
+                )
 
 
     async def run(self):
