@@ -1,0 +1,137 @@
+
+networks:
+  dev_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.110.0.0/16
+
+
+services:
+
+  minio:
+    image: minio/minio:${MINIO_VERSION:-latest}
+    container_name: fx_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-guest}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-guest1234}
+    expose:
+      - 9000
+      - 9001
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+    hostname: minio
+    networks:
+      dev_network:
+        ipv4_address: 10.110.0.4
+
+  rabbitmq:
+    image: rabbitmq:${RABBITMQ_VERSION:-3.8.9-management}
+    container_name: fx_rabbitmq
+    command: >
+      sh -c "
+      rabbitmq-plugins enable --offline rabbitmq_management &&
+      rabbitmq-server
+      "
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest1234}
+    expose:
+      - 5672
+      - 15672
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    hostname: rabbitmq
+    networks:
+      dev_network:
+        ipv4_address: 10.110.0.5
+
+  manager:
+    image: naderzare/foxsy-tournament-manager-app:${MANAGER_VERSION:-latest}
+    # build:
+    #   context: ../tournament_manager2
+    #   dockerfile: ../tournament_manager2/Dockerfile
+    container_name: fx_manager
+    privileged: true
+    environment:
+      DATA_DIR: ${MANAGER_DATA_DIR}
+      LOG_DIR: ${MANAGER_LOG_DIR}
+      DB: ${MANAGER_DB}
+      API_KEY: ${MANAGER_API_KEY}
+      FAST_API_PORT: ${MANAGER_FAST_API_PORT}
+      RABBITMQ_HOST: ${MANAGER_RABBITMQ_HOST}
+      RABBITMQ_PORT: ${MANAGER_RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${MANAGER_RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${MANAGER_RABBITMQ_PASSWORD}
+      TO_RUNNER_QUEUE: ${MANAGER_TO_RUNNER_QUEUE}
+      MINIO_ENDPOINT: ${MANAGER_MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MANAGER_MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MANAGER_MINIO_SECRET_KEY}
+      SERVER_BUCKET_NAME: ${MANAGER_SERVER_BUCKET_NAME}
+      BASE_TEAM_BUCKET_NAME: ${MANAGER_BASE_TEAM_BUCKET_NAME}
+      TEAM_CONFIG_BUCKET_NAME: ${MANAGER_TEAM_CONFIG_BUCKET_NAME}
+      GAME_LOG_BUCKET_NAME: ${MANAGER_GAME_LOG_BUCKET_NAME}
+      TMP_GAME_LOG_DIR: ${MANAGER_TMP_GAME_LOG_DIR}
+    expose:
+      - 8085
+    # ports:
+    #   - "8085:8085"
+    volumes:
+      - ./data/manager:/app/data
+      - ./data/manager-log:/app/tmp_game_log
+    depends_on:
+      - rabbitmq
+      - minio
+    hostname: manager
+    networks:
+      dev_network:
+        ipv4_address: 10.110.0.6
+
+  runner:
+    image: naderzare/foxsy-runner-app:${RUNNER_VERSION:-latest}
+    build:
+      context: ../runner
+      dockerfile: ../runner/Dockerfile
+    container_name: fx_runner
+    privileged: true
+    environment:
+      DATA_DIR: ${RUNNER_DATA_DIR}
+      LOG_DIR: ${RUNNER_LOG_DIR}
+      API_KEY: ${RUNNER_API_KEY}
+      MAX_GAMES_COUNT: ${RUNNER_MAX_GAMES_COUNT}
+      USE_FAST_API: ${RUNNER_USE_FAST_API}
+      FAST_API_IP: ${RUNNER_FAST_API_IP}
+      FAST_API_PORT: ${RUNNER_FAST_API_PORT}
+      USE_RABBITMQ: ${RUNNER_USE_RABBITMQ}
+      RABBITMQ_HOST: ${RUNNER_RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RUNNER_RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RUNNER_RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RUNNER_RABBITMQ_PASSWORD}
+      TO_RUNNER_QUEUE: ${RUNNER_TO_RUNNER_QUEUE}
+      CONNECT_TO_TOURNAMENT_MANAGER: ${RUNNER_CONNECT_TO_TOURNAMENT_MANAGER}
+      TOURNAMENT_MANAGER_IP: ${RUNNER_TOURNAMENT_MANAGER_IP}
+      TOURNAMENT_MANAGER_PORT: ${RUNNER_TOURNAMENT_MANAGER_PORT}
+      TOURNAMENT_MANAGER_API_KEY: ${RUNNER_TOURNAMENT_MANAGER_API_KEY}
+      USE_MINIO: ${RUNNER_USE_MINIO}
+      MINIO_ENDPOINT: ${RUNNER_MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${RUNNER_MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${RUNNER_MINIO_SECRET_KEY}
+      SERVER_BUCKET_NAME: ${RUNNER_SERVER_BUCKET_NAME}
+      BASE_TEAM_BUCKET_NAME: ${RUNNER_BASE_TEAM_BUCKET_NAME}
+      TEAM_CONFIG_BUCKET_NAME: ${RUNNER_TEAM_CONFIG_BUCKET_NAME}
+      GAME_LOG_BUCKET_NAME: ${RUNNER_GAME_LOG_BUCKET_NAME}
+    expose:
+      - 8082
+    # ports:
+    #   - "8082:8082"
+    volumes:
+      - ./data/runner:/app/data
+    depends_on:
+      - rabbitmq
+      - minio
+      - manager
+    hostname: runner
+    networks:
+      dev_network:
+        ipv4_address: 10.110.0.7

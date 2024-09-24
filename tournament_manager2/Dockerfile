@@ -7,8 +7,6 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 
-RUN useradd -ms /bin/bash appuser
-
 WORKDIR /app
 
 # Install Dependencies
@@ -17,10 +15,6 @@ RUN uv sync
 
 # Copy the application code
 COPY . /app
-RUN chown -R appuser:appuser /app
-
-# Switch to the non-root user
-USER appuser
 
 # Expose port and run the application
 EXPOSE 8082

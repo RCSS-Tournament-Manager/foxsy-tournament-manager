@@ -17,4 +17,5 @@ dependencies = [
     "sqlalchemy>=2.0.35",
     "unicorn>=2.1.0",
     "uvicorn>=0.30.6",
+    "pip>=24.2",
 ]
