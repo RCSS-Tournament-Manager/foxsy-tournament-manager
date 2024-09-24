@@ -23,7 +23,7 @@
 
 cd app
 
-exec python -m main --data-dir "$DATA_DIR" --log-dir "$LOG_DIR" --db "$DB" \
+exec uv run python -m main --data-dir "$DATA_DIR" --log-dir "$LOG_DIR" --db "$DB" \
     --api "$API_KEY" --fast-api-port "$FAST_API_PORT" \
     --rabbitmq-host "$RABBITMQ_HOST" --rabbitmq-port "$RABBITMQ_PORT" \
     --rabbitmq-username "$RABBITMQ_USERNAME" --rabbitmq-password "$RABBITMQ_PASSWORD" \
