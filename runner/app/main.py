@@ -14,6 +14,7 @@ import aio_pika as pika
 import signal
 from utils.message_sender import MessageSender
 from utils.messages import *
+import json
 
 
 pika.logger.setLevel(logging.ERROR)
@@ -29,6 +30,7 @@ def get_args():
     parser.add_argument("--api-key", type=str, default="api-key", help="API key for authentication")
     parser.add_argument("--max_games_count", type=int, default=2, help="Maximum number of games to run")
     parser.add_argument("--use-fast-api", type=ArgsHelper.str_to_bool, default=True, help="Use FastAPI app (true/false or 1/0)")
+    parser.add_argument("--fast-api-ip", type=str, default='127.0.0.1', help="IP to run FastAPI app")
     parser.add_argument("--fast-api-port", type=int, default=8082, help="Port to run FastAPI app")
     parser.add_argument("--use-rabbitmq", type=ArgsHelper.str_to_bool, default=True, help="Use RabbitMQ (true/false or 1/0)")
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
@@ -84,17 +86,25 @@ if args.use_minio:
 
     minio_client.create_buckets()
 
-message_sender = MessageSender(args.tournament_manager_ip, args.tournament_manager_port, args.tournament_manager_api_key)
-
+message_sender = None
+if args.connect_to_tournament_manager:
+    message_sender = MessageSender(args.tournament_manager_ip, args.tournament_manager_port, args.tournament_manager_api_key)
+runner_id = None
 
 async def send_register_message():
+    global runner_id
     while args.connect_to_tournament_manager:
         try:
-            register_resp = await message_sender.send_message("register",
-                                                              RegisterGameRunnerRequest(ip=args.tournament_manager_ip,
-                                                                                        port=args.tournament_manager_port,
-                                                                                        available_games_count=args.max_games_count).dict())
+            register_resp = await message_sender.send_message("from_runner/register",
+                                                              RegisterGameRunnerRequest(ip=args.fast_api_ip,
+                                                                                        port=args.fast_api_port,
+                                                                                        available_games_count=args.max_games_count).model_dump())
             logging.info(f"Register response: {register_resp}")
+            register_resp_content = json.loads(register_resp.content.decode('utf-8'))
+            register_resp = ResponseMessage(**register_resp_content)
+            if register_resp.success:
+                runner_id = int(register_resp.value)
+                logging.info(f"Registered as runner with id: {runner_id}")
             break
         except Exception as e:
             logging.error(f"Failed to send register message: {e}")
@@ -102,9 +112,10 @@ async def send_register_message():
 
 
 async def main():
+    global runner_id
     await send_register_message()
 
-    game_runner_manager = RunnerManager(data_dir, minio_client, message_sender)
+    game_runner_manager = RunnerManager(data_dir, minio_client, message_sender, runner_id)
     game_runner_manager.set_available_games_count(2)
 
     async def run_fastapi():

@@ -1,0 +1,292 @@
+/* dark_mode.css */
+
+/* Body Background and Text */
+body.swagger-dark-mode {
+    background-color: #1e1e1e; /* Dark Gray */
+    color: #e0e0e0; /* Light Gray */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Topbar Styling */
+body.swagger-dark-mode .topbar {
+    background-color: #2d2d2d; /* Slightly Lighter Dark Gray */
+    border-bottom: 1px solid #444; /* Subtle Border */
+}
+
+body.swagger-dark-mode .topbar-wrapper img {
+    filter: brightness(0) invert(1); /* Invert logo colors for visibility */
+}
+
+/* Swagger Info Section */
+body.swagger-dark-mode .swagger-ui .info {
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #444;
+}
+
+body.swagger-dark-mode .swagger-ui .info .title {
+    color: #ffffff; /* White */
+}
+
+/* OpBlock (Endpoints) Styling */
+body.swagger-dark-mode .swagger-ui .opblock {
+    background-color: #2a2a2a; /* Darker Gray */
+    border-color: #555555; /* Medium Gray Border */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock .opblock-summary {
+    background-color: #3a3a3a; /* Medium Dark Gray */
+    border-color: #666666; /* Medium Gray */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock .opblock-summary .opblock-summary-method {
+    /* background-color: #b35800; */
+    color: #ffffff; /* White */
+    border-radius: 3px;
+}
+
+body.swagger-dark-mode .swagger-ui .opblock .opblock-summary-method:hover {
+    background-color: #d48806; /* Slightly Brighter Muted Orange on Hover */
+}
+
+/* OpBlock Description */
+body.swagger-dark-mode .swagger-ui .opblock-description-wrapper {
+    background-color: #2a2a2a;
+    color: #e0e0e0; /* Light Gray */
+}
+
+/* Schemes Wrapper Block Col-12 */
+body.swagger-dark-mode .scheme-container ,
+body.swagger-dark-mode .schemes.wrapper.block.col-12 {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #555555;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* Parameters and Responses Containers */
+body.swagger-dark-mode .swagger-ui .parameters-container,
+body.swagger-dark-mode .swagger-ui .responses-container {
+    background-color: #2a2a2a;
+    border-color: #555555;
+}
+
+/* Tables */
+body.swagger-dark-mode .swagger-ui table {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+body.swagger-dark-mode .swagger-ui table th {
+    background-color: #3a3a3a;
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui table td {
+    border-color: #555555;
+}
+
+/* Forms and Inputs */
+body.swagger-dark-mode .swagger-ui input[type="text"],
+body.swagger-dark-mode .swagger-ui textarea,
+body.swagger-dark-mode .swagger-ui select {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555555;
+}
+
+body.swagger-dark-mode .swagger-ui input[type="text"]::placeholder,
+body.swagger-dark-mode .swagger-ui textarea::placeholder {
+    color: #a0a0a0;
+}
+
+/* Buttons */
+body.swagger-dark-mode .swagger-ui button {
+    /* background-color: #b35800;  */
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+body.swagger-dark-mode .swagger-ui button:hover {
+    background-color: #d48806; /* Slightly Brighter Muted Orange on Hover */
+}
+
+/* Response Body */
+body.swagger-dark-mode .swagger-ui .responses-inner {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+/* Code Blocks */
+body.swagger-dark-mode pre {
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+/* Scrollbar Styling */
+body.swagger-dark-mode ::-webkit-scrollbar {
+    width: 12px;
+}
+
+body.swagger-dark-mode ::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+body.swagger-dark-mode ::-webkit-scrollbar-thumb {
+    background-color: #555555;
+    border-radius: 6px;
+    border: 3px solid #1e1e1e;
+}
+
+/* Toggle Button Styling */
+#dark-mode-toggle {
+    background-color: #b35800; /* Muted Orange */
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    transition: background-color 0.3s ease;
+}
+
+#dark-mode-toggle:hover {
+    background-color: #d48806; /* Slightly Brighter Muted Orange on Hover */
+}
+
+/* Span Text Styling */
+body.swagger-dark-mode span {
+    color: #ffffff; 
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-tag {
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-description-wrapper p {
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-summary-description {
+    color: #ffffff; /* White */
+}
+
+/* Sidebar */
+body.swagger-dark-mode .swagger-ui .sidebar {
+    background-color: #2d2d2d;
+    border-right: 1px solid #444444;
+}
+
+body.swagger-dark-mode .swagger-ui .sidebar .sidebar-wrapper {
+    background-color: #2d2d2d;
+}
+
+body.swagger-dark-mode .swagger-ui .sidebar .sidebar-content h2 {
+    color: #ffffff;
+}
+
+body.swagger-dark-mode .swagger-ui .sidebar .sidebar-content ul li a {
+    color: #e0e0e0;
+}
+
+body.swagger-dark-mode .swagger-ui .sidebar .sidebar-content ul li a:hover {
+    color: #d48806; /* Brighter Muted Orange on Hover */
+}
+
+/* Footer */
+body.swagger-dark-mode .swagger-ui .footer {
+    background-color: #2d2d2d;
+    color: #a0a0a0;
+}
+
+body.swagger-dark-mode .swagger-ui .footer a {
+    color: #d48806; /* Brighter Muted Orange */
+}
+
+body.swagger-dark-mode .swagger-ui .footer a:hover {
+    color: #b35800; /* Muted Orange on Hover */
+}
+
+/* Typography Enhancements */
+body.swagger-dark-mode h1,
+body.swagger-dark-mode h2,
+body.swagger-dark-mode h3,
+body.swagger-dark-mode h4,
+body.swagger-dark-mode h5,
+body.swagger-dark-mode h6,
+body.swagger-dark-mode .renderedMarkdown p,
+body.swagger-dark-mode .renderedMarkdown h2 {
+    color: #ffffff; /* White */
+}
+
+/* Style opblock-section-header for dark mode */
+body.swagger-dark-mode .swagger-ui .opblock-section-header h4{
+    color: #ffffff; /* White */
+}
+
+/* Col Names */
+body.swagger-dark-mode .swagger-ui .col_header,
+body.swagger-dark-mode .swagger-ui .response-col_status,
+body.swagger-dark-mode .swagger-ui .response-col_links,
+body.swagger-dark-mode .swagger-ui .response-col_name .parameter__name{
+    color: #ffffff; /* White */
+}
+
+/* Tag Headers */
+body.swagger-dark-mode .swagger-ui .tags li .colored {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+/* Select Dropdown */
+body.swagger-dark-mode .swagger-ui select {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555555;
+}
+
+/* Description Text */
+body.swagger-dark-mode .swagger-ui .opblock-description {
+    color: #e0e0e0; /* Light Gray */
+}
+
+/* List Items */
+body.swagger-dark-mode .swagger-ui ul li {
+    color: #e0e0e0; /* Light Gray */
+}
+
+/* Change GET method colors */
+body.swagger-dark-mode .swagger-ui .opblock-summary-get .opblock-summary-method {
+    background-color: #4CAF50; /* Green */
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-summary-get .opblock-summary-method:hover {
+    background-color: #45A049; /* Darker Green on Hover */
+}
+
+/* Change POST method colors */
+body.swagger-dark-mode .swagger-ui .opblock-summary-post .opblock-summary-method {
+    background-color: #2196F3; /* Blue */
+    color: #ffffff; /* White */
+}
+
+body.swagger-dark-mode .swagger-ui .opblock-summary-post  .opblock-summary-method:hover {
+    background-color: #1976D2; /* Darker Blue on Hover */
+}
+
+/* Style opblock-section-header for dark mode */
+body.swagger-dark-mode .swagger-ui .opblock-section-header {
+    background-color: #3a3a3a; /* Medium Dark Gray */
+    color: #ffffff; /* White */
+    border-bottom: 1px solid #555555; /* Medium Gray Border */
+    border-radius: 3px;
+}

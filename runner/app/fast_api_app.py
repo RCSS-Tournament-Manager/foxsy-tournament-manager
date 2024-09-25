@@ -36,7 +36,7 @@ class FastApiApp:
         async def add_game(message_json: GameInfoMessage, api_key: str = Depends(get_api_key)):
             try:
                 message = message_json
-                GameInfoMessage.validate(message.dict())
+                GameInfoMessage.model_validate(message.model_dump())
                 if not message:
                     raise Exception("game_info is required")
                 message.fix_json()

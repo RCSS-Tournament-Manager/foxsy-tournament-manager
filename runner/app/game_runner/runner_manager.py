@@ -9,7 +9,7 @@ from utils.message_sender import MessageSender
 from storage.downloader import Downloader
 
 class RunnerManager:
-    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender):
+    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int):
         self.logger = logging.getLogger(__name__)
         self.logger.info('GameRunnerManager created')
         self.available_games_count = 0
@@ -20,6 +20,7 @@ class RunnerManager:
         self.message_sender = message_sender
         self.check_server()
         self.lock = asyncio.Lock()
+        self.runner_id = runner_id
 
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
@@ -57,28 +58,30 @@ class RunnerManager:
         self.available_games_count += 1
         self.available_ports.append(port)
 
-    async def add_game(self, game_info: GameInfoMessage, called_from_rabbitmq: bool = False):
+    async def add_game(self, game_info: GameInfoMessage, called_from_rabbitmq: bool = False) -> GameStartedMessage:
         async with self.lock:
             #TODO try except
             self.logger.info(f'GameRunnerManager adding game: {game_info}')
             if self.available_games_count == 0:
-                return AddGameResponse(game_id=game_info.game_id, status='failed',
-                                       success=False, error='No available games')
+                self.logger.warning(f'GameRunnerManager add_game: No available games')
+                return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available games')
             self.logger.info(f'GameRunnerManager add_game: {game_info}')
             port = self.get_available_port()
             if port is None:
-                return AddGameResponse(game_id=game_info.game_id, status='failed',
-                                       success=False, error='No available ports')
+                self.logger.warning(f'GameRunnerManager add_game: No available ports')
+                return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available ports')
             self.available_games_count -= 1
             game = Game(game_info, port, self.data_dir, self.storage_client)
             game.finished_event = self.on_finished_game
             self.games[port] = game
             self.games[port].check()
             asyncio.create_task(game.run_game())
-            res = AddGameResponse(game_id=game_info.game_id, status='starting', success=True, port=port)
+            res = GameStartedMessage(game_id=game_info.game_id, success=True, port=port, runner_id=self.runner_id)
             if called_from_rabbitmq:
                 try:
-                    await self.message_sender.send_message('game_started', res.dict())
+                    game_started_message = GameStartedMessage(game_id=game_info.game_id, port=port, success=True, runner_id=self.runner_id)
+                    if self.message_sender is not None:
+                        await self.message_sender.send_message('from_runner/game_started', game_started_message.model_dump())
                 except Exception as e:
                     self.logger.error(f'GameRunnerManager add_game (Can not send game_started message): {e}')
             return res
@@ -88,7 +91,15 @@ class RunnerManager:
             try:
                 self.logger.info(f'GameRunnerManager on_finished_game: Game{game.game_info.game_id}')
                 self.free_port(game.port)
-                await self.message_sender.send_message('game_finished', game.to_summary().dict())
+                game_finished_message = GameFinishedMessage(game_id=game.game_info.game_id, 
+                                                            success=True, 
+                                                            left_score=game.game_result[0],
+                                                            right_score=game.game_result[1],
+                                                            left_penalty=game.game_result[2],
+                                                            right_penalty=game.game_result[3],
+                                                            runner_id=self.runner_id)
+                if self.message_sender is not None:
+                    await self.message_sender.send_message('from_runner/game_finished', game_finished_message.model_dump())
                 del self.games[game.port]
             except Exception as e:
                 self.logger.error(f'GameRunnerManager on_finished_game: {e}')

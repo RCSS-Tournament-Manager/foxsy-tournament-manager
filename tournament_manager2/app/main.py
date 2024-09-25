@@ -7,9 +7,11 @@ from managers.tournament_manager import TournamentManager
 from fast_api_app import FastApiApp
 import asyncio
 import signal
-from managers.database_manager import DataBaseManager
+from managers.database_manager import DatabaseManager
 from utils.rmq_message_sender import RmqMessageSender
 from storage.minio_client import MinioClient
+from managers.scheduler import Scheduler
+from managers.run_game_sender import run_game_sender_by_manager
 
 
 logging.warning("This is a warning message")
@@ -22,11 +24,13 @@ def get_args():
     parser.add_argument('--db', default='example.db', help='Database file name')
     parser.add_argument("--api-key", type=str, default="api-key", help="API key for authentication")
     parser.add_argument("--fast-api-port", type=int, default=8085, help="Port to run FastAPI app")
+    parser.add_argument("--rabbitmq-use", type=bool, default=True, help="Use RabbitMQ")
     parser.add_argument("--rabbitmq-host", type=str, default="localhost", help="RabbitMQ host")
     parser.add_argument("--rabbitmq-port", type=int, default=5672, help="RabbitMQ port")
     parser.add_argument("--rabbitmq-username", type=str, default="guest", help="RabbitMQ username")
     parser.add_argument("--rabbitmq-password", type=str, default="guest1234", help="RabbitMQ password")
     parser.add_argument("--to-runner-queue", type=str, default="to_runner", help="To runner queue name")
+    parser.add_argument("--minio-use", type=bool, default=True, help="Use Minio")
     parser.add_argument("--minio-endpoint", type=str, default="localhost:9000", help="Minio endpoint")
     parser.add_argument("--minio-access-key", type=str, default="guest", help="Minio access key")
     parser.add_argument("--minio-secret-key", type=str, default="guest1234", help="Minio secret key")
@@ -52,39 +56,59 @@ logging.config.dictConfig(get_logging_config(log_dir))
 logging.info('Tournament Manager started')
 logging.debug(f'args: {args}')
 
-minio_client = MinioClient(
-    server_bucket_name=args.server_bucket_name,
-    base_team_bucket_name=args.base_team_bucket_name,
-    team_config_bucket_name=args.team_config_bucket_name,
-    game_log_bucket_name=args.game_log_bucket_name
-)
-
-minio_client.init(endpoint=args.minio_endpoint,
-                  access_key=args.minio_access_key,
-                  secret_key=args.minio_secret_key,
-                  secure=False)
-
-minio_client.wait_to_connect()
 
 async def main():
-    database_manager = DataBaseManager(args.data_dir, args.db)
-    rmq_message_sender = RmqMessageSender(args.rabbitmq_host, args.rabbitmq_port, args.to_runner_queue,
-                                          args.rabbitmq_username,
-                                          args.rabbitmq_password)
-    await rmq_message_sender.connect()
-    tournament_manager = TournamentManager(database_manager, rmq_message_sender, minio_client)
+    database_path = os.path.abspath(os.path.join(args.data_dir, args.db))
+    logging.info(f'{database_path=}')
+
+    database_manager = DatabaseManager('sqlite+aiosqlite:///{}'.format(f'{database_path}'))
+    await database_manager.init_db()  # Initialize the database (create tables)
+
+    # Initialize MinioClient
+    minio_client = None
+    if args.minio_use:
+        minio_client = MinioClient(
+            endpoint_url=args.minio_endpoint,
+            access_key=args.minio_access_key,
+            secret_key=args.minio_secret_key,
+            secure=False,  # Set to True if using HTTPS
+            server_bucket_name=args.server_bucket_name,
+            base_team_bucket_name=args.base_team_bucket_name,
+            team_config_bucket_name=args.team_config_bucket_name,
+            game_log_bucket_name=args.game_log_bucket_name
+        )
+        await minio_client.init()
+        await minio_client.wait_to_connect()
+        await minio_client.create_buckets()
+        
+    if args.rabbitmq_use:
+        rmq_message_sender = RmqMessageSender(args.rabbitmq_host, args.rabbitmq_port, args.to_runner_queue,
+                                            args.rabbitmq_username,
+                                            args.rabbitmq_password)
+        await rmq_message_sender.connect()
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')
-        fast_api_app = FastApiApp(tournament_manager, api_key, api_key_name, args.fast_api_port)
+        fast_api_app = FastApiApp(database_manager, minio_client, api_key, api_key_name, args.fast_api_port)
         fast_api_app.game_log_tmp_path = args.tmp_game_log_dir
         await fast_api_app.run()
 
-    async def run_game_sender():
-        await tournament_manager.run_game_sender()
+    async def running_game_sender():
+        # Initialize and start the scheduler
+        if not args.rabbitmq_use:
+            logging.error("RabbitMQ is not used. Exiting...")
+            return
+        scheduler = Scheduler(
+            interval=10,  # Run every 10 seconds
+            function=run_game_sender_by_manager,
+            rabbitmq_manager=rmq_message_sender,
+            db_manager=database_manager
+        )
+        scheduler.run()
 
     async def run_smart_contract():
-        await tournament_manager.run_smart_contract()
+        pass
+        # await tournament_manager.run_smart_contract()
 
     async def shutdown(signal, loop):
         logging.info(f"Received exit signal {signal.name}...")
@@ -103,7 +127,7 @@ async def main():
         loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s, loop)))
 
     try:
-        await asyncio.gather(run_fastapi(), run_game_sender())
+        await asyncio.gather(run_fastapi(), running_game_sender())
     except Exception as e:
         logging.error(f"Error: {e}")
     finally:

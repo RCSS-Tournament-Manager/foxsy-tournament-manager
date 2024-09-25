@@ -20,10 +20,22 @@ class ServerConfig:
                                             game_info.left_base_team_name, 'start.sh')
         self.right_team_start = os.path.join(data_dir, DataDir.base_team_dir_name,
                                              game_info.right_base_team_name, 'start.sh')
+        
+        self.game_log_dir = os.path.join(data_dir, DataDir.game_log_dir_name, f'{self.game_id}')
+        self.text_log_dir = os.path.join(self.game_log_dir)
+        self.port = port
+        self.coach_port = port + 1
+        self.online_coach_port = port + 2
+        os.makedirs(self.game_log_dir, exist_ok=True)
+        self.other_config = config
+        self.logger = logger
+
         self.left_team_config_id_path = None
         self.right_team_config_id_path = None
         self.left_team_config_json = None
         self.right_team_config_json = None
+        self.left_team_config_json_encoded = None
+        self.right_team_config_json_encoded = None
         if game_info.left_team_config_id is not None:
             self.left_team_config_id_path = os.path.join(data_dir, DataDir.team_config_dir_name,
                                                         f'{game_info.left_team_config_id}')
@@ -35,14 +47,11 @@ class ServerConfig:
         if game_info.right_team_config_json is not None:
             self.right_team_config_json = game_info.right_team_config_json
 
-        self.game_log_dir = os.path.join(data_dir, DataDir.game_log_dir_name, f'{self.game_id}')
-        self.text_log_dir = os.path.join(self.game_log_dir)
-        self.port = port
-        self.coach_port = port + 1
-        self.online_coach_port = port + 2
-        os.makedirs(self.game_log_dir, exist_ok=True)
-        self.other_config = config
-        self.logger = logger
+        if game_info.left_team_config_json_encoded is not None:
+            self.left_team_config_json_encoded = game_info.left_team_config_json_encoded
+        if game_info.right_team_config_json_encoded is not None:
+            self.right_team_config_json_encoded = game_info.right_team_config_json_encoded
+
 
     def get_config(self):
         auto_mode = 'true' if self.auto_mode else 'false'
@@ -55,8 +64,11 @@ class ServerConfig:
         if self.left_team_config_id_path:
             left_team_start += f" -c {self.left_team_config_id_path}"
         elif self.left_team_config_json and self.left_team_config_json != '{}':
+            self.left_team_config_json = self.left_team_config_json.replace('\\', '')
             self.left_team_config_json = self.left_team_config_json.replace('"', '\\"')
             left_team_start += f" -j '{self.left_team_config_json}'"
+        elif self.left_team_config_json_encoded:
+            left_team_start += f" -j {self.left_team_config_json_encoded} -e temp"
         left_team_start += "\\' "
         res += left_team_start
 
@@ -64,8 +76,11 @@ class ServerConfig:
         if self.right_team_config_id_path:
             right_team_start += f" -c {self.right_team_config_id_path}"
         elif self.right_team_config_json and self.right_team_config_json != '{}':
+            self.right_team_config_json = self.right_team_config_json.replace('\\', '')
             self.right_team_config_json = self.right_team_config_json.replace('"', '\\"')
             right_team_start += f" -j '{self.right_team_config_json}'"
+        elif self.right_team_config_json_encoded:
+            right_team_start += f" -j {self.right_team_config_json_encoded} -e temp"
         right_team_start += "\\' "
         res += right_team_start
 
@@ -300,8 +315,8 @@ class Game:
             Tools.kill_process_tree(self.process.pid)
             self.process.wait()  # Ensure the main process has terminated
 
-    def to_summary(self) -> GameInfoSummary:
-        return GameInfoSummary(
+    def to_game_finished_message(self) -> GameFinishedMessage:
+        return GameFinishedMessage(
             game_id=self.game_info.game_id,
             status=self.status,
             port=self.port,
