@@ -20,12 +20,49 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator, List
 from storage.minio_client import MinioClient
 
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
+description = """
+Welcome to the **Tournament Manager API**! This API allows you to manage tournaments, teams, games, and runners seamlessly.
+
+## Features
+- **Users**: Register and manage users.
+- **Teams**: Register and manage teams participating in tournaments.
+- **Tournaments**: Create, update, and manage tournaments.
+- **Games**: Start, finish, and monitor games within tournaments.
+- **Runners**: Register runners, send commands, and monitor runner logs.
+
+## Getting Started
+To get started with the Tournament Manager API, you'll need to obtain an API key and include it in your requests.
+
+## Contact
+For any inquiries or support, please contact:
+- **Email**: contact@foxsy.ai
+- **GitHub**: [TournamentManager](https://github.com/RCSS-Tournament-Manager/foxsy-tournament-manager)
+"""
 
 class FastApiApp:
     def __init__(self, db_manager: DatabaseManager, minio_client: MinioClient, api_key: str, api_key_name: str = "api_key", port: int = 8000):
         self.logger = logging.getLogger(__name__)
-        self.app = FastAPI()
+        self.app = FastAPI(
+            title="Tournament Manager API",
+            version="0.1.0",
+            description=description,
+            terms_of_service='https://drive.google.com/file/d/1bwmAuBHYOUQUA2z0Gw8bj7XKaLXaYtOc/view',
+            contact={
+                "name": "Foxsy Support",
+                "url": "https://foxsy.ai/",
+                "email": "contact@foxsy.ai",
+            },
+            license_info={
+                "name": "Apache 2.0",
+                "url": "https://foxsy.ai",
+            },
+            redoc_url="/redoc",
+            docs_url=None, 
+            )
         self.db_manager = db_manager
         self.minio_client = minio_client
         self.api_key = api_key
@@ -41,6 +78,17 @@ class FastApiApp:
             allow_methods=["*"],  # Allow all methods
             allow_headers=["*"],  # Allow all headers
         )
+
+        # Mount static files
+        self.is_static_mounted = False
+        try:
+            self.app.mount("/static", StaticFiles(directory="app/static"), name="static")
+            self.is_static_mounted = True
+            self.logger.info(f"Static files mounted: {self.is_static_mounted}")
+        except Exception as e:
+            self.is_static_mounted = False
+            self.logger.error(f"Failed to mount static files: {e}")
+            
 
         self.setup_routes()
 
@@ -89,11 +137,15 @@ class FastApiApp:
                 db_session=db_session
             )
 
-        @self.app.get("/")
+        @self.app.get("/", tags=["Health Check"], include_in_schema=False)
         def read_root():
+            return {"message": "Welcome to the Tournament Manager API. Visit /docs or /redoc for API documentation."}
+        @self.app.get("/api-check", tags=["Health Check"])
+        def read_root2():
             return {"message": "Hello World"}
 
-        @self.app.post("/user/add", response_model=ResponseMessage)
+
+        @self.app.post("/user/add" , response_model=ResponseMessage, tags=["User Management"])
         async def add_user(message_json: AddUserRequestMessage, 
                            user_manager: UserManager = Depends(get_user_manager),
                            api_key: str = Depends(get_api_key)):
@@ -107,7 +159,7 @@ class FastApiApp:
                 self.logger.error(f"add_user: {e}")
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/user/get", response_model=Union[ResponseMessage, GetUserResponseMessage])
+        @self.app.post("/user/get", response_model=Union[ResponseMessage, GetUserResponseMessage], tags=["User Management"])
         async def get_user(message_json: GetUserRequestMessage,
                            user_manager: UserManager = Depends(get_user_manager),
                            api_key: str = Depends(get_api_key)) -> Union[ResponseMessage, GetUserResponseMessage]:
@@ -125,7 +177,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.get("/user/get_all", response_model=Union[ResponseMessage, GetUsersResponseMessage])
+        @self.app.get("/user/get_all", response_model=Union[ResponseMessage, GetUsersResponseMessage], tags=["User Management"])
         async def get_users(user_manager: UserManager = Depends(get_user_manager),
                             api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_users")
@@ -136,7 +188,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/add", response_model=Union[GetTeamResponseMessage, ResponseMessage])
+        @self.app.post("/team/add", response_model=Union[GetTeamResponseMessage, ResponseMessage], tags=["Team Management"])
         async def add_team(message_json: AddTeamRequestMessage,
                            team_manager: TeamManager = Depends(get_team_manager),
                            user_manager: UserManager = Depends(get_user_manager),
@@ -153,7 +205,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/get", response_model=Union[GetTeamResponseMessage, ResponseMessage]) # TODO merge GetTeamResponseMessage and TeamMessage
+        @self.app.post("/team/get", response_model=Union[GetTeamResponseMessage, ResponseMessage], tags=["Team Management"]) # TODO merge GetTeamResponseMessage and TeamMessage
         async def get_team(message_json: GetTeamRequestMessage,
                            team_manager: TeamManager = Depends(get_team_manager),
                            user_manager: UserManager = Depends(get_user_manager),
@@ -170,7 +222,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/get_all", response_model=Union[ResponseMessage, GetTeamsResponseMessage])
+        @self.app.post("/team/get_all", response_model=Union[ResponseMessage, GetTeamsResponseMessage], tags=["Team Management"])
         async def get_teams(team_manager: TeamManager = Depends(get_team_manager),
                             user_manager: UserManager = Depends(get_user_manager),
                             api_key: str = Depends(get_api_key)):
@@ -182,7 +234,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/remove", response_model=ResponseMessage)
+        @self.app.post("/team/remove", response_model=ResponseMessage, tags=["Team Management"])
         async def remove_team(message_json: RemoveTeamRequestMessage,
                               team_manager: TeamManager = Depends(get_team_manager),
                               user_manager: UserManager = Depends(get_user_manager),
@@ -199,7 +251,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/team/update", response_model=Union[GetTeamResponseMessage, ResponseMessage])
+        @self.app.post("/team/update", response_model=Union[GetTeamResponseMessage, ResponseMessage], tags=["Team Management"])
         async def update_team(message_json: UpdateTeamRequestMessage,
                               team_manager: TeamManager = Depends(get_team_manager),
                               user_manager: UserManager = Depends(get_user_manager),
@@ -216,7 +268,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/tournament/add", response_model=ResponseMessage)
+        @self.app.post("/tournament/add", response_model=ResponseMessage, tags=["Tournament Management"])
         async def add_tournament(message_json: AddTournamentRequestMessage,
                                  tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                  user_manager: UserManager = Depends(get_user_manager),
@@ -233,7 +285,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.get("/tournament/get/{tournament_id}", response_model=Union[TournamentMessage, ResponseMessage])
+        @self.app.get("/tournament/get/{tournament_id}", response_model=Union[TournamentMessage, ResponseMessage], tags=["Tournament Management"])
         async def get_tournament(tournament_id: int,
                                  tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                  api_key: str = Depends(get_api_key)):
@@ -247,7 +299,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/tournament/get_all", response_model=Union[ResponseMessage, GetTournamentsResponseMessage])
+        @self.app.post("/tournament/get_all", response_model=Union[ResponseMessage, GetTournamentsResponseMessage], tags=["Tournament Management"])
         async def get_tournaments(tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                   api_key: str = Depends(get_api_key)):
             self.logger.info(f"get_tournaments")
@@ -258,7 +310,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/tournament/register_team", response_model=ResponseMessage)
+        @self.app.post("/tournament/register_team", response_model=ResponseMessage, tags=["Tournament Management"])
         async def register_team(message_json: RegisterTeamInTournamentRequestMessage,
                                 tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                 team_manager: TeamManager = Depends(get_team_manager),
@@ -276,7 +328,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/tournament/remove_team", response_model=ResponseMessage) # TODO Add Test
+        @self.app.post("/tournament/remove_team", response_model=ResponseMessage, tags=["Tournament Management"]) # TODO Add Test
         async def remove_team_from_tournament(message_json: RemoveTeamFromTournamentRequestMessage,
                                                 tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                                 team_manager: TeamManager = Depends(get_team_manager),
@@ -294,7 +346,7 @@ class FastApiApp:
                     traceback.print_exc()
                     return ResponseMessage(success=False, error=str(e))
                 
-        @self.app.post("/tournament/update", response_model=ResponseMessage)
+        @self.app.post("/tournament/update", response_model=ResponseMessage, tags=["Tournament Management"])
         async def update_tournament(message_json: UpdateTournamentRequestMessage,
                                     tournament_manager: TournamentManager = Depends(get_tournament_manager),
                                     user_manager: UserManager = Depends(get_user_manager),
@@ -310,7 +362,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage])
+        @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage], tags=["Game Management"])
         async def get_game(game_id: int,
                            tournament_manager: TournamentManager = Depends(get_tournament_manager),
                            api_key: str = Depends(get_api_key)):
@@ -319,7 +371,7 @@ class FastApiApp:
             self.logger.info(f"get_game: {res}")
             return res
 
-        @self.app.get("/game/download_log/{game_id}")
+        @self.app.get("/game/download_log/{game_id}", tags=["Game Management"])
         async def download_log(game_id: int,
                                tournament_manager: TournamentManager = Depends(get_tournament_manager)):
             self.logger.info(f"download_log: {game_id}")
@@ -335,7 +387,7 @@ class FastApiApp:
             except Exception as e:
                 raise HTTPException(status_code=404, detail=f"File not found or {e}") from e
 
-        @self.app.get("/game/tmp_get_url/{game_id}", response_model=dict)
+        @self.app.get("/game/tmp_get_url/{game_id}", response_model=dict, tags=["Game Management"])
         async def tmp_get_url(game_id: int,
                               tournament_manager: TournamentManager = Depends(get_tournament_manager),
                               api_key: str = Depends(get_api_key)) -> dict:
@@ -381,7 +433,7 @@ class FastApiApp:
             return {"url": url}
 
 
-        @self.app.get("/runner/get/{runner_id}", response_model=GetRunnerResponseMessage)
+        @self.app.get("/runner/get/{runner_id}", response_model=GetRunnerResponseMessage, tags=["Runner Management"])
         async def get_runner(
             runner_id: int,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -401,7 +453,7 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/runner/get_all", response_model=GetAllRunnersResponseMessage)
+        @self.app.get("/runner/get_all", response_model=GetAllRunnersResponseMessage, tags=["Runner Management"])
         async def get_all_runners(
             runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
@@ -416,7 +468,7 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/runner/get_log/{runner_id}", response_model=GetRunnerLogResponseMessage)
+        @self.app.get("/runner/get_log/{runner_id}", response_model=GetRunnerLogResponseMessage, tags=["Runner Management"])
         async def get_runner_log(
             runner_id: int,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -436,7 +488,7 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.post("/from_runner/game_started", response_model=ResponseMessage)
+        @self.app.post("/from_runner/game_started", response_model=ResponseMessage, tags=["Runner Management"])
         async def game_started(
             json: GameStartedMessage,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -451,7 +503,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/from_runner/game_finished", response_model=ResponseMessage)
+        @self.app.post("/from_runner/game_finished", response_model=ResponseMessage, tags=["Runner Management"])
         async def game_finished(
             json: GameFinishedMessage,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -466,7 +518,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/from_runner/register", response_model=ResponseMessage)
+        @self.app.post("/from_runner/register", response_model=ResponseMessage, tags=["Runner Management"])
         async def runner_register(
             json: RegisterGameRunnerRequest,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -480,7 +532,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
-        @self.app.post("/from_runner/submit_log", response_model=ResponseMessage)
+        @self.app.post("/from_runner/submit_log", response_model=ResponseMessage, tags=["Runner Management"])
         async def submit_runner_log(
             log: SubmitRunnerLog,
             runner_manager: RunnerManager = Depends(get_runner_manager),
@@ -513,6 +565,51 @@ class FastApiApp:
                 self.logger.error(f"submit_runner_log: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
+
+        @self.app.get("/docs", include_in_schema=False)
+        async def custom_swagger_ui_html():
+            if self.is_static_mounted:
+                try:
+                    html_response = get_swagger_ui_html(
+                        openapi_url=self.app.openapi_url,
+                        title=self.app.title + " - Swagger UI",
+                        swagger_favicon_url="/static/icon.png",  
+                    )
+                    dark_mode_button = '''
+                    <button id="dark-mode-toggle" style="
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        padding: 10px 20px;
+                        background-color: #ff5722;
+                        color: #ffffff;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        z-index: 1000;
+                    ">🌙 Dark Mode</button>
+                    '''
+                    
+                    # Inject custom JavaScript before </body>
+
+                    html_str = html_response.body.decode('utf-8')
+                    logo = '<img src="/static/icon.png" alt="Foxsy Logo" class="foxsy-logo">'
+                    html_str = html_str.replace('</head>', '<style>.foxsy-logo { max-width: 100px; }</style></head>')
+                    html_str = html_str.replace('</body>', '<script src="/static/dark_mode.js"></script></body>')
+                    html_str = html_str.replace('<div id="swagger-ui">', logo + '<div id="swagger-ui">')
+                    html_str = html_str.replace('<div id="swagger-ui">', dark_mode_button + '<div id="swagger-ui">')
+                except Exception as e:
+                    self.logger.info(f"custom_swagger_ui_html: {e}")
+                    html_str = get_swagger_ui_html(
+                        openapi_url=self.app.openapi_url,
+                        title=self.app.title + " - Swagger UI",
+                    ).body.decode('utf-8')
+                return HTMLResponse(content=html_str, media_type="text/html")
+            else:
+                return get_swagger_ui_html(
+                    openapi_url=self.app.openapi_url,
+                    title=self.app.title + " - Swagger UI",
+                )
 
 
     async def run(self):
