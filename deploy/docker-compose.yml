@@ -18,6 +18,9 @@ services:
     expose:
       - 9000
       - 9001
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     command: server /data --console-address ":9001"
     volumes:
       - ./data/minio:/data
@@ -40,6 +43,9 @@ services:
     expose:
       - 5672
       - 15672
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - ./data/rabbitmq:/var/lib/rabbitmq
     hostname: rabbitmq
@@ -48,10 +54,10 @@ services:
         ipv4_address: 10.110.0.5
 
   manager:
-    image: naderzare/foxsy-tournament-manager-app:${MANAGER_VERSION:-latest}
-    # build:
-    #   context: ../tournament_manager2
-    #   dockerfile: ../tournament_manager2/Dockerfile
+    # image: naderzare/foxsy-tournament-manager-app:${MANAGER_VERSION:-latest}
+    build:
+      context: ../tournament_manager2
+      dockerfile: ../tournament_manager2/Dockerfile
     container_name: fx_manager
     privileged: true
     environment:
@@ -75,8 +81,8 @@ services:
       TMP_GAME_LOG_DIR: ${MANAGER_TMP_GAME_LOG_DIR}
     expose:
       - 8085
-    # ports:
-    #   - "8085:8085"
+    ports:
+      - "8085:8085"
     volumes:
       - ./data/manager:/app/data
       - ./data/manager-log:/app/tmp_game_log
@@ -89,7 +95,7 @@ services:
         ipv4_address: 10.110.0.6
 
   runner:
-    image: naderzare/foxsy-runner-app:${RUNNER_VERSION:-latest}
+    # image: naderzare/foxsy-runner-app:${RUNNER_VERSION:-latest}
     build:
       context: ../runner
       dockerfile: ../runner/Dockerfile
@@ -123,8 +129,8 @@ services:
       GAME_LOG_BUCKET_NAME: ${RUNNER_GAME_LOG_BUCKET_NAME}
     expose:
       - 8082
-    # ports:
-    #   - "8082:8082"
+    ports:
+      - "8082:8082"
     volumes:
       - ./data/runner:/app/data
     depends_on:
