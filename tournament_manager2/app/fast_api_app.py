@@ -565,7 +565,27 @@ class FastApiApp:
                 self.logger.error(f"submit_runner_log: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-
+            
+        @self.app.post("/runner/send_command", response_model=ResponseMessage)
+        async def send_command(
+            command_request: SendCommandRequest,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"send_command: {command_request}")
+            try:
+                response = await runner_manager.send_command(
+                    runner_id=command_request.runner_id,
+                    command = command_request.command, # TODO: How?
+                    # command_type=command_request.command_type,
+                    # parameters=command_request.parameters
+                )
+                return response
+            except Exception as e:
+                self.logger.error(f"send_command: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))    
+        
         @self.app.get("/docs", include_in_schema=False)
         async def custom_swagger_ui_html():
             if self.is_static_mounted:
