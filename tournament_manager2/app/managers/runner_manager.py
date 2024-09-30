@@ -24,6 +24,12 @@ from utils.messages import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+# import aio_pika
+# from aio_pika import Message, DeliveryMode, ExchangeType
+# import json
+import aiohttp
+
+
 class RunnerManager:
     def __init__(self, db_session: AsyncSession):
         self.logger = logging.getLogger(__name__)
@@ -340,8 +346,64 @@ class RunnerManager:
 
             # Publish the command to RabbitMQ
             # TODO: Implement RabbitMQ Publisher?
-            # TODO: or use API request?
+            # connection = await aio_pika.connect_robust("amqp://???/")
 
+            # async with connection:
+            #     # Create a channel
+            #     channel = await connection.channel()
+
+            #     exchange = await channel.declare_exchange(
+            #         name='runner_commands', type=ExchangeType.DIRECT
+            #     )
+
+            #     message_body = {
+            #         "command": command,
+            #         "runner_id": runner_id,
+            #     }
+            #     message = Message(
+            #         body=json.dumps(message_body).encode(),
+            #         delivery_mode=DeliveryMode.PERSISTENT,
+            #     )
+
+            #     routing_key = f"runner.{runner_id}"
+            #     await exchange.publish(
+            #         message, routing_key=routing_key
+            #     )
+            
+            # TODO: or use API request?
+            scheme = "http"  # or "https" if you're using SSL/TLS
+            ip=runner.address.split(":")[0]
+            port=runner.address.split(":")[1]
+            runner_api_url = f"{scheme}://{ip}:{port}/runner/receive_command" #TODO: is this correct?
+
+            # Prepare the command data
+            command_data = {
+                "command": command,
+                # "parameters": parameters or {},
+                "timestamp": datetime.utcnow().isoformat() + "Z"
+            }
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(runner_api_url, json=command_data) as resp:
+                    if resp.status == 200:
+                        response_data = await resp.json()
+                        if response_data.get("success"):
+                            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+                            res = ResponseMessage(
+                                    success=response_data.get("success"),
+                                    error=response_data.get("error"),
+                                    value=response_data.get("value"),
+                                    message=response_data.get("message"))
+                            return res
+                        else:
+                            error_message = response_data.get("error", "Unknown error")
+                            self.logger.error(f"send_command: Runner responded with error: {error_message}")
+                            return ResponseMessage(success=False, error=error_message)
+                    else:
+                        error_message = f"Runner returned status code {resp.status}"
+                        self.logger.error(f"send_command: {error_message}")
+                        return ResponseMessage(success=False, error=error_message)
+            
             self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
             return ResponseMessage(success=True, error=None)
         except Exception as e:

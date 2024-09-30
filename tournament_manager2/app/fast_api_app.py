@@ -580,11 +580,15 @@ class FastApiApp:
                     # command_type=command_request.command_type,
                     # parameters=command_request.parameters
                 )
-                return response
+                if response.success:
+                    return response
+                else:
+                    return ResponseMessage(success=False, error=str(response.error))    
+                    # raise HTTPException(status_code=400, detail=response.error)
             except Exception as e:
-                self.logger.error(f"send_command: {e}")
+                self.logger.exception(f"send_command: Unexpected error: {e}")
                 traceback.print_exc()
-                return ResponseMessage(success=False, error=str(e))    
+                return ResponseMessage(success=False, error=str(e))
         
         @self.app.get("/docs", include_in_schema=False)
         async def custom_swagger_ui_html():
