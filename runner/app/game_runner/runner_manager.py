@@ -153,3 +153,15 @@ class RunnerManager:
             return res
         res.success = True
         return res
+
+    async def receive_command(self, command: str) -> ResponseMessage:
+        self.logger.info(f'GameRunnerManager receive_command: {command}')
+        try:
+            if command == "hello": # TODO: Update Logic
+                print("Hello, TM!")
+                return ResponseMessage(success=True, value="Hello, TM!", obj={"success": True, "value": "Hello, TM!", "error": None})
+            else:
+                raise ValueError(f"Unknown command: {command}")
+        except Exception as e:
+            self.logger.error(f'GameRunnerManager receive_command[{command}]: {e}')
+            return ResponseMessage(success=False, error=str(e))

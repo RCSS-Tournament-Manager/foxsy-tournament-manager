@@ -51,7 +51,20 @@ class FastApiApp:
         @self.app.post("/stop_game_by_port/{port}")
         async def stop_game_by_port(port: int, api_key: str = Depends(get_api_key)):
             return await self.manager.stop_game_by_port(port)
-
+        
+        @self.app.post("/runner/receive_command", response_model=ResponseMessage)
+        async def receive_command(command_request: ReceiveCommandResponse):
+            # print(f'GameRunnerManager receive_command:{command_request}')
+            try:
+                # Process the command
+                command = command_request.command
+                # parameters = command_request.parameters
+                return await self.manager.receive_command(command)
+            except Exception as e:
+                # logger.error(f"Error processing command: {e}")
+                # print(f"Error processing command: {e}")
+                return ResponseMessage(success=False, error=str(e))
+    
     async def run(self):
         config = uvicorn.Config(self.app, host="0.0.0.0", port=self.port)
         server = uvicorn.Server(config)
