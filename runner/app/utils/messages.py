@@ -70,6 +70,15 @@ class GameInfoMessage(BaseModel):
         if self.right_team_config_json:
             self.right_team_config_json = fix_json(self.right_team_config_json)
 
+class UpdateBaseFromURLRequestMessage(BaseModel):
+    base_name: str = Field(None, example="cyrus")
+    download_url: str = Field(None, example="https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/download/8/cyrus.zip")
+
+class UpdateBaseFromMINIORequestMessage(BaseModel):
+    base_name: str = Field(None, example="cyrus")
+    minio_bucket: str = Field(None, example="baseteam")
+    minio_object: str = Field(None, example="cyrus.zip")
+
 class GameStartedMessage(BaseModel):
     game_id: int = Field(None, example=1)
     success: bool = Field(None, example=True)
