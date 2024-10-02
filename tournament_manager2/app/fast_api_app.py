@@ -566,7 +566,7 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
             
-        @self.app.post("/runner/send_command", response_model=ResponseMessage)
+        @self.app.post("/runner/send_command", response_model=ResponseMessage, tags=["Runner Management"])
         async def send_command(
             command_request: SendCommandRequest,
             runner_manager: RunnerManager = Depends(get_runner_manager),
