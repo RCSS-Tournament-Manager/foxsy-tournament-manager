@@ -35,6 +35,8 @@ class RunnerModel(Base):
     available_games_count = Column(Integer, default=0, nullable=False)
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
+    # runner.api_key = "api-key" maybe?  is it safe?
+    
     
     # Relationships
     games = relationship('GameModel', back_populates='runner')

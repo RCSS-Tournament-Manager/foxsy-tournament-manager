@@ -53,7 +53,7 @@ class FastApiApp:
             return await self.manager.stop_game_by_port(port)
         
         @self.app.post("/runner/receive_command", response_model=ResponseMessage)
-        async def receive_command(command_request: ReceiveCommandResponse):
+        async def receive_command(command_request: ReceiveCommandResponse, api_key: str = Depends(get_api_key)):
             # print(f'GameRunnerManager receive_command:{command_request}')
             try:
                 # Process the command

@@ -371,7 +371,7 @@ class RunnerManager:
             #     )
             
             # TODO: or use API request?
-            scheme = "http"  # or "https" if you're using SSL/TLS
+            scheme = "http"  # or "https" if SSL/TLS
             ip=runner.address.split(":")[0]
             port=runner.address.split(":")[1]
             runner_api_url = f"{scheme}://{ip}:{port}/runner/receive_command" #TODO: is this correct?
@@ -382,9 +382,15 @@ class RunnerManager:
                 # "parameters": parameters or {},
                 "timestamp": datetime.utcnow().isoformat() + "Z"
             }
-
+            
+            RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
+            
             async with aiohttp.ClientSession() as session:
-                async with session.post(runner_api_url, json=command_data) as resp:
+                async with session.post(runner_api_url,
+                                        json=command_data,
+                                        headers={"api_key": f" {RUNNER_API_KEY}"},
+                                        ssl=False #TODO: depends on the runner's configuration, True if SSL/TLS.
+                                    ) as resp:
                     if resp.status == 200:
                         response_data = await resp.json()
                         if response_data.get("success"):
