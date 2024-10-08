@@ -52,6 +52,51 @@ class FastApiApp:
         async def stop_game_by_port(port: int, api_key: str = Depends(get_api_key)):
             return await self.manager.stop_game_by_port(port)
 
+        @self.app.post("/update_base/from_url")
+        async def update_base(
+            message_json: UpdateBaseFromURLRequestMessage,
+            api_key: str = Depends(get_api_key)
+        ):
+            """Update base from url it will download the base from the url and update the base even if the base is already present"""
+            try:
+                res,message = await self.manager.update_base_url(message_json.base_name,message_json.download_url)
+                if res:
+                    return {"success": True, "message": message}
+                else:
+                    return HTTPException(
+                        status_code=400, detail=message
+                    )
+            except Exception as e:
+                return HTTPException(
+                    status_code=400, detail=str(e)
+                )
+
+
+
+        
+        @self.app.post("/update_base/from_minio")
+        async def update_base(
+            message_json: UpdateBaseFromMINIORequestMessage,
+            api_key: str = Depends(get_api_key)
+        ):
+            """Update base from minio it will download the base from minio and update the base even if the base is already present"""
+            try:
+                res,message = await self.manager.update_base_minio(
+                    message_json.base_name,
+                    message_json.minio_bucket,
+                    message_json.minio_object
+                )
+                if res:
+                    return {"success": True, "message": message}
+                else:
+                    return HTTPException(
+                        status_code=400, detail=message
+                    )
+            except Exception as e:
+                return HTTPException(
+                    status_code=400, detail=str(e)
+                )
+        
     async def run(self):
         config = uvicorn.Config(self.app, host="0.0.0.0", port=self.port)
         server = uvicorn.Server(config)

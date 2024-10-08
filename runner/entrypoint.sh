@@ -36,7 +36,7 @@ exec python -m main \
     --max-games-count "$MAX_GAMES_COUNT" \
     --use-fast-api "$USE_FAST_API" \
     --fast-api-port "$FAST_API_PORT" \
-    ----fast-api-ip "$FAST_API_IP" \
+    --fast-api-ip "$FAST_API_IP" \
     --use-rabbitmq "$USE_RABBITMQ" \
     --rabbitmq-host "$RABBITMQ_HOST" \
     --rabbitmq-port "$RABBITMQ_PORT" \

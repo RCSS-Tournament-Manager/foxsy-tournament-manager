@@ -1,4 +1,5 @@
 import asyncio
+from utils.tools import Tools
 from game_runner.game import Game
 import logging
 import os
@@ -7,6 +8,7 @@ from data_dir import DataDir
 from utils.messages import *
 from utils.message_sender import MessageSender
 from storage.downloader import Downloader
+import requests
 
 class RunnerManager:
     def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int):
@@ -153,3 +155,148 @@ class RunnerManager:
             return res
         res.success = True
         return res
+
+    async def update_base_minio(
+            self, 
+            base_team_name: str, 
+            bucket_name: str,
+            file_name: str
+        ):
+        self.logger.info(f'GameRunnerManager update_base: {base_team_name}, github')
+
+
+        base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
+        base_team_path = os.path.join(base_teams_dir, base_team_name)
+        self.logger.debug(f'Check base team {base_team_name}, path: {base_team_path}, dir: {base_teams_dir}')
+
+
+        #  -- check if base team already exists
+        if os.path.exists(base_team_path) and \
+            not os.path.exists(os.path.join(base_team_path, 'start.sh')):
+            
+            self.logger.debug(f'Base team {base_team_name} already exists')
+            self.logger.error(f'Base team {base_team_name} start.sh not found')
+            Tools.remove_dir(base_team_path)
+                
+
+        #  -- check if base team dir is not a file
+        if os.path.isfile(base_teams_dir):
+            self.logger.error(f'Base teams dir {base_teams_dir} is a file')
+            Tools.remove_dir(base_teams_dir)
+
+
+
+        #  -- create base team dir if not exists
+        if not os.path.exists(base_teams_dir):
+            self.logger.info(f'Creating base teams directory: {base_teams_dir}')
+            os.makedirs(base_teams_dir, exist_ok=True)
+
+        
+        base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
+        zip_file_downloaded = False
+
+        self.logger.debug(f'Downloading base team {base_team_name} from storage')
+        try:
+            self.storage_client.download_file(
+                bucket_name,
+                file_name,
+                base_team_zip_path
+            )
+            zip_file_downloaded = True
+        except Exception as e:
+            self.logger.error(f'Failed to download {base_team_name}: {e}')
+            return False, f'Failed to download {base_team_name}: {e}'
+
+
+        if not zip_file_downloaded:
+            self.logger.info(f'Downloading base team from storage')
+            return False, 'Failed to download base team from storage'
+
+        if zip_file_downloaded:
+            self.logger.debug(f'Unzip base team {base_team_name}')
+            Tools.unzip_file(base_team_zip_path, base_teams_dir)
+            os.remove(base_team_zip_path)
+
+        if os.path.exists(os.path.join(base_team_path)):
+            self.logger.debug(f'Setting permissions for base team {base_team_name}')
+            Tools.set_permissions_recursive(base_team_path, 0o777)
+
+        self.logger.debug(f'Check base team {base_team_name} start.sh')
+        if not os.path.exists(os.path.join(base_team_path, 'start.sh')):
+            self.logger.error(f'Base team {base_team_name} start.sh not found')
+            Tools.remove_dir(base_team_path)
+            return False, f'Base team {base_team_name} start.sh not found'
+
+        return True, "Base team updated successfully"
+    
+    async def update_base_url(
+            self, 
+            base_team_name: str,
+            download_url:str
+        ):
+        self.logger.info(f'GameRunnerManager update_base: {base_team_name}, github')
+
+
+        base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)
+        base_team_path = os.path.join(base_teams_dir, base_team_name)
+        self.logger.debug(f'Check base team {base_team_name}, path: {base_team_path}, dir: {base_teams_dir}')
+
+
+        #  -- check if base team already exists
+        if os.path.exists(base_team_path) and \
+            not os.path.exists(os.path.join(base_team_path, 'start.sh')):
+            
+            self.logger.debug(f'Base team {base_team_name} already exists')
+            self.logger.error(f'Base team {base_team_name} start.sh not found')
+            Tools.remove_dir(base_team_path)
+                
+
+        #  -- check if base team dir is not a file
+        if os.path.isfile(base_teams_dir):
+            self.logger.error(f'Base teams dir {base_teams_dir} is a file')
+            Tools.remove_dir(base_teams_dir)
+
+
+
+        #  -- create base team dir if not exists
+        if not os.path.exists(base_teams_dir):
+            self.logger.info(f'Creating base teams directory: {base_teams_dir}')
+            os.makedirs(base_teams_dir, exist_ok=True)
+
+        
+        base_team_zip_path = os.path.join(base_teams_dir, f'{base_team_name}.zip')
+        zip_file_downloaded = False
+
+        self.logger.debug(f'Downloading base team {base_team_name} from url')
+        try:
+            with requests.get(download_url, stream=True) as r:
+                r.raise_for_status()
+                with open(base_team_zip_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                zip_file_downloaded = True
+        except Exception as e:
+            self.logger.error(f'Failed to download {base_team_name}: {e}')
+            return False, f'Failed to download {base_team_name}: {e}'
+
+
+        if not zip_file_downloaded:
+            self.logger.info(f'Downloading base team from url')
+            return False, 'Failed to download base team from url'
+
+        if zip_file_downloaded:
+            self.logger.debug(f'Unzip base team {base_team_name}')
+            Tools.unzip_file(base_team_zip_path, base_teams_dir)
+            os.remove(base_team_zip_path)
+
+        if os.path.exists(os.path.join(base_team_path)):
+            self.logger.debug(f'Setting permissions for base team {base_team_name}')
+            Tools.set_permissions_recursive(base_team_path, 0o777)
+
+        self.logger.debug(f'Check base team {base_team_name} start.sh')
+        if not os.path.exists(os.path.join(base_team_path, 'start.sh')):
+            self.logger.error(f'Base team {base_team_name} start.sh not found')
+            Tools.remove_dir(base_team_path)
+            return False, f'Base team {base_team_name} start.sh not found'
+
+        return True, "Base team updated successfully"
