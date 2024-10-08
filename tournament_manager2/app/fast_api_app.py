@@ -573,6 +573,12 @@ class FastApiApp:
             api_key: str = Depends(get_api_key)
         ):
             self.logger.info(f"send_command: {command_request}")
+            valid_commands = ["stop", "pause", "resume", "hello"]
+            print(command_request.command)
+            print(valid_commands)
+            print(command_request.command not in valid_commands)
+            if command_request.command not in valid_commands:
+                return ResponseMessage(success=False, value="Invalid command.") #HTTPException(status_code=400, detail="Invalid command.")
             try:
                 response = await runner_manager.send_command(
                     runner_id=command_request.runner_id,
@@ -580,16 +586,35 @@ class FastApiApp:
                     # command_type=command_request.command_type,
                     # parameters=command_request.parameters
                 )
-                if response.success:
-                    return response
-                else:
-                    return ResponseMessage(success=False, error=str(response.error))    
-                    # raise HTTPException(status_code=400, detail=response.error)
+                # if response.success:
+                return response
+                # else:
+                #     return ResponseMessage(success=False, error=str(response.error))    
+                #     # raise HTTPException(status_code=400, detail=response.error)
             except Exception as e:
                 self.logger.exception(f"send_command: Unexpected error: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-        
+            
+        @self.app.post("/from_runner/status_update", response_model=ResponseMessage, tags=["Runner Management"])
+        async def status_update(
+            status_message: RunnerStatusMessage,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"status_update: {status_message}")
+            try:
+                response = await runner_manager.handle_status_update(status_message)
+                if not response.success:
+                    raise HTTPException(status_code=400, detail=response.error)
+                return response
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"status_update: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+            
         @self.app.get("/docs", include_in_schema=False)
         async def custom_swagger_ui_html():
             if self.is_static_mounted:
