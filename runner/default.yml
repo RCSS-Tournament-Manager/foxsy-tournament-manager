@@ -1,0 +1,46 @@
+config:
+  update_base_teams_at_startup: true
+  data_dir: "./data"
+  log_dir: "./data/logs"
+  api_key: "api-key"
+  max_games_count: 2
+  use_fast_api: True
+  fast_api_ip: "127.0.0.1"
+  fast_api_port: 8082
+  use_rabbitmq: True
+  rabbitmq_host: "localhost"
+  rabbitmq_port: 5672
+  rabbitmq_username: "admin"
+  rabbitmq_password: "adminadmin132"
+  to_runner_queue: "to_runner"
+  connect_to_tournament_manager: True
+  tournament_manager_ip: "localhost"
+  tournament_manager_port: 8085
+  tournament_manager_api_key: "api-key"
+  use_minio: True
+  minio_endpoint: "localhost:9000"
+  minio_access_key: "admin"
+  minio_secret_key: "password"
+  server_bucket_name: "server"
+  base_team_bucket_name: "baseteam"
+  team_config_bucket_name: "teamconfig"
+  game_log_bucket_name: "gamelog"
+  tmp_game_log_dir: "./tmp_game_log"
+  default_param: "runner"
+
+base_teams:
+  - name: "cyrus"
+    force_pull: true
+    download:
+      type: "url"
+      url: "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip"
+
+  - name: "cyrus2"
+    force_pull: true
+    download:
+      type: "minio"
+      bucket: "baseteam"
+      object: "cyrus.zip"
+
+
+  
