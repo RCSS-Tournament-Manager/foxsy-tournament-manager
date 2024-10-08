@@ -11,6 +11,8 @@ from utils.messages import RunnerStatusMessageEnum
 class RunnerStatusEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
+    STOPPING = 'stopping'
+    STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
 
@@ -23,8 +25,34 @@ class RunnerStatusEnum(str, Enum):
             return RunnerStatusMessageEnum.UNKNOWN
         elif self == RunnerStatusEnum.CRASHED:
             return RunnerStatusMessageEnum.CRASHED
+        elif self == RunnerStatusEnum.STOPPING:
+            return RunnerStatusMessageEnum.STOPPING
+        elif self == RunnerStatusEnum.STOPPED:
+            return RunnerStatusMessageEnum.STOPPED
         else:
             return RunnerStatusMessageEnum.UNKNOWN
+
+class RunnerCommandEnum(str, Enum):
+    # START = 'start'
+    STOP = 'stop'
+    PAUSE = 'pause'
+    RESUME = 'resume'
+    # RESTART = 'restart'
+    # UNKNOWN = 'unknown'
+
+    def to_RunnerCommandEnum(self):
+        # if self == RunnerCommandEnum.START:
+        #     return RunnerCommandEnum.START
+        if self == RunnerCommandEnum.STOP:
+            return RunnerCommandEnum.STOP
+        elif self == RunnerCommandEnum.PAUSE:
+            return RunnerCommandEnum.PAUSE
+        elif self == RunnerCommandEnum.RESUME:
+            return RunnerCommandEnum.RESUME
+        # elif self == RunnerCommandEnum.RESTART:
+        #     return RunnerCommandEnum.RESTART
+        # else:
+        #     return RunnerCommandEnum.UNKNOWN
 
 class RunnerModel(Base):
     __tablename__ = 'runners'
@@ -35,6 +63,7 @@ class RunnerModel(Base):
     available_games_count = Column(Integer, default=0, nullable=False)
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
     # runner.api_key = "api-key" maybe?  is it safe?
     
     
