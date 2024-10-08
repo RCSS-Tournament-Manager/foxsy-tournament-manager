@@ -67,6 +67,11 @@ class RabbitMQConsumer:
                             await message.nack(requeue=True)
                         logging.info("Waiting for 5 seconds before re-consuming...")
                         await asyncio.sleep(5)
+                    # if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: # TODO: should it be done here? or in runner_manager?
+                    #     self.logger.info(f"Runner status is {self.manager.status}. Deferring message processing.")
+                    #     await message.nack(requeue=True)
+                    #     await asyncio.sleep(5) 
+                    #     continue
                     try:
                         game_info_message = GameInfoMessage(**data)
                         GameInfoMessage.model_validate(game_info_message.model_dump())

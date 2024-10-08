@@ -488,6 +488,36 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @self.app.post("/runner/send_command", response_model=ResponseMessage, tags=["Runner Management"])
+        async def send_command(
+            command_request: SendCommandRequest,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"send_command: {command_request}")
+            valid_commands = ["stop", "pause", "resume", "hello"]
+            print(command_request.command)
+            print(valid_commands)
+            print(command_request.command not in valid_commands)
+            if command_request.command not in valid_commands:
+                return ResponseMessage(success=False, value="Invalid command.") #HTTPException(status_code=400, detail="Invalid command.")
+            try:
+                response = await runner_manager.send_command(
+                    runner_id=command_request.runner_id,
+                    command = command_request.command, # TODO: How?
+                    # command_type=command_request.command_type,
+                    # parameters=command_request.parameters
+                )
+                # if response.success:
+                return response
+                # else:
+                #     return ResponseMessage(success=False, error=str(response.error))    
+                #     # raise HTTPException(status_code=400, detail=response.error)
+            except Exception as e:
+                self.logger.exception(f"send_command: Unexpected error: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+
         @self.app.post("/from_runner/game_started", response_model=ResponseMessage, tags=["Runner Management"])
         async def game_started(
             json: GameStartedMessage,
@@ -565,37 +595,7 @@ class FastApiApp:
                 self.logger.error(f"submit_runner_log: {e}")
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
-            
-        @self.app.post("/runner/send_command", response_model=ResponseMessage, tags=["Runner Management"])
-        async def send_command(
-            command_request: SendCommandRequest,
-            runner_manager: RunnerManager = Depends(get_runner_manager),
-            api_key: str = Depends(get_api_key)
-        ):
-            self.logger.info(f"send_command: {command_request}")
-            valid_commands = ["stop", "pause", "resume", "hello"]
-            print(command_request.command)
-            print(valid_commands)
-            print(command_request.command not in valid_commands)
-            if command_request.command not in valid_commands:
-                return ResponseMessage(success=False, value="Invalid command.") #HTTPException(status_code=400, detail="Invalid command.")
-            try:
-                response = await runner_manager.send_command(
-                    runner_id=command_request.runner_id,
-                    command = command_request.command, # TODO: How?
-                    # command_type=command_request.command_type,
-                    # parameters=command_request.parameters
-                )
-                # if response.success:
-                return response
-                # else:
-                #     return ResponseMessage(success=False, error=str(response.error))    
-                #     # raise HTTPException(status_code=400, detail=response.error)
-            except Exception as e:
-                self.logger.exception(f"send_command: Unexpected error: {e}")
-                traceback.print_exc()
-                return ResponseMessage(success=False, error=str(e))
-            
+
         @self.app.post("/from_runner/status_update", response_model=ResponseMessage, tags=["Runner Management"])
         async def status_update(
             status_message: RunnerStatusMessage,
