@@ -59,6 +59,14 @@ class RabbitMQConsumer:
                         continue
                     logging.info(f"Received message: {data}")
                     logging.debug(f"Message type: {data.get('type')}")
+                    
+                    if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
+                        logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
+                        await message.nack(requeue=True)
+                        self.logger.info("Waiting for 15 seconds before checking Runner status again...")
+                        await asyncio.sleep(10) 
+                        continue
+
                     async def handle_error(error, ack=True):
                         logging.error(f"Failed to parse message: {error}")
                         if ack:
@@ -67,11 +75,7 @@ class RabbitMQConsumer:
                             await message.nack(requeue=True)
                         logging.info("Waiting for 5 seconds before re-consuming...")
                         await asyncio.sleep(5)
-                    # if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: # TODO: should it be done here? or in runner_manager?
-                    #     self.logger.info(f"Runner status is {self.manager.status}. Deferring message processing.")
-                    #     await message.nack(requeue=True)
-                    #     await asyncio.sleep(5) 
-                    #     continue
+
                     try:
                         game_info_message = GameInfoMessage(**data)
                         GameInfoMessage.model_validate(game_info_message.model_dump())
