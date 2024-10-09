@@ -277,11 +277,22 @@ class RunnerManager:
             self.games.clear()
             self.available_ports = []
             self.available_games_count = 0
+        self.logger.info("All games stopped. Exiting Runner.")
         self.status = RunnerStatusMessageEnum.STOPPED
         self.logger.info("Runner has stopped.")
         # Notify TM about the stop
         stop_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
         if self.message_sender:
             await self.message_sender.send_message('from_runner/status_update', stop_status.model_dump())
-        # Optionally, close the application or perform cleanup
-        # asyncio.get_event_loop().stop()  # Uncomment if you want to stop the event loop
+        # close the application
+        await self.shutdown()
+        
+    async def shutdown(self):
+        self.logger.info("Shutting down the Runner...")
+        # cleanup ? TODO
+        self.logger.info("Runner has shutdown.")
+        # Close the application TODO: maybe there is a better way for it
+        await asyncio.sleep(1)
+        await asyncio.get_event_loop().stop()
+        
+        
