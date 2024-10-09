@@ -20,9 +20,17 @@ from utils.messages import (
     GetRunnerResponseMessage,
     GetAllRunnersResponseMessage,
     GetRunnerLogResponseMessage,
+    RunnerStatusMessageEnum,
+    RunnerStatusMessage,
     RunnerLog
 )
 from sqlalchemy.exc import SQLAlchemyError
+
+# import aio_pika
+# from aio_pika import Message, DeliveryMode, ExchangeType
+# import json
+import aiohttp
+
 
 class RunnerManager:
     def __init__(self, db_session: AsyncSession):
@@ -181,7 +189,7 @@ class RunnerManager:
             game.left_score = json.left_score
             game.right_score = json.right_score
             game.end_time = datetime.utcnow()
-
+            
             # Remove game from runner
             runner.games.remove(game)
 
@@ -237,7 +245,8 @@ class RunnerManager:
                     status=RunnerStatusEnum.RUNNING,  # Set status to RUNNING upon registration
                     address=address,
                     available_games_count=json.available_games_count,
-                    start_time=datetime.utcnow()
+                    start_time=datetime.utcnow(),
+                    last_updated = datetime.utcnow()
                 )
                 self.db_session.add(new_runner)
                 await self.db_session.commit()
@@ -253,8 +262,8 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def pause_runner(self, runner_id: int) -> ResponseMessage:
-        self.logger.info(f"pause_runner: Runner ID {runner_id}")
+    async def mark_pause_runner(self, runner_id: int) -> ResponseMessage:
+        self.logger.info(f"mark_pause_runner: Runner ID {runner_id}")
         try:
             stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
             result = await self.db_session.execute(stmt)
@@ -267,6 +276,7 @@ class RunnerManager:
             previous_status = runner.status
             runner.status = RunnerStatusEnum.PAUSED
             runner.end_time = datetime.utcnow()
+            runner.last_updated = datetime.utcnow()
 
             log = RunnerLogModel(
                 runner_id=runner.id,
@@ -283,13 +293,51 @@ class RunnerManager:
             return ResponseMessage(success=True, error=None)
         except SQLAlchemyError as e:
             await self.db_session.rollback()
-            self.logger.error(f"Database error in pause_runner: {e}")
+            self.logger.error(f"Database error in mark_pause_runner: {e}")
             return ResponseMessage(success=False, error="Database error occurred")
         except Exception as e:
             await self.db_session.rollback()
-            self.logger.error(f"Unexpected error in pause_runner: {e}")
+            self.logger.error(f"Unexpected error in mark_pause_runner: {e}")
             return ResponseMessage(success=False, error=str(e))
 
+    async def mark_resume_runner(self, runner_id: int) -> ResponseMessage:
+        self.logger.info(f"mark_resume_runner: Runner ID {runner_id}")
+        try:
+            stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
+            result = await self.db_session.execute(stmt)
+            runner = result.scalars().first()
+
+            if not runner:
+                self.logger.error(f"Runner with id {runner_id} not found")
+                return ResponseMessage(success=False, error="Runner not found")
+
+            previous_status = runner.status
+            runner.status = RunnerStatusEnum.RUNNING
+            runner.end_time = datetime.utcnow()
+            runner.last_updated = datetime.utcnow()
+
+            log = RunnerLogModel(
+                runner_id=runner.id,
+                message="Runner has been resumed.",
+                log_level=LogLevelEnum.WARNING,
+                previous_status=previous_status,
+                new_status=runner.status
+            )
+            self.db_session.add(log)
+
+            # Commit Changes
+            await self.db_session.commit()
+            self.logger.info(f"Runner {runner_id} has been resumed.")
+            return ResponseMessage(success=True, error=None)
+        except SQLAlchemyError as e:
+            await self.db_session.rollback()
+            self.logger.error(f"Database error in mark_resume_runner: {e}")
+            return ResponseMessage(success=False, error="Database error occurred")
+        except Exception as e:
+            await self.db_session.rollback()
+            self.logger.error(f"Unexpected error in mark_resume_runner: {e}")
+            return ResponseMessage(success=False, error=str(e))
+    
     async def mark_runner_crashed(self, runner_id: int) -> ResponseMessage:
         self.logger.info(f"mark_runner_crashed: Runner ID {runner_id}")
         try:
@@ -304,6 +352,7 @@ class RunnerManager:
             previous_status = runner.status
             runner.status = RunnerStatusEnum.CRASHED
             runner.end_time = datetime.utcnow()
+            runner.last_updated = datetime.utcnow()
 
             log = RunnerLogModel(
                 runner_id=runner.id,
@@ -325,4 +374,137 @@ class RunnerManager:
         except Exception as e:
             await self.db_session.rollback()
             self.logger.error(f"Unexpected error in mark_runner_crashed: {e}")
+            return ResponseMessage(success=False, error=str(e))
+
+    async def send_command(self, runner_id: int, command: str) -> ResponseMessage:#, command_type: Optional[RunnerCommandTypeEnum] = None, parameters: Optional[Dict[str, str]] = None) -> ResponseMessage:
+        self.logger.info(f"send_command: Sending command '{command}' to runner {runner_id} ") # with type '{command_type}' and parameters {parameters}")
+        try:
+            # Retrieve the runner
+            runner_response = await self.get_runner(runner_id)
+            if isinstance(runner_response, ResponseMessage) and not runner_response.success:
+                self.logger.error(f"send_command: Runner with id {runner_id} not found")
+                return ResponseMessage(success=False, error="Runner not found")
+            
+            runner = runner_response  # Type: GetRunnerResponseMessage
+
+            # Publish the command to RabbitMQ
+            # TODO: Implement RabbitMQ Publisher?
+            # connection = await aio_pika.connect_robust("amqp://???/")
+
+            # async with connection:
+            #     # Create a channel
+            #     channel = await connection.channel()
+
+            #     exchange = await channel.declare_exchange(
+            #         name='runner_commands', type=ExchangeType.DIRECT
+            #     )
+
+            #     message_body = {
+            #         "command": command,
+            #         "runner_id": runner_id,
+            #     }
+            #     message = Message(
+            #         body=json.dumps(message_body).encode(),
+            #         delivery_mode=DeliveryMode.PERSISTENT,
+            #     )
+
+            #     routing_key = f"runner.{runner_id}"
+            #     await exchange.publish(
+            #         message, routing_key=routing_key
+            #     )
+            
+            # TODO: or use API request?
+            scheme = "http"  # or "https" if SSL/TLS
+            ip=runner.address.split(":")[0]
+            port=runner.address.split(":")[1]
+            runner_api_url = f"{scheme}://{ip}:{port}/runner/receive_command" #TODO: is this correct?
+
+            # Prepare the command data
+            command_data = {
+                "command": command,
+                # "parameters": parameters or {},
+                "timestamp": datetime.utcnow().isoformat() + "Z"
+            }
+            
+            RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(runner_api_url,
+                                        json=command_data,
+                                        headers={"api_key": f" {RUNNER_API_KEY}"},
+                                        ssl=False #TODO: depends on the runner's configuration, True if SSL/TLS.
+                                    ) as resp:
+                    if resp.status == 200:
+                        response_data = await resp.json()
+                        if response_data.get("success"):
+                            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+                            res = ResponseMessage(
+                                    success=response_data.get("success"),
+                                    error=response_data.get("error"),
+                                    value=response_data.get("value"),
+                                    message=response_data.get("message"))
+                            return res
+                        else:
+                            error_message = response_data.get("error", "Unknown error")
+                            value_message = response_data.get("value", None)
+                            self.logger.error(f"send_command: Runner responded with error: {error_message}")
+                            return ResponseMessage(success=False, error=error_message, value=value_message)
+                    else:
+                        error_message = f"Runner returned status code {resp.status}"
+                        # value_message = resp.get("value", None)
+                        self.logger.error(f"send_command: {error_message}")
+                        return ResponseMessage(success=False, error=error_message) #, value=value_message)
+            
+            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+            return ResponseMessage(success=True, error=None)
+        except Exception as e:
+            self.logger.error(f"send_command: Unexpected error: {e}")
+            traceback.print_exc()
+            return ResponseMessage(success=False, error=str(e))
+        
+    async def handle_status_update(self, status_message: RunnerStatusMessage) -> ResponseMessage:
+        self.logger.info(f"Handling status update for Runner ID {status_message.runner_id}: {status_message.status}")
+        try:
+
+            stmt = select(RunnerModel).where(RunnerModel.id == status_message.runner_id)
+            result = await self.db_session.execute(stmt)
+            runner = result.scalars().first()
+
+            if not runner:
+                self.logger.error(f"Runner with ID {status_message.runner_id} not found.")
+                return ResponseMessage(success=False, error="Runner not found.")
+
+            # Check if the status is needs changing
+            if runner.status == status_message.status:
+                self.logger.info(f"Runner ID {runner.id} is already in status '{runner.status}'. No update needed.")
+                return ResponseMessage(success=True, value="Status is already up-to-date.", error=None)
+
+            log = RunnerLogModel(
+                runner_id=runner.id,
+                message=f"Status changed from {runner.status} to {status_message.status}.",
+                log_level=LogLevelEnum.INFO,
+                previous_status=runner.status,
+                new_status=status_message.status,
+                timestamp=datetime.utcnow()
+            )
+            self.db_session.add(log)
+
+            runner.status = RunnerStatusEnum(status_message.status)
+            runner.last_updated = datetime.utcnow()
+
+            # Commit the transaction
+            await self.db_session.commit()
+
+            self.logger.info(f"Runner ID {runner.id} status updated to '{runner.status}' successfully.")
+            return ResponseMessage(success=True, value="Runner status updated successfully.", error=None)
+        
+        except SQLAlchemyError as e:
+            await self.db_session.rollback()
+            self.logger.error(f"Database error in handle_status_update: {e}")
+            return ResponseMessage(success=False, error="Database error occurred.")
+        
+        except Exception as e:
+            await self.db_session.rollback()
+            self.logger.error(f"Unexpected error in handle_status_update: {e}")
+            traceback.print_exc()
             return ResponseMessage(success=False, error=str(e))
