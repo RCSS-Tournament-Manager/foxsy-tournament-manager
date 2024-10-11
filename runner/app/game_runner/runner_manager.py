@@ -221,9 +221,9 @@ class RunnerManager:
                     self.logger.info("Stopping Runner: Initiating shutdown.")
                     asyncio.create_task(self.handle_stop())
                     return ResponseMessage(success=True, value="Runner is stopping.")
-            elif command == "hello": # TODO: Update Logic
-                print("Hello, TM!")
-                return ResponseMessage(success=True, value="Hello, TM!", obj={"success": True, "value": "Hello, TM!", "error": None})
+            elif command == "hello": # Live Check
+                self.logger.info("Hello - Direct Command, TM!")
+                return ResponseMessage(success=True, value="Hello, TM!", obj={"success": True, "value": "Hello - Direct Command, TM!", "error": None})
             else:
                 raise ValueError(f"Unknown command: {command}")
         except Exception as e:
