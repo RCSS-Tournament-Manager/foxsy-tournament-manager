@@ -47,7 +47,7 @@ def get_args():
     parser.add_argument("--base-team-bucket-name", type=str, help="Team bucket name")
     parser.add_argument("--team-config-bucket-name", type=str, help="Team config bucket name")
     parser.add_argument("--game-log-bucket-name", type=str, help="Match bucket name")
-    parser.add_argument("--config", type=str, help="default.yml config file")
+    parser.add_argument("--config", type=str, help="default.yml config file", default="default.yml")
     args, unknown = parser.parse_known_args()
     return args
 
@@ -59,18 +59,14 @@ data_dir = settings['config']['data_dir']
 log_dir = settings['config']['log_dir']
 api_key = settings['config']['api_key']
 api_key_name = "api-key"
-logging.info(settings)
+
 # ---------------------------- 
-
-
-
 os.makedirs(log_dir, exist_ok=True)
 logging.config.dictConfig(get_logging_config(log_dir))
 
 logging.info('GameRunner started')
 logging.debug(f'args: {args}')
-
-
+logging.info(settings)
 
 # ---------------------------- MINIO CLIENT
 minio_client = None
