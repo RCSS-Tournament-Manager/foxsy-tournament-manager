@@ -12,22 +12,10 @@ import logging
 import traceback
 
 from datetime import datetime
-from utils.messages import (
-    GameStartedMessage,
-    GameFinishedMessage,
-    RegisterGameRunnerRequest,
-    ResponseMessage,
-    GetRunnerResponseMessage,
-    GetAllRunnersResponseMessage,
-    GetRunnerLogResponseMessage,
-    RunnerStatusMessageEnum,
-    RunnerStatusMessage,
-    RunnerLog
-)
+from utils.messages import *
 from sqlalchemy.exc import SQLAlchemyError
 
 import aiohttp
-
 
 class RunnerManager:
     def __init__(self, db_session: AsyncSession):
