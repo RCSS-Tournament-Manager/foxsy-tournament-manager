@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Any
 from datetime import datetime
 from enum import Enum
 
@@ -290,13 +290,18 @@ class UpdateTournamentRequestMessage(BaseModel):
     start_at: Optional[bool] = Field(None, example=False)
 
 class SendCommandRequest(BaseModel):
-    runner_id: int = Field(..., example=1, description="ID of the runner to send the command to.")
+    runner_ids: Optional[Union[int, List[int]]] = Field(None,examples="[1,2] or 1",description="Runner ID (int) or list of runner IDs to send the command to.")
     command: str = Field(..., examples=['resume', 'pause', 'stop', 'hello'],description="Command to send to the runner.")
-    # command_type: RunnerCommandTypeEnum = Field(..., example="start_game", description="Type of command to send.")
-    # parameters: Optional[Dict[str, str]] = Field(None, example={"game_id": "42"}, description="Additional parameters for the command.")
     timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z", description="Time the command was issued.")
 
 class RunnerStatusMessage(BaseModel):
     runner_id: Optional[int]
     status: RunnerStatusMessageEnum
     timestamp: Optional[str] = None  # ISO formatted timestamp (optional)
+    
+class AnyResponseMessage(BaseModel):
+    success: bool = Field(None, example=True)
+    error: Optional[str] = Field(None, example="") # why not use error: Union[str, None] = None?
+    value: Optional[Any] = Field(None, example="")
+    # dict: Optional[dict] = Field(None, example={})
+    obj: Optional[BaseModel] = Field(None, example={})

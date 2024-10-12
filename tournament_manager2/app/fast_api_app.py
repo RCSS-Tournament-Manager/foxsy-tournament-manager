@@ -488,28 +488,38 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.post("/runner/send_command", response_model=ResponseMessage, tags=["Runner Management"])
+        @self.app.post("/runner/send_command", response_model=AnyResponseMessage, tags=["Runner Management"])
         async def send_command(
             command_request: SendCommandRequest,
             runner_manager: RunnerManager = Depends(get_runner_manager),
             api_key: str = Depends(get_api_key)
         ):
+            """
+            - If runner_ids is None, the command is sent to all runners.
+            - If runner_ids is an int or a list of ints, the command is sent to that specific runners.
+            - If runner_ids is empty or contains invalid IDs, appropriate errors are returned.
+            """
             self.logger.info(f"send_command: {command_request}")
             valid_commands = ["stop", "pause", "resume", "hello"]
             if command_request.command not in valid_commands:
-                return ResponseMessage(success=False, value="Invalid command.")
+                return AnyResponseMessage(success=False, value="Invalid command.")
             try:
-                response = await runner_manager.send_command(
-                    runner_id=command_request.runner_id,
-                    command = command_request.command,
-                    # command_type=command_request.command_type,
-                    # parameters=command_request.parameters
-                )
-                return response
+                if isinstance(command_request.runner_ids, int): 
+                    response = await runner_manager.send_command(command_request.runner_ids, command_request.command)
+                    return AnyResponseMessage(success=response.success, value=response.value)
+                elif isinstance(command_request.runner_ids, list): # check list
+                    responses = []
+                    for runner_id in command_request.runner_ids:  
+                        response = await runner_manager.send_command(runner_id, command_request.command)
+                        responses.append({"runner_id": runner_id, "response": response})
+                    return AnyResponseMessage(success=True, value=responses, error=None)
+                else: # Send command to all runners if runner_ids is None
+                    responses = await runner_manager.send_command_to_all(command_request.command)
+                    return AnyResponseMessage(success=True, value=responses, error=None)
             except Exception as e:
                 self.logger.exception(f"send_command: Unexpected error: {e}")
                 traceback.print_exc()
-                return ResponseMessage(success=False, error=str(e))
+                return AnyResponseMessage(success=False, error=str(e))
 
         @self.app.post("/from_runner/game_started", response_model=ResponseMessage, tags=["Runner Management"])
         async def game_started(

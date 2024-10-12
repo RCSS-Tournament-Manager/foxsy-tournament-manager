@@ -1,6 +1,6 @@
 # managers/runner_manager.py
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -305,7 +305,29 @@ class RunnerManager:
             self.logger.error(f"send_command: Unexpected error: {e}")
             traceback.print_exc()
             return ResponseMessage(success=False, error=str(e))
-        
+    
+    async def send_command_to_all(self, command: str) -> List[Dict[str, Any]]: # A list of responses from each runner.
+        self.logger.info(f"send_command_to_all: Sending command '{command}' to all runners")
+        try:
+            # Retrieve all runners
+            stmt = select(RunnerModel).where(RunnerModel.status != RunnerStatusEnum.CRASHED).where(RunnerModel.status != RunnerStatusEnum.STOPPED) # not crashed or stopped
+            result = await self.db_session.execute(stmt)
+            runners = result.scalars().all()
+
+            if not runners:
+                self.logger.warning("No runners available to send the command")
+                return []
+
+            responses = []
+            for runner in runners:
+                response = await self.send_command(runner.id, command)
+                responses.append({"runner_id": runner.id, "response": response})
+            return responses
+        except Exception as e:
+            self.logger.error(f"send_command_to_all: Unexpected error: {e}")
+            traceback.print_exc()
+            return []
+    
     async def handle_status_update(self, status_message: RunnerStatusMessage) -> ResponseMessage:
         self.logger.info(f"Handling status update for Runner ID {status_message.runner_id}: {status_message.status}")
         try:
