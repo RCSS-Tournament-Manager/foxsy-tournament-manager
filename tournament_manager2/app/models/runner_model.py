@@ -11,7 +11,6 @@ from utils.messages import RunnerStatusMessageEnum
 class RunnerStatusEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
-    STOPPING = 'stopping'
     STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
@@ -25,8 +24,6 @@ class RunnerStatusEnum(str, Enum):
             return RunnerStatusMessageEnum.UNKNOWN
         elif self == RunnerStatusEnum.CRASHED:
             return RunnerStatusMessageEnum.CRASHED
-        elif self == RunnerStatusEnum.STOPPING:
-            return RunnerStatusMessageEnum.STOPPING
         elif self == RunnerStatusEnum.STOPPED:
             return RunnerStatusMessageEnum.STOPPED
         else:

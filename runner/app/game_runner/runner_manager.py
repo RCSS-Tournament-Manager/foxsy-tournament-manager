@@ -17,7 +17,6 @@ class Command(str, Enum):
 class RunnerStatusEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
-    STOPPING = 'stopping'
     STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
@@ -31,8 +30,6 @@ class RunnerStatusEnum(str, Enum):
             return RunnerStatusMessageEnum.UNKNOWN
         elif self == RunnerStatusEnum.CRASHED:
             return RunnerStatusMessageEnum.CRASHED
-        elif self == RunnerStatusEnum.STOPPING:
-            return RunnerStatusMessageEnum.STOPPING
         elif self == RunnerStatusEnum.STOPPED:
             return RunnerStatusMessageEnum.STOPPED
         else:
@@ -213,11 +210,7 @@ class RunnerManager:
                     asyncio.create_task(self.handle_resume())
                     return ResponseMessage(success=True, value="Runner has resumed accepting games.")
             elif command == Command.STOP:
-                if self.status in [RunnerStatusEnum.STOPPING, RunnerStatusEnum.STOPPED]:
-                    self.logger.warning("Runner is already stopping or stopped.")
-                    return ResponseMessage(success=False, error="400", value="Runner is already stopping or stopped.")
-                else:
-                    self.status = RunnerStatusEnum.STOPPING
+                    self.status = RunnerStatusEnum.STOPPED
                     self.logger.info("Stopping Runner: Initiating shutdown.")
                     asyncio.create_task(self.handle_stop())
                     return ResponseMessage(success=True, value="Runner is stopping.")

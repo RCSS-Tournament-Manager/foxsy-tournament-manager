@@ -21,7 +21,6 @@ class LogLevelMessageEnum(str, Enum):
 class RunnerStatusMessageEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
-    STOPPING = 'stopping'
     STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
