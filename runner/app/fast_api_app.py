@@ -4,15 +4,23 @@ from game_runner.runner_manager import RunnerManager
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from utils.messages import *
+import logging
 
+logging.basicConfig(
+    level=logging.INFO,  # Set to DEBUG for more detailed logs
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 class FastApiApp:
     def __init__(self, manager: RunnerManager, api_key: str, api_key_name: str = "api_key", port: int = 8000):
+        self.logger = logging.getLogger(__name__)
         self.app = FastAPI()
         self.manager = manager
         self.api_key = api_key
         self.api_key_name = api_key_name
         self.port = port
         self.setup_routes()
+        self.logger.info("Runner FastApiApp initialized")
 
     def setup_routes(self):
         api_key_header = APIKeyHeader(name=self.api_key_name, auto_error=False)
@@ -38,10 +46,12 @@ class FastApiApp:
                 message = message_json
                 GameInfoMessage.model_validate(message.model_dump())
                 if not message:
+                    self.logger.error("game_info is required")
                     raise Exception("game_info is required")
                 message.fix_json()
                 return await self.manager.add_game(message)
             except Exception as e:
+                self.logger.error(f"Error adding game: {str(e)}")
                 return {"success": False, "error": str(e)}
 
         @self.app.post("/stop_game_by_game_id/{game_id}")
@@ -56,9 +66,10 @@ class FastApiApp:
         async def receive_command(command_request: ReceiveCommandResponse, api_key: str = Depends(get_api_key)):
             try:
                 command = command_request.command
-                # parameters = command_request.parameters
+                self.logger.info(f"Received command: {command}")
                 return await self.manager.receive_command(command)
             except Exception as e:
+                self.logger.error(f"Error receiving command: {str(e)}")
                 return ResponseMessage(success=False, error=str(e))
     
     async def run(self):
