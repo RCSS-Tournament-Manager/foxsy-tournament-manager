@@ -48,7 +48,7 @@ class RabbitMQConsumer:
                         if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
                             logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
                             await message.nack(requeue=True)
-                            self.logger.info("Waiting for 10 seconds before checking Runner status again...")
+                            logging.info("Waiting for 10 seconds before checking Runner status again...")
                             await asyncio.sleep(10) 
                             continue
                         message_body = message.body
