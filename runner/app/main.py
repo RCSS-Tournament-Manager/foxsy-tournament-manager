@@ -116,7 +116,19 @@ async def main():
     await send_register_message()
 
     game_runner_manager = RunnerManager(data_dir, minio_client, message_sender, runner_id)
-    game_runner_manager.set_available_games_count(2)
+
+    # Initialize RabbitMQConsumer with RunnerManager
+    rabbitmq_consumer = RabbitMQConsumer(
+        manager=game_runner_manager,
+        rabbitmq_ip=args.rabbitmq_host,
+        rabbitmq_port=args.rabbitmq_port,
+        shared_queue=args.to_runner_queue,
+        username=args.rabbitmq_username,
+        password=args.rabbitmq_password
+    )
+    
+    game_runner_manager.set_available_games_count(2) # why 2? 
+    game_runner_manager.set_rabbitmq_consumer(rabbitmq_consumer)
 
     async def run_fastapi():
         logging.info('Starting FastAPI app')
@@ -125,10 +137,6 @@ async def main():
 
     async def run_rmq():
         logging.info('Starting RabbitMQ Consumer')
-        rabbitmq_consumer = RabbitMQConsumer(game_runner_manager,
-                                             args.rabbitmq_host, args.rabbitmq_port,
-                                             args.to_runner_queue,
-                                             args.rabbitmq_username, args.rabbitmq_password)
         await rabbitmq_consumer.run()
 
     async def shutdown(signal, loop):

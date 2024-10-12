@@ -5,8 +5,6 @@ import logging
 from utils.messages import *
 import traceback
 
-
-
 class RabbitMQConsumer:
     def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue, username, password):
         self.manager = manager
@@ -19,6 +17,9 @@ class RabbitMQConsumer:
         self.channel = None
         self.shared_queue = None
         self.message_queue = asyncio.Queue()
+        
+        self.pause_event = asyncio.Event() # Event to pause from TM fastapi
+        self.pause_event.set()
 
     async def connect(self):
         while True:
@@ -41,16 +42,18 @@ class RabbitMQConsumer:
     async def process_messages(self):
         try:
             while True:
+                await self.pause_event.wait()
                 message = await self.message_queue.get()
                 async with message.process(ignore_processed=True):
                     logging.debug(f"Received message: {message.body}")
                     try:
-                        if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
-                            logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
-                            await message.nack(requeue=True)
-                            self.logger.info("Waiting for 10 seconds before checking Runner status again...")
-                            await asyncio.sleep(10) 
-                            continue
+                        # TODO: This is not needed?
+                        # if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
+                        #     logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
+                        #     await message.nack(requeue=True)
+                        #     logging.info("Waiting for 10 seconds before checking Runner status again...")
+                        #     await asyncio.sleep(10) 
+                        #     continue
                         message_body = message.body
                         message_body_decoded = message_body.decode()
                         message_body_decoded = message_body_decoded.replace("'", '"')
@@ -93,6 +96,15 @@ class RabbitMQConsumer:
 
     async def start_consuming(self):
         await self.shared_queue.consume(self.consume_shared_queue)
+        logging.info("Started consuming shared queue")
+
+    async def pause_consumption(self):
+        logging.info("Pausing message consumption...")
+        self.pause_event.clear()
+
+    async def resume_consumption(self):
+        logging.info("Resuming message consumption...")
+        self.pause_event.set()
 
     async def run(self):
         await self.connect()

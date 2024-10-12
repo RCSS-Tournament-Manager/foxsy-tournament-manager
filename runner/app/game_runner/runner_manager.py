@@ -36,7 +36,7 @@ class RunnerStatusEnum(str, Enum):
             return RunnerStatusMessageEnum.UNKNOWN
 
 class RunnerManager:
-    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int):
+    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int, rabbitmq_consumer=None):
         self.logger = logging.getLogger(__name__)
         self.logger.info('GameRunnerManager created')
         self.available_games_count = 0
@@ -50,6 +50,10 @@ class RunnerManager:
         self.runner_id = runner_id
         self.pv_status = RunnerStatusEnum.UNKNOWN
         self.status = RunnerStatusEnum.RUNNING
+        self.rabbitmq_consumer = rabbitmq_consumer
+
+    def set_rabbitmq_consumer(self, consumer):
+        self.rabbitmq_consumer = consumer
 
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
@@ -230,10 +234,20 @@ class RunnerManager:
     async def handle_pause(self):
         """
         Handle pausing the Runner:
+        - Pause message consumption in rabbit.
         - Wait for ongoing games to finish.
         - Update status to PAUSED.
         - Notify TM.
         """
+        self.logger.info("Runner is pausing. Initiating pause in RabbitMQConsumer...")
+        try:
+            if self.rabbitmq_consumer:
+                await self.rabbitmq_consumer.pause_consumption()
+            else:
+                self.logger.warning("RabbitMQConsumer reference not set. Cannot pause consumption.")
+        except Exception as e:
+            self.logger.error(f"Failed to pause RabbitMQConsumer: {e}")
+
         self.logger.info("Runner is pausing. Waiting for ongoing games to finish...")
         while True:
             async with self.lock:
@@ -253,6 +267,7 @@ class RunnerManager:
         Handle resuming the Runner:
         - Update status to RUNNING.
         - Notify TM.
+        - Resume message consumption in rabbit.
         """
         self.logger.info("Runner is resuming.")
         self.status = RunnerStatusMessageEnum.RUNNING
@@ -261,15 +276,31 @@ class RunnerManager:
         if self.message_sender:
             await self.message_sender.send_message('from_runner/status_update', resume_status.model_dump())
             await self.send_status_log(self.pv_status, self.status)
+        try:
+            if self.rabbitmq_consumer:
+                await self.rabbitmq_consumer.resume_consumption()
+            else:
+                self.logger.warning("RabbitMQConsumer reference not set. Cannot resume consumption.")
+        except Exception as e:
+            self.logger.error(f"Failed to resume RabbitMQConsumer: {e}")
 
     async def handle_stop(self):
         """
         Handle stopping the Runner:
+        - pause consumption in rabbit.
         - Stop all ongoing games.
         - Update status to STOPPED.
         - Notify TM.
         """
         self.logger.info("Runner is stopping. Terminating all games...")
+        try:
+            if self.rabbitmq_consumer:
+                await self.rabbitmq_consumer.pause_consumption()
+            else:
+                self.logger.warning("RabbitMQConsumer reference not set. Cannot pause consumption.")
+        except Exception as e:
+            self.logger.error(f"Failed to pause RabbitMQConsumer: {e}")
+
         async with self.lock:
             stop_tasks = [game.stop() for game in self.games.values()]
             await asyncio.gather(*stop_tasks)
@@ -301,5 +332,3 @@ class RunnerManager:
         self.logger.info("Runner has shutdown.")
         await asyncio.sleep(1)
         await asyncio.get_event_loop().stop()
-        
-        
