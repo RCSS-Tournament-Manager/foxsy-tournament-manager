@@ -281,7 +281,7 @@ class SubmitRunnerLog(BaseModel):
     runner_id: int = Field(..., example=1)
     message: str = Field(..., example="Runner encountered an unexpected error.")
     log_level: LogLevelMessageEnum = Field(..., example="ERROR")
-    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
+    timestamp: Optional[str] = Field(None, example="2024-09-18T12:34:56Z")
 
 class UpdateTournamentRequestMessage(BaseModel):
     tournament_id: int = Field(..., example=1)

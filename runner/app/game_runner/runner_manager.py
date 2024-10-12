@@ -48,6 +48,7 @@ class RunnerManager:
         self.check_server()
         self.lock = asyncio.Lock()
         self.runner_id = runner_id
+        self.pv_status = RunnerStatusEnum.UNKNOWN
         self.status = RunnerStatusEnum.RUNNING
 
     def check_server(self):
@@ -196,6 +197,7 @@ class RunnerManager:
                     self.logger.warning("Runner is already paused.")
                     return ResponseMessage(success=False, error="400", value="Runner is already paused.")
                 else:
+                    self.pv_status = self.status
                     self.status = RunnerStatusEnum.PAUSED
                     self.logger.info("Pausing Runner: No longer accepting new games.")
                     asyncio.create_task(self.handle_pause())
@@ -205,11 +207,13 @@ class RunnerManager:
                     self.logger.warning("Runner is already running.")
                     return ResponseMessage(success=False, error="400", value="Runner is already running.")
                 else:
+                    self.pv_status = self.status
                     self.status = RunnerStatusEnum.RUNNING
                     self.logger.info("Resuming Runner: Accepting new games.")
                     asyncio.create_task(self.handle_resume())
                     return ResponseMessage(success=True, value="Runner has resumed accepting games.")
             elif command == Command.STOP:
+                    self.pv_status = self.status
                     self.status = RunnerStatusEnum.STOPPED
                     self.logger.info("Stopping Runner: Initiating shutdown.")
                     asyncio.create_task(self.handle_stop())
@@ -239,9 +243,10 @@ class RunnerManager:
         self.status = RunnerStatusMessageEnum.PAUSED
         self.logger.info("Runner has paused.")
         # Notify TM about the pause
-        pause_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
+        pause_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status,timestamp=datetime.utcnow().isoformat())
         if self.message_sender:
             await self.message_sender.send_message('from_runner/status_update', pause_status.model_dump())
+            await self.send_status_log(self.pv_status, self.status)
 
     async def handle_resume(self):
         """
@@ -255,6 +260,7 @@ class RunnerManager:
         resume_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
         if self.message_sender:
             await self.message_sender.send_message('from_runner/status_update', resume_status.model_dump())
+            await self.send_status_log(self.pv_status, self.status)
 
     async def handle_stop(self):
         """
@@ -277,14 +283,22 @@ class RunnerManager:
         stop_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
         if self.message_sender:
             await self.message_sender.send_message('from_runner/status_update', stop_status.model_dump())
+            await self.send_status_log(self.pv_status, self.status)
         # close the application
         await self.shutdown()
-        
-    async def shutdown(self):
+    
+    async def send_status_log(self,pv_status, status):
+        log = SubmitRunnerLog(
+            runner_id=self.runner_id,
+            message=f"Status changed from {pv_status} to {status}.",
+            log_level=LogLevelMessageEnum.INFO,
+            timestamp=datetime.utcnow().isoformat()
+        )
+        await self.message_sender.send_message('from_runner/submit_log', log.model_dump())
+    
+    async def shutdown(self): # TODO: there is one in main.py
         self.logger.info("Shutting down the Runner...")
-        # cleanup ? TODO
         self.logger.info("Runner has shutdown.")
-        # Close the application TODO: maybe there is a better way for it
         await asyncio.sleep(1)
         await asyncio.get_event_loop().stop()
         

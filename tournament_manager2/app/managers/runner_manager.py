@@ -348,16 +348,6 @@ class RunnerManager:
                 self.logger.info(f"Runner ID {runner.id} is already in status '{runner.status}'. No update needed.")
                 return ResponseMessage(success=True, value="Status is already up-to-date.", error=None)
 
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message=f"Status changed from {runner.status} to {status_message.status}.",
-                log_level=LogLevelEnum.INFO,
-                previous_status=runner.status,
-                new_status=status_message.status,
-                timestamp=datetime.utcnow()
-            )
-            self.db_session.add(log)
-
             runner.status = RunnerStatusEnum(status_message.status)
             runner.last_updated = datetime.utcnow()
 
