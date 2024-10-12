@@ -45,6 +45,12 @@ class RabbitMQConsumer:
                 async with message.process(ignore_processed=True):
                     logging.debug(f"Received message: {message.body}")
                     try:
+                        if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
+                            logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
+                            await message.nack(requeue=True)
+                            self.logger.info("Waiting for 10 seconds before checking Runner status again...")
+                            await asyncio.sleep(10) 
+                            continue
                         message_body = message.body
                         message_body_decoded = message_body.decode()
                         message_body_decoded = message_body_decoded.replace("'", '"')
@@ -59,13 +65,6 @@ class RabbitMQConsumer:
                         continue
                     logging.info(f"Received message: {data}")
                     logging.debug(f"Message type: {data.get('type')}")
-                    
-                    if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
-                        logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
-                        await message.nack(requeue=True)
-                        self.logger.info("Waiting for 15 seconds before checking Runner status again...")
-                        await asyncio.sleep(10) 
-                        continue
 
                     async def handle_error(error, ack=True):
                         logging.error(f"Failed to parse message: {error}")
