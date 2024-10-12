@@ -51,7 +51,7 @@ class RunnerManager:
         self.check_server()
         self.lock = asyncio.Lock()
         self.runner_id = runner_id
-        self.status = "running"
+        self.status = RunnerStatusEnum.RUNNING
 
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)

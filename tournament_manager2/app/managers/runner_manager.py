@@ -26,9 +26,6 @@ from utils.messages import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
-# import aio_pika
-# from aio_pika import Message, DeliveryMode, ExchangeType
-# import json
 import aiohttp
 
 
@@ -262,120 +259,6 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def mark_pause_runner(self, runner_id: int) -> ResponseMessage:
-        self.logger.info(f"mark_pause_runner: Runner ID {runner_id}")
-        try:
-            stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
-            result = await self.db_session.execute(stmt)
-            runner = result.scalars().first()
-
-            if not runner:
-                self.logger.error(f"Runner with id {runner_id} not found")
-                return ResponseMessage(success=False, error="Runner not found")
-
-            previous_status = runner.status
-            runner.status = RunnerStatusEnum.PAUSED
-            runner.end_time = datetime.utcnow()
-            runner.last_updated = datetime.utcnow()
-
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message="Runner has been paused.",
-                log_level=LogLevelEnum.WARNING,
-                previous_status=previous_status,
-                new_status=runner.status
-            )
-            self.db_session.add(log)
-
-            # Commit Changes
-            await self.db_session.commit()
-            self.logger.info(f"Runner {runner_id} has been paused.")
-            return ResponseMessage(success=True, error=None)
-        except SQLAlchemyError as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Database error in mark_pause_runner: {e}")
-            return ResponseMessage(success=False, error="Database error occurred")
-        except Exception as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Unexpected error in mark_pause_runner: {e}")
-            return ResponseMessage(success=False, error=str(e))
-
-    async def mark_resume_runner(self, runner_id: int) -> ResponseMessage:
-        self.logger.info(f"mark_resume_runner: Runner ID {runner_id}")
-        try:
-            stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
-            result = await self.db_session.execute(stmt)
-            runner = result.scalars().first()
-
-            if not runner:
-                self.logger.error(f"Runner with id {runner_id} not found")
-                return ResponseMessage(success=False, error="Runner not found")
-
-            previous_status = runner.status
-            runner.status = RunnerStatusEnum.RUNNING
-            runner.end_time = datetime.utcnow()
-            runner.last_updated = datetime.utcnow()
-
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message="Runner has been resumed.",
-                log_level=LogLevelEnum.WARNING,
-                previous_status=previous_status,
-                new_status=runner.status
-            )
-            self.db_session.add(log)
-
-            # Commit Changes
-            await self.db_session.commit()
-            self.logger.info(f"Runner {runner_id} has been resumed.")
-            return ResponseMessage(success=True, error=None)
-        except SQLAlchemyError as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Database error in mark_resume_runner: {e}")
-            return ResponseMessage(success=False, error="Database error occurred")
-        except Exception as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Unexpected error in mark_resume_runner: {e}")
-            return ResponseMessage(success=False, error=str(e))
-    
-    async def mark_runner_crashed(self, runner_id: int) -> ResponseMessage:
-        self.logger.info(f"mark_runner_crashed: Runner ID {runner_id}")
-        try:
-            stmt = select(RunnerModel).where(RunnerModel.id == runner_id)
-            result = await self.db_session.execute(stmt)
-            runner = result.scalars().first()
-
-            if not runner:
-                self.logger.error(f"Runner with id {runner_id} not found")
-                return ResponseMessage(success=False, error="Runner not found")
-
-            previous_status = runner.status
-            runner.status = RunnerStatusEnum.CRASHED
-            runner.end_time = datetime.utcnow()
-            runner.last_updated = datetime.utcnow()
-
-            log = RunnerLogModel(
-                runner_id=runner.id,
-                message="Runner has crashed.",
-                log_level=LogLevelEnum.ERROR,
-                previous_status=previous_status,
-                new_status=runner.status
-            )
-            self.db_session.add(log)
-
-            # Commit Changes
-            await self.db_session.commit()
-            self.logger.info(f"Runner {runner_id} marked as crashed.")
-            return ResponseMessage(success=True, error=None)
-        except SQLAlchemyError as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Database error in mark_runner_crashed: {e}")
-            return ResponseMessage(success=False, error="Database error occurred")
-        except Exception as e:
-            await self.db_session.rollback()
-            self.logger.error(f"Unexpected error in mark_runner_crashed: {e}")
-            return ResponseMessage(success=False, error=str(e))
-
     async def send_command(self, runner_id: int, command: str) -> ResponseMessage:#, command_type: Optional[RunnerCommandTypeEnum] = None, parameters: Optional[Dict[str, str]] = None) -> ResponseMessage:
         self.logger.info(f"send_command: Sending command '{command}' to runner {runner_id} ") # with type '{command_type}' and parameters {parameters}")
         try:
@@ -385,35 +268,8 @@ class RunnerManager:
                 self.logger.error(f"send_command: Runner with id {runner_id} not found")
                 return ResponseMessage(success=False, error="Runner not found")
             
-            runner = runner_response  # Type: GetRunnerResponseMessage
+            runner = runner_response 
 
-            # Publish the command to RabbitMQ
-            # TODO: Implement RabbitMQ Publisher?
-            # connection = await aio_pika.connect_robust("amqp://???/")
-
-            # async with connection:
-            #     # Create a channel
-            #     channel = await connection.channel()
-
-            #     exchange = await channel.declare_exchange(
-            #         name='runner_commands', type=ExchangeType.DIRECT
-            #     )
-
-            #     message_body = {
-            #         "command": command,
-            #         "runner_id": runner_id,
-            #     }
-            #     message = Message(
-            #         body=json.dumps(message_body).encode(),
-            #         delivery_mode=DeliveryMode.PERSISTENT,
-            #     )
-
-            #     routing_key = f"runner.{runner_id}"
-            #     await exchange.publish(
-            #         message, routing_key=routing_key
-            #     )
-            
-            # TODO: or use API request?
             scheme = "http"  # or "https" if SSL/TLS
             ip=runner.address.split(":")[0]
             port=runner.address.split(":")[1]
