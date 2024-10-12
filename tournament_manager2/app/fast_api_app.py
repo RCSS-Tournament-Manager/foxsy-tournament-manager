@@ -584,7 +584,7 @@ class FastApiApp:
                     runner_id=log.runner_id,
                     message=log.message,
                     log_level=log.log_level,
-                    timestamp=log.timestamp # or datetime.utcnow()
+                    timestamp=datetime.fromisoformat(log.timestamp) # or datetime.utcnow()
                 )
 
                 runner_manager.db_session.add(new_log)
