@@ -271,7 +271,10 @@ class RunnerManager:
             }
             
             RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
-            
+            # check if the runner is stopped or crashed
+            if runner.status == RunnerStatusEnum.STOPPED or runner.status == RunnerStatusEnum.CRASHED:
+                self.logger.error(f"send_command: Runner with id {runner_id} is stopped or crashed.")
+                return ResponseMessage(success=False, error="Runner is stopped or crashed.")
             async with aiohttp.ClientSession() as session:
                 async with session.post(runner_api_url,
                                         json=command_data,
