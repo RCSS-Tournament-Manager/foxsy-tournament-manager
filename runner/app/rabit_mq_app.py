@@ -42,18 +42,21 @@ class RabbitMQConsumer:
     async def process_messages(self):
         try:
             while True:
+                logging.info(f"rabbit pause status: {'Msg Allowed' if self.pause_event.is_set() else 'Msg Paused'}")
                 await self.pause_event.wait()
+                logging.debug(f"Processing message. pause_event is_set: {self.pause_event.is_set()}")
+
                 message = await self.message_queue.get()
                 async with message.process(ignore_processed=True):
                     logging.debug(f"Received message: {message.body}")
                     try:
-                        # TODO: This is not needed?
-                        # if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
-                        #     logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
-                        #     await message.nack(requeue=True)
-                        #     logging.info("Waiting for 10 seconds before checking Runner status again...")
-                        #     await asyncio.sleep(10) 
-                        #     continue
+                        # TODO: This is needed for the first message after pause to not be processed.
+                        if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
+                            logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
+                            await message.nack(requeue=True)
+                            logging.info("Waiting for 10 seconds before checking Runner status again...")
+                            await asyncio.sleep(10) 
+                            continue
                         message_body = message.body
                         message_body_decoded = message_body.decode()
                         message_body_decoded = message_body_decoded.replace("'", '"')
