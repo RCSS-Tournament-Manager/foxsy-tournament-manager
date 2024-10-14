@@ -240,7 +240,7 @@ class RunnerManager:
                 if not self.games:
                     break
             await asyncio.sleep(2)  # Wait before checking again
-        self.status = RunnerStatusMessageEnum.PAUSED
+        self.status = RunnerStatusEnum.PAUSED
         self.logger.info("Runner has paused.")
         # Notify TM about the pause
         pause_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status,timestamp=datetime.utcnow().isoformat())
@@ -255,7 +255,7 @@ class RunnerManager:
         - Notify TM.
         """
         self.logger.info("Runner is resuming.")
-        self.status = RunnerStatusMessageEnum.RUNNING
+        self.status = RunnerStatusEnum.RUNNING
         # Notify TM about the resume
         resume_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
         if self.message_sender:
@@ -277,7 +277,7 @@ class RunnerManager:
             self.available_ports = []
             self.available_games_count = 0
         self.logger.info("All games stopped. Exiting Runner.")
-        self.status = RunnerStatusMessageEnum.STOPPED
+        self.status = RunnerStatusEnum.STOPPED
         self.logger.info("Runner has stopped.")
         # Notify TM about the stop
         stop_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status)
