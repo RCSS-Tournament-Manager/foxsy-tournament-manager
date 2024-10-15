@@ -25,6 +25,12 @@ class RunnerStatusMessageEnum(str, Enum):
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
 
+class RunnerCommandMessageEnum(str, Enum):
+    RESUME = 'resume'
+    PAUSE = 'pause'
+    STOP = 'stop'
+    HELLO = 'hello'
+
 class BaseMessage(BaseModel):
     pass
 
@@ -197,6 +203,27 @@ class UpdateTeamRequestMessage(BaseMessage):
             return encode_json(self.team_config_json)
         return None
 
+class AddFriendlyGameRequestMessage(BaseModel):
+    user_code: str = Field(None, example="123456")
+    left_team_id: int = Field(None, example=1)
+    right_team_id: int = Field(None, example=2)
+    left_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433\"}"')
+    right_team_config_json: Optional[str] = Field(None, example='"{\"version\":1, \"formation_name\":\"433\"}"')
+    left_team_config_json_encoded: Optional[str] = Field(None, example='{@qq@version@qq@:1@c@@qq@formation_name@qq@:@qq@433@qq@}')
+    right_team_config_json_encoded: Optional[str] = Field(None, example='{@qq@version@qq@:1@c@@qq@formation_name@qq@:@qq@433@qq@}')
+    server_config: Optional[str] = Field(None, example="--server::auto_mode=true")
+    
+    def fix_json(self):
+        if self.left_team_config_json:
+            fix_json(self.left_team_config_json)
+        if self.right_team_config_json:
+            fix_json(self.right_team_config_json)
+
+    def encoded_json(self):
+        if self.left_team_config_json:
+            self.left_team_config_json_encoded = encode_json(self.left_team_config_json)
+        if self.right_team_config_json:
+            self.right_team_config_json_encoded = encode_json(self.right_team_config_json)
 
 class GetTeamRequestMessage(BaseMessage):
     user_code: Optional[str] = Field(None, example="123456")
@@ -290,8 +317,10 @@ class UpdateTournamentRequestMessage(BaseModel):
 
 class SendCommandRequest(BaseModel):
     runner_ids: Optional[Union[int, List[int]]] = Field(None,examples=[1,2],description="Runner ID (int) or list of runner IDs to send the command to.")
-    command: str = Field(..., examples=['resume', 'pause', 'stop', 'hello'],description="Command to send to the runner.")
-    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z", description="Time the command was issued.")
+    command: RunnerCommandMessageEnum = Field(..., examples=['resume', 'pause', 'stop', 'hello'],description="Command to send to the runner.")
+
+class RequestedCommandToRunnerMessage(BaseModel):
+    command: RunnerCommandMessageEnum = Field(..., example="resume", description="Command to be sent to the runner.")
 
 class RunnerStatusMessage(BaseModel):
     runner_id: Optional[int]

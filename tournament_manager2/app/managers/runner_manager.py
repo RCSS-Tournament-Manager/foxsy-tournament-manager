@@ -10,7 +10,7 @@ from models.runner_log_model import RunnerLogModel, LogLevelEnum
 from models.tournament_model import TournamentModel, TournamentStatus
 import logging
 import traceback
-
+from utils.message_sender import MessageSender
 from datetime import datetime
 from utils.messages import *
 from sqlalchemy.exc import SQLAlchemyError
@@ -247,7 +247,32 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def send_command(self, runner_id: int, command: str) -> ResponseMessage:#, command_type: Optional[RunnerCommandTypeEnum] = None, parameters: Optional[Dict[str, str]] = None) -> ResponseMessage:
+    async def send_command_to_runners(self, runner_ids: List[int], command: RunnerCommandMessageEnum) -> List[Dict[str, Any]]: # A list of responses from each runner.
+        self.logger.info(f"send_command_to_runners: Sending command '{command}' to runners: {runner_ids}")
+        try:
+            if not runner_ids or len(runner_ids) == 0:
+                stmt = select(RunnerModel).where(RunnerModel.status != RunnerStatusEnum.CRASHED).where(RunnerModel.status != RunnerStatusEnum.STOPPED) # not crashed or stopped
+                result = await self.db_session.execute(stmt)
+                runners = result.scalars().all()
+
+                if not runners:
+                    self.logger.warning("No runners available to send the command")
+                    return []
+                
+                runner_ids = [runner.id for runner in runners]
+                self.logger.info(f"send_command_to_runners: No runner IDs provided. Using all available runners: {runner_ids}")
+
+            responses = []
+            for runner_id in runner_ids:
+                response = await self.send_command(runner_id, command)
+                responses.append({"runner_id": runner_id, "response": response})
+            return responses
+        except Exception as e:
+            self.logger.error(f"send_command_to_runners: Unexpected error: {e}")
+            traceback.print_exc()
+            return []
+                
+    async def send_command(self, runner_id: int, command: RunnerCommandMessageEnum) -> ResponseMessage:#, command_type: Optional[RunnerCommandTypeEnum] = None, parameters: Optional[Dict[str, str]] = None) -> ResponseMessage:
         self.logger.info(f"send_command: Sending command '{command}' to runner {runner_id} ") # with type '{command_type}' and parameters {parameters}")
         try:
             # Retrieve the runner
@@ -257,79 +282,46 @@ class RunnerManager:
                 return ResponseMessage(success=False, error="Runner not found")
             
             runner = runner_response 
-
-            scheme = "http"  # or "https" if SSL/TLS
-            ip=runner.address.split(":")[0]
-            port=runner.address.split(":")[1]
-            runner_api_url = f"{scheme}://{ip}:{port}/runner/receive_command" #TODO: is this correct?
-
-            # Prepare the command data
-            command_data = {
-                "command": command,
-                # "parameters": parameters or {},
-                "timestamp": datetime.utcnow().isoformat() + "Z"
-            }
             
-            RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
             # check if the runner is stopped or crashed
             if runner.status == RunnerStatusEnum.STOPPED or runner.status == RunnerStatusEnum.CRASHED:
                 self.logger.error(f"send_command: Runner with id {runner_id} is stopped or crashed.")
                 return ResponseMessage(success=False, error="Runner is stopped or crashed.")
-            async with aiohttp.ClientSession() as session:
-                async with session.post(runner_api_url,
-                                        json=command_data,
-                                        headers={"api_key": f" {RUNNER_API_KEY}"},
-                                        ssl=False #TODO: depends on the runner's configuration, True if SSL/TLS.
-                                    ) as resp:
-                    if resp.status == 200:
-                        response_data = await resp.json()
-                        if response_data.get("success"):
-                            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
-                            res = ResponseMessage(
-                                    success=response_data.get("success"),
-                                    error=response_data.get("error"),
-                                    value=response_data.get("value"),
-                                    message=response_data.get("message"))
-                            return res
-                        else:
-                            error_message = response_data.get("error", "Unknown error")
-                            value_message = response_data.get("value", None)
-                            self.logger.error(f"send_command: Runner responded with error: {error_message}")
-                            return ResponseMessage(success=False, error=error_message, value=value_message)
-                    else:
-                        error_message = f"Runner returned status code {resp.status}"
-                        # value_message = resp.get("value", None)
-                        self.logger.error(f"send_command: {error_message}")
-                        return ResponseMessage(success=False, error=error_message) #, value=value_message)
             
-            self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
-            return ResponseMessage(success=True, error=None)
+            ip=runner.address.split(":")[0]
+            port=runner.address.split(":")[1]
+            RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
+
+            # Prepare the command data
+            coommand = RequestedCommandToRunnerMessage(command=command)
+
+            message_sender = MessageSender(ip, port, RUNNER_API_KEY)
+            resp = await message_sender.send_message("runner/receive_command", coommand.model_dump())
+            
+            if resp.status == 200:
+                response_data = await resp.json()
+                if response_data.get("success"):
+                    self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+                    res = ResponseMessage(
+                            success=response_data.get("success"),
+                            error=response_data.get("error"),
+                            value=response_data.get("value"),
+                            message=response_data.get("message"))
+                    return res
+                else:
+                    error_message = response_data.get("error", "Unknown error")
+                    value_message = response_data.get("value", None)
+                    self.logger.error(f"send_command: Runner responded with error: {error_message}")
+                    return ResponseMessage(success=False, error=error_message, value=value_message)
+            else:
+                error_message = f"Runner returned status code {resp.status}"
+                # value_message = resp.get("value", None)
+                self.logger.error(f"send_command: {error_message}")
+                return ResponseMessage(success=False, error=error_message) #, value=value_message)
         except Exception as e:
             self.logger.error(f"send_command: Unexpected error: {e}")
             traceback.print_exc()
             return ResponseMessage(success=False, error=str(e))
-    
-    async def send_command_to_all(self, command: str) -> List[Dict[str, Any]]: # A list of responses from each runner.
-        self.logger.info(f"send_command_to_all: Sending command '{command}' to all runners")
-        try:
-            # Retrieve all runners
-            stmt = select(RunnerModel).where(RunnerModel.status != RunnerStatusEnum.CRASHED).where(RunnerModel.status != RunnerStatusEnum.STOPPED) # not crashed or stopped
-            result = await self.db_session.execute(stmt)
-            runners = result.scalars().all()
-
-            if not runners:
-                self.logger.warning("No runners available to send the command")
-                return []
-
-            responses = []
-            for runner in runners:
-                response = await self.send_command(runner.id, command)
-                responses.append({"runner_id": runner.id, "response": response})
-            return responses
-        except Exception as e:
-            self.logger.error(f"send_command_to_all: Unexpected error: {e}")
-            traceback.print_exc()
-            return []
     
     async def handle_status_update(self, status_message: RunnerStatusMessage) -> ResponseMessage:
         self.logger.info(f"Handling status update for Runner ID {status_message.runner_id}: {status_message.status}")
