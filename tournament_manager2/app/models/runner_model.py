@@ -6,9 +6,9 @@ from .base import Base
 from .game_model import GameModel
 from enum import Enum
 from datetime import datetime
-from utils.messages import RunnerStatusMessageEnum
+from utils.messages import *
 
-class RunnerStatusEnum(str, Enum):
+class RunnerStatusEnum(str, Enum): # TODO it should be remove and use RunnerStatusMessageEnum
     RUNNING = 'running'
     PAUSED = 'paused'
     STOPPED = 'stopped'
@@ -29,27 +29,6 @@ class RunnerStatusEnum(str, Enum):
         else:
             return RunnerStatusMessageEnum.UNKNOWN
 
-class RunnerCommandEnum(str, Enum):
-    # START = 'start'
-    STOP = 'stop'
-    PAUSE = 'pause'
-    RESUME = 'resume'
-    # RESTART = 'restart'
-    # UNKNOWN = 'unknown'
-
-    def to_RunnerCommandEnum(self):
-        # if self == RunnerCommandEnum.START:
-        #     return RunnerCommandEnum.START
-        if self == RunnerCommandEnum.STOP:
-            return RunnerCommandEnum.STOP
-        elif self == RunnerCommandEnum.PAUSE:
-            return RunnerCommandEnum.PAUSE
-        elif self == RunnerCommandEnum.RESUME:
-            return RunnerCommandEnum.RESUME
-        # elif self == RunnerCommandEnum.RESTART:
-        #     return RunnerCommandEnum.RESTART
-        # else:
-        #     return RunnerCommandEnum.UNKNOWN
 
 class RunnerModel(Base):
     __tablename__ = 'runners'
@@ -61,6 +40,7 @@ class RunnerModel(Base):
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
     last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+    requested_command = Column(SQLEnum(RunnerCommandMessageEnum, native_enum=False), default=RunnerCommandMessageEnum.NONE, nullable=False)
     # runner.api_key = "api-key" maybe?  is it safe?
     
     

@@ -269,6 +269,7 @@ class GetRunnerResponseMessage(BaseModel):
     end_time: Optional[datetime] = None
     address: str
     available_games_count: int
+    requested_command: Optional[RunnerCommandMessageEnum] = None
 
 class GetAllRunnersResponseMessage(BaseModel):
     runners: List[GetRunnerResponseMessage]

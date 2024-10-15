@@ -38,9 +38,10 @@ class RunnerManager:
                 id=runner.id,
                 start_time=runner.start_time,
                 end_time=runner.end_time,
-                status=runner.status.to_RunnerStatusMessageEnum(),
+                status=runner.status,
                 address=runner.address,
-                available_games_count=runner.available_games_count
+                available_games_count=runner.available_games_count,
+                requested_command=runner.requested_command
             )
         except SQLAlchemyError as e:
             self.logger.error(f"Database error in get_runner: {e}")
@@ -281,7 +282,7 @@ class RunnerManager:
                 self.logger.error(f"send_command: Runner with id {runner_id} not found")
                 return ResponseMessage(success=False, error="Runner not found")
             
-            runner = runner_response 
+            runner: RunnerModel = runner_response 
             
             # check if the runner is stopped or crashed
             if runner.status == RunnerStatusEnum.STOPPED or runner.status == RunnerStatusEnum.CRASHED:
@@ -298,10 +299,12 @@ class RunnerManager:
             message_sender = MessageSender(ip, port, RUNNER_API_KEY)
             resp = await message_sender.send_message("runner/receive_command", coommand.model_dump())
             
-            if resp.status == 200:
-                response_data = await resp.json()
+            if resp.status_code == 200:
+                response_data = resp.json()
                 if response_data.get("success"):
                     self.logger.info(f"send_command: Command '{command}' successfully sent to runner {runner_id}")
+                    runner.requested_command = command # todo it does not work
+                    await self.db_session.commit()
                     res = ResponseMessage(
                             success=response_data.get("success"),
                             error=response_data.get("error"),
@@ -342,6 +345,7 @@ class RunnerManager:
 
             runner.status = RunnerStatusEnum(status_message.status)
             runner.last_updated = datetime.utcnow()
+            runner.requested_command = RunnerCommandMessageEnum.NONE
 
             # Commit the transaction
             await self.db_session.commit()
