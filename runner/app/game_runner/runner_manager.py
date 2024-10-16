@@ -8,7 +8,9 @@ from data_dir import DataDir
 from utils.messages import *
 from utils.message_sender import MessageSender
 from storage.downloader import Downloader
+from enum import Enum
 import requests
+
 
 class RunnerManager:
     def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int):
@@ -23,6 +25,8 @@ class RunnerManager:
         self.check_server()
         self.lock = asyncio.Lock()
         self.runner_id = runner_id
+        self.status = RunnerStatusMessageEnum.RUNNING
+        self.requested_command: RunnerCommandMessageEnum = None
 
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
@@ -64,6 +68,9 @@ class RunnerManager:
         async with self.lock:
             #TODO try except
             self.logger.info(f'GameRunnerManager adding game: {game_info}')
+            if self.status != RunnerStatusMessageEnum.RUNNING:
+                self.logger.warning(f'GameRunnerManager add_game: Runner is not running. Current status: {self.status}')
+                return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error=f'Runner is {self.status}')
             if self.available_games_count == 0:
                 self.logger.warning(f'GameRunnerManager add_game: No available games')
                 return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available games')
@@ -156,6 +163,65 @@ class RunnerManager:
         res.success = True
         return res
 
+    async def get_status(self):
+        return ResponseMessage(value=self.status)
+
+    async def receive_command(self, command: RunnerCommandMessageEnum) -> ResponseMessage:
+        self.logger.info(f'GameRunnerManager receive_command: {command}')
+        try:
+            if command == RunnerCommandMessageEnum.PAUSE:
+                if self.status == RunnerStatusMessageEnum.PAUSED:
+                    self.logger.warning("Runner is already paused.")
+                    return ResponseMessage(success=False, error="400", value="Runner is already paused.")
+                else:
+                    self.requested_command = command
+                    self.logger.info("Pausing Runner: No longer accepting new games.")
+                    return ResponseMessage(success=True, value="Runner is pausing. No new games will be accepted.")
+            elif command == RunnerCommandMessageEnum.RESUME:
+                if self.status == RunnerStatusMessageEnum.RUNNING:
+                    self.logger.warning("Runner is already running.")
+                    return ResponseMessage(success=False, error="400", value="Runner is already running.")
+                else:
+                    self.requested_command = command
+                    self.logger.info("Resuming Runner: Accepting new games.")
+                    return ResponseMessage(success=True, value="Runner has resumed accepting games.")
+            elif command == RunnerCommandMessageEnum.STOP:
+                    self.requested_command = command
+                    self.logger.info("Stopping Runner: Initiating shutdown.")
+                    return ResponseMessage(success=True, value="Runner is stopping.")
+            elif command == RunnerCommandMessageEnum.HELLO:
+                self.logger.info("Hello - Direct Command, TM!")
+                return ResponseMessage(success=True, value="Hello, TM!", obj={"success": True, "value": "Hello - Direct Command, TM!", "error": None})
+            else:
+                raise ValueError(f"Unknown command: {command}")
+        except Exception as e:
+            self.logger.error(f'GameRunnerManager receive_command[{command}]: {e}')
+            return ResponseMessage(success=False, error=str(e))
+
+    async def update_status_to(self, new_status: RunnerStatusMessageEnum):
+        self.logger.info(f'GameRunnerManager update_status_to: {new_status}')
+        self.status = new_status
+        # Notify TM about the pause
+        pause_status = RunnerStatusMessage(runner_id=self.runner_id,status=self.status,timestamp=datetime.utcnow().isoformat())
+        if self.message_sender:
+            await self.message_sender.send_message('from_runner/status_update', pause_status.model_dump())
+            # await self.send_status_log(self.pv_status, self.status)
+    
+    async def send_status_log(self,pv_status, status):
+        log = SubmitRunnerLog(
+            runner_id=self.runner_id,
+            message=f"Status changed from {pv_status} to {status}.",
+            log_level=LogLevelMessageEnum.INFO,
+            timestamp=datetime.utcnow().isoformat()
+        )
+        await self.message_sender.send_message('from_runner/submit_log', log.model_dump())
+    
+    async def shutdown(self): # TODO: there is one in main.py
+        self.logger.info("Shutting down the Runner...")
+        self.logger.info("Runner has shutdown.")
+        await asyncio.sleep(1)
+        await asyncio.get_event_loop().stop()
+        
     async def update_base_minio(
             self, 
             base_team_name: str, 

@@ -362,6 +362,22 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
+        @self.app.post("/game/add_friendly_game", response_model=ResponseMessage, tags=["Game Management"])
+        async def add_friendly_game(message_json: AddFriendlyGameRequestMessage,
+                                    tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                    user_manager: UserManager = Depends(get_user_manager),
+                                    api_key: str = Depends(get_api_key)):
+            self.logger.info(f"add_friendly_game: {message_json}")
+            try:
+                message = message_json
+                AddFriendlyGameRequestMessage.model_validate(message.model_dump())
+                self.logger.info(f"add_friendly_game: adding message to manager: {message}")
+                return await tournament_manager.add_friendly_game(message)
+            except Exception as e:
+                self.logger.error(f"add_friendly_game: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+            
         @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage], tags=["Game Management"])
         async def get_game(game_id: int,
                            tournament_manager: TournamentManager = Depends(get_tournament_manager),
@@ -488,6 +504,34 @@ class FastApiApp:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @self.app.post("/runner/send_command", response_model=AnyResponseMessage, tags=["Runner Management"])
+        async def send_command(
+            command_request: SendCommandRequest,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            """
+            - If runner_ids is None, the command is sent to all runners.
+            - If runner_ids is an int or a list of ints, the command is sent to that specific runners.
+            - If runner_ids is empty or contains invalid IDs, appropriate errors are returned.
+            """
+            self.logger.info(f"send_command: {command_request}")
+            valid_commands = ["stop", "pause", "resume", "hello"]
+            if command_request.command not in valid_commands:
+                self.logger.error(f"send_command: Invalid command: {command_request.command}")
+                return AnyResponseMessage(success=False, value="Invalid command.")
+            try:
+                runners_ids = command_request.runner_ids if command_request.runner_ids else []
+                if isinstance(command_request.runner_ids, int):
+                    runners_ids = [command_request.runner_ids]
+                
+                responses = await runner_manager.send_command_to_runners(runners_ids, command_request.command)
+                return AnyResponseMessage(success=True, value=responses, error=None)
+            except Exception as e:
+                self.logger.exception(f"send_command: Unexpected error: {e}")
+                traceback.print_exc()
+                return AnyResponseMessage(success=False, error=str(e))
+
         @self.app.post("/from_runner/game_started", response_model=ResponseMessage, tags=["Runner Management"])
         async def game_started(
             json: GameStartedMessage,
@@ -551,7 +595,7 @@ class FastApiApp:
                     runner_id=log.runner_id,
                     message=log.message,
                     log_level=log.log_level,
-                    timestamp=log.timestamp # or datetime.utcnow()
+                    timestamp=datetime.fromisoformat(log.timestamp) # or datetime.utcnow()
                 )
 
                 runner_manager.db_session.add(new_log)
@@ -566,6 +610,25 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
+        @self.app.post("/from_runner/status_update", response_model=ResponseMessage, tags=["Runner Management"])
+        async def status_update(
+            status_message: RunnerStatusMessage,
+            runner_manager: RunnerManager = Depends(get_runner_manager),
+            api_key: str = Depends(get_api_key)
+        ):
+            self.logger.info(f"status_update: {status_message}")
+            try:
+                response = await runner_manager.handle_status_update(status_message)
+                if not response.success:
+                    raise HTTPException(status_code=400, detail=response.error)
+                return response
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                self.logger.error(f"status_update: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+            
         @self.app.get("/docs", include_in_schema=False)
         async def custom_swagger_ui_html():
             if self.is_static_mounted:

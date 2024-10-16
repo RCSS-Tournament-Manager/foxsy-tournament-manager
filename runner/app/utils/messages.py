@@ -21,8 +21,15 @@ class LogLevelMessageEnum(str, Enum):
 class RunnerStatusMessageEnum(str, Enum):
     RUNNING = 'running'
     PAUSED = 'paused'
+    STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
+
+class RunnerCommandMessageEnum(str, Enum):
+    RESUME = 'resume'
+    PAUSE = 'pause'
+    STOP = 'stop'
+    HELLO = 'hello'
 
 class BaseMessage(BaseModel):
     pass
@@ -271,6 +278,7 @@ class GetRunnerResponseMessage(BaseModel):
     end_time: Optional[datetime] = None
     address: str
     available_games_count: int
+    requested_command: Optional[RunnerCommandMessageEnum] = None
 
 class GetAllRunnersResponseMessage(BaseModel):
     runners: List[GetRunnerResponseMessage]
@@ -288,12 +296,22 @@ class SubmitRunnerLog(BaseModel):
     runner_id: int = Field(..., example=1)
     message: str = Field(..., example="Runner encountered an unexpected error.")
     log_level: LogLevelMessageEnum = Field(..., example="ERROR")
-    timestamp: Optional[datetime] = Field(None, example="2024-09-18T12:34:56Z")
+    timestamp: Optional[str] = Field(None, example="2024-09-18T12:34:56Z")
 
 class UpdateTournamentRequestMessage(BaseModel):
     tournament_id: int = Field(..., example=1)
     start_registration_at: Optional[bool] = Field(None, example=False)
     end_registration_at: Optional[bool] = Field(None, example=False)
     start_at: Optional[bool] = Field(None, example=False)
+
+class SendCommandRequest(BaseModel):
+    runner_ids: Optional[Union[int, List[int]]] = Field(None,examples=[1,2],description="Runner ID (int) or list of runner IDs to send the command to.")
+    command: RunnerCommandMessageEnum = Field(..., examples=['resume', 'pause', 'stop', 'hello'],description="Command to send to the runner.")
+
+class RequestedCommandToRunnerMessage(BaseModel):
+    command: RunnerCommandMessageEnum = Field(..., example="resume", description="Command to be sent to the runner.")
     
-    
+class RunnerStatusMessage(BaseModel):
+    runner_id: Optional[int]
+    status: RunnerStatusMessageEnum
+    timestamp: Optional[str] = None  # ISO formatted timestamp (optional)

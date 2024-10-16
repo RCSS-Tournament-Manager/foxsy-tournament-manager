@@ -6,35 +6,21 @@ from .base import Base
 from .game_model import GameModel
 from enum import Enum
 from datetime import datetime
-from utils.messages import RunnerStatusMessageEnum
-
-class RunnerStatusEnum(str, Enum):
-    RUNNING = 'running'
-    PAUSED = 'paused'
-    UNKNOWN = 'unknown'
-    CRASHED = 'crashed'
-
-    def to_RunnerStatusMessageEnum(self):
-        if self == RunnerStatusEnum.RUNNING:
-            return RunnerStatusMessageEnum.RUNNING
-        elif self == RunnerStatusEnum.PAUSED:
-            return RunnerStatusMessageEnum.PAUSED
-        elif self == RunnerStatusEnum.UNKNOWN:
-            return RunnerStatusMessageEnum.UNKNOWN
-        elif self == RunnerStatusEnum.CRASHED:
-            return RunnerStatusMessageEnum.CRASHED
-        else:
-            return RunnerStatusMessageEnum.UNKNOWN
+from utils.messages import *
 
 class RunnerModel(Base):
     __tablename__ = 'runners'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    status = Column(SQLEnum(RunnerStatusEnum, native_enum=False), default=RunnerStatusEnum.UNKNOWN, nullable=False)
+    status = Column(SQLEnum(RunnerStatusMessageEnum, native_enum=False), default=RunnerStatusMessageEnum.UNKNOWN, nullable=False)
     address = Column(String, nullable=False, unique=True)
     available_games_count = Column(Integer, default=0, nullable=False)
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+    requested_command = Column(SQLEnum(RunnerCommandMessageEnum, native_enum=False), default=RunnerCommandMessageEnum.NONE, nullable=False)
+    # runner.api_key = "api-key" maybe?  is it safe?
+    
     
     # Relationships
     games = relationship('GameModel', back_populates='runner')
