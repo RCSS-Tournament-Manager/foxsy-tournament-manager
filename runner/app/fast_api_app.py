@@ -63,7 +63,7 @@ class FastApiApp:
             return await self.manager.stop_game_by_port(port)
         
         @self.app.post("/runner/receive_command", response_model=ResponseMessage)
-        async def receive_command(command_request: ReceiveCommandResponse, api_key: str = Depends(get_api_key)):
+        async def receive_command(command_request: RequestedCommandToRunnerMessage, api_key: str = Depends(get_api_key)):
             try:
                 command = command_request.command
                 self.logger.info(f"Received command: {command}")
@@ -72,6 +72,10 @@ class FastApiApp:
                 self.logger.error(f"Error receiving command: {str(e)}")
                 return ResponseMessage(success=False, error=str(e))
     
+        @self.app.get("/runner/status")
+        async def get_runner_status(api_key: str = Depends(get_api_key)):
+            return self.manager.status
+        
     async def run(self):
         config = uvicorn.Config(self.app, host="0.0.0.0", port=self.port)
         server = uvicorn.Server(config)

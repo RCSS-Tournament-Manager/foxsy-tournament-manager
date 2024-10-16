@@ -362,6 +362,22 @@ class FastApiApp:
                 traceback.print_exc()
                 return ResponseMessage(success=False, error=str(e))
 
+        @self.app.post("/game/add_friendly_game", response_model=ResponseMessage, tags=["Game Management"])
+        async def add_friendly_game(message_json: AddFriendlyGameRequestMessage,
+                                    tournament_manager: TournamentManager = Depends(get_tournament_manager),
+                                    user_manager: UserManager = Depends(get_user_manager),
+                                    api_key: str = Depends(get_api_key)):
+            self.logger.info(f"add_friendly_game: {message_json}")
+            try:
+                message = message_json
+                AddFriendlyGameRequestMessage.model_validate(message.model_dump())
+                self.logger.info(f"add_friendly_game: adding message to manager: {message}")
+                return await tournament_manager.add_friendly_game(message)
+            except Exception as e:
+                self.logger.error(f"add_friendly_game: {e}")
+                traceback.print_exc()
+                return ResponseMessage(success=False, error=str(e))
+            
         @self.app.get("/game/get/{game_id}", response_model=Union[GameMessage, ResponseMessage], tags=["Game Management"])
         async def get_game(game_id: int,
                            tournament_manager: TournamentManager = Depends(get_tournament_manager),
@@ -502,20 +518,15 @@ class FastApiApp:
             self.logger.info(f"send_command: {command_request}")
             valid_commands = ["stop", "pause", "resume", "hello"]
             if command_request.command not in valid_commands:
+                self.logger.error(f"send_command: Invalid command: {command_request.command}")
                 return AnyResponseMessage(success=False, value="Invalid command.")
             try:
-                if isinstance(command_request.runner_ids, int): 
-                    response = await runner_manager.send_command(command_request.runner_ids, command_request.command)
-                    return AnyResponseMessage(success=response.success, value=response.value)
-                elif isinstance(command_request.runner_ids, list): # check list
-                    responses = []
-                    for runner_id in command_request.runner_ids:  
-                        response = await runner_manager.send_command(runner_id, command_request.command)
-                        responses.append({"runner_id": runner_id, "response": response})
-                    return AnyResponseMessage(success=True, value=responses, error=None)
-                else: # Send command to all runners if runner_ids is None
-                    responses = await runner_manager.send_command_to_all(command_request.command)
-                    return AnyResponseMessage(success=True, value=responses, error=None)
+                runners_ids = command_request.runner_ids if command_request.runner_ids else []
+                if isinstance(command_request.runner_ids, int):
+                    runners_ids = [command_request.runner_ids]
+                
+                responses = await runner_manager.send_command_to_runners(runners_ids, command_request.command)
+                return AnyResponseMessage(success=True, value=responses, error=None)
             except Exception as e:
                 self.logger.exception(f"send_command: Unexpected error: {e}")
                 traceback.print_exc()

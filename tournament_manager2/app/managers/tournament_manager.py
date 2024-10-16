@@ -12,6 +12,8 @@ import logging
 from storage.minio_client import MinioClient
 from typing import AsyncGenerator, List
 from sqlalchemy.ext.asyncio import AsyncSession
+import random
+import string
 
 
 class TournamentManager:
@@ -296,3 +298,66 @@ class TournamentManager:
 
         await self.db_session.commit()
         return ResponseMessage(success=True, error=None)
+    
+    async def add_friendly_game(self, message: AddFriendlyGameRequestMessage):
+        stmt = select(TeamModel).filter_by(id=message.left_team_id)
+        left_team = await self.db_session.execute(stmt)
+        left_team = left_team.scalars().first()
+        
+        if not left_team:
+            return ResponseMessage(success=False, error='left teams not found')
+        
+        stmt = select(TeamModel).filter_by(id=message.right_team_id)
+        right_team = await self.db_session.execute(stmt)
+        right_team = right_team.scalars().first()
+
+        if not right_team:
+            return ResponseMessage(success=False, error='right teams not found')
+        
+        response: ResponseMessage = await self.add_tournament(AddTournamentRequestMessage(
+            user_code=message.user_code,
+            tournament_name=''.join(random.choices(string.ascii_uppercase + string.digits, k=10)),
+            start_registration_at=datetime.utcnow() + datetime.timedelta(days=1),
+            end_registration_at=datetime.utcnow() + datetime.timedelta(days=2),
+            start_at=datetime.utcnow() + datetime.timedelta(days=3)
+        ))
+
+        if not response.success:
+            return response
+
+        stmt = select(TournamentModel).options(
+            selectinload(TournamentModel.teams)
+            ).filter_by(id=message.tournament_id)
+        tournament = await self.db_session.execute(stmt)
+        tournament = tournament.scalars().first()
+        
+        def register_team(team: TeamModel):
+            if not team.base_team or len(team.base_team) == 0:
+                self.logger.error(f"Team has no base team")
+                return ResponseMessage(success=False, error='Team has no base team')
+            
+            if tournament.status != TournamentStatus.REGISTRATION:
+                self.logger.error(f"Tournament is not in registration phase")
+                return ResponseMessage(success=False, error='Tournament is not in registration phase')
+            
+            if team in tournament.teams:
+                self.logger.error(f"Team is already registered")
+                return ResponseMessage(success=False, error='Team is already registered')
+            
+            team.tournaments.append(tournament)
+
+            return ResponseMessage(success=True, error=None)
+        
+        response = register_team(left_team)
+        if not response.success:
+            return response
+        
+        response = register_team(right_team)
+        if not response.success:
+            return response
+        
+        tournament.start_registration_at = datetime.utcnow()
+        tournament.end_registration_at = datetime.utcnow()
+        tournament.start_at = datetime.utcnow()
+        
+        await self.db_session.commit()

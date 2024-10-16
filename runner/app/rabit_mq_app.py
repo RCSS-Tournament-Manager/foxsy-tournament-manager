@@ -4,12 +4,18 @@ import aio_pika as pika
 import logging
 from utils.messages import *
 import traceback
+from game_runner.runner_manager import RunnerManager
 
 
-
+logging.basicConfig(
+    level=logging.INFO,  # Set to DEBUG for more detailed logs
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 class RabbitMQConsumer:
     def __init__(self, manager, rabbitmq_ip, rabbitmq_port, shared_queue, username, password):
-        self.manager = manager
+        self.logger = logging.getLogger(__name__)
+        self.manager: RunnerManager = manager
         self.rabbitmq_ip = rabbitmq_ip
         self.rabbitmq_port = rabbitmq_port
         self.shared_queue_name = shared_queue
@@ -19,6 +25,9 @@ class RabbitMQConsumer:
         self.channel = None
         self.shared_queue = None
         self.message_queue = asyncio.Queue()
+        self.requested_command: RunnerCommandMessageEnum = None
+        self.paused = False
+        
 
     async def connect(self):
         while True:
@@ -32,25 +41,55 @@ class RabbitMQConsumer:
                 self.shared_queue = await self.channel.declare_queue(self.shared_queue_name)
                 break
             except pika.exceptions.AMQPConnectionError:
-                logging.error("Failed to connect to RabbitMQ, retrying in 5 seconds...")
+                self.logger.error("Failed to connect to RabbitMQ, retrying in 5 seconds...")
                 await asyncio.sleep(5)
 
     async def consume_shared_queue(self, message: pika.abc.AbstractIncomingMessage):
         await self.message_queue.put(message)
 
+    async def check_requested_command(self):
+        if self.manager.requested_command is None:
+            self.logger.debug("No command requested")
+            return
+        self.requested_command = self.manager.requested_command
+        self.logger.info(f"Requested command: {self.requested_command}")
+        self.manager.requested_command = None
+        if self.requested_command == RunnerCommandMessageEnum.STOP:
+            self.logger.info("Received STOP command. Stopping...")
+        elif self.requested_command == RunnerCommandMessageEnum.PAUSE:
+            self.logger.info("Received PAUSE command. Pausing...")
+            # await asyncio.sleep(10)
+        elif self.requested_command == RunnerCommandMessageEnum.RESUME:
+            self.logger.info("Received RESUME command. Resuming...")
+            self.paused = False
+
     async def process_messages(self):
         try:
-            while True:
-                message = await self.message_queue.get()
+            while self.requested_command != RunnerCommandMessageEnum.STOP:
+                await self.check_requested_command()
+                if self.paused or self.requested_command == RunnerCommandMessageEnum.PAUSE:
+                    self.logger.info("Pausing...")
+                    if self.requested_command == RunnerCommandMessageEnum.PAUSE:
+                        self.logger.info("Pause requested. Pausing...")
+                        self.requested_command = None
+                        await self.manager.update_status_to(RunnerStatusMessageEnum.PAUSED)
+                    self.paused = True
+                    await asyncio.sleep(1)
+                    continue
+                if self.requested_command == RunnerCommandMessageEnum.RESUME:
+                    self.logger.info("Resuming...")
+                    self.requested_command = None
+                    await self.manager.update_status_to(RunnerStatusMessageEnum.RUNNING)
+                try:
+                    message = await self.message_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    self.logger.debug("No messages in queue. Waiting for 1 second...")
+                    await asyncio.sleep(1)
+                    continue
+
                 async with message.process(ignore_processed=True):
-                    logging.debug(f"Received message: {message.body}")
+                    self.logger.debug(f"Received message: {message.body}")
                     try:
-                        if self.manager.status.to_RunnerStatusMessageEnum() != RunnerStatusMessageEnum.RUNNING: 
-                            logging.info(f"Runner status is {self.manager.status}. Deferring message processing.")
-                            await message.nack(requeue=True)
-                            logging.info("Waiting for 10 seconds before checking Runner status again...")
-                            await asyncio.sleep(10) 
-                            continue
                         message_body = message.body
                         message_body_decoded = message_body.decode()
                         message_body_decoded = message_body_decoded.replace("'", '"')
@@ -59,20 +98,20 @@ class RabbitMQConsumer:
                         data = json.loads(message_body_decoded)
                         data = dict(data)
                     except Exception as e:
-                        logging.error(f"Failed to parse message: {e}")
+                        self.logger.error(f"Failed to parse message: {e}")
                         await message.ack()
                         traceback.print_exc()
                         continue
-                    logging.info(f"Received message: {data}")
-                    logging.debug(f"Message type: {data.get('type')}")
+                    self.logger.info(f"Received message: {data}")
+                    self.logger.debug(f"Message type: {data.get('type')}")
 
                     async def handle_error(error, ack=True):
-                        logging.error(f"Failed to parse message: {error}")
+                        self.logger.error(f"Failed to parse message: {error}")
                         if ack:
                             await message.ack()
                         else:
                             await message.nack(requeue=True)
-                        logging.info("Waiting for 5 seconds before re-consuming...")
+                        self.logger.info("Waiting for 5 seconds before re-consuming...")
                         await asyncio.sleep(5)
 
                     try:
@@ -87,8 +126,9 @@ class RabbitMQConsumer:
                         await handle_error(res.error, False)
                     else:
                         await message.ack()
+            await self.manager.update_status_to(RunnerStatusMessageEnum.STOPPED)
         except Exception as e:
-            logging.fatal(f"y Error: {e}")
+            self.logger.fatal(f"y Error: {e}")
             traceback.print_exc()
 
     async def start_consuming(self):
