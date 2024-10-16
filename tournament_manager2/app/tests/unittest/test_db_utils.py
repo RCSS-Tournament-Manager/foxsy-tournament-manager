@@ -5,7 +5,7 @@ from models.base import Base
 from models.user_model import UserModel
 from models.team_model import TeamModel
 from models.tournament_model import TournamentModel, TournamentStatus
-from models.runner_model import RunnerModel, RunnerStatusEnum
+from models.runner_model import RunnerModel, RunnerStatusMessageEnum
 from models.game_model import GameModel, GameStatusEnum
 from tests.db_utils import *
 from utils.messages import *
@@ -74,9 +74,9 @@ async def test_add_tournament_success():
 @pytest.mark.asyncio
 async def test_add_runner_success():
     session = await get_db_session()
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.datetime.now() - timedelta(days=2), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.datetime.now() - timedelta(days=2), None)
     assert response is not None
-    assert response.status == RunnerStatusEnum.RUNNING
+    assert response.status == RunnerStatusMessageEnum.RUNNING
 
     session.expunge_all()
     stmt = select(RunnerModel).filter_by(id=response.id)
@@ -87,7 +87,7 @@ async def test_add_runner_success():
     assert new_runner.available_games_count == 10
     assert new_runner.start_time is not None
     assert new_runner.end_time is None
-    assert new_runner.status == RunnerStatusEnum.RUNNING
+    assert new_runner.status == RunnerStatusMessageEnum.RUNNING
 
 
 @pytest.mark.asyncio

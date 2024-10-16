@@ -4,7 +4,7 @@ from typing import List, Optional, Union, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from models.runner_model import RunnerModel, RunnerStatusEnum
+from models.runner_model import RunnerModel
 from models.game_model import GameModel, GameStatusEnum
 from models.runner_log_model import RunnerLogModel, LogLevelEnum
 from models.tournament_model import TournamentModel, TournamentStatus
@@ -63,7 +63,7 @@ class RunnerManager:
                     id=runner.id,
                     start_time=runner.start_time,
                     end_time=runner.end_time,
-                    status=runner.status.to_RunnerStatusMessageEnum(),
+                    status=runner.status,
                     address=runner.address,
                     available_games_count=runner.available_games_count
                 ))
@@ -214,7 +214,7 @@ class RunnerManager:
                 self.logger.info(f"Runner with address {address} already exists. Updating status to RUNNING.")
 
                 # Update the runner's status to RUNNING
-                existing_runner.status = RunnerStatusEnum.RUNNING
+                existing_runner.status = RunnerStatusMessageEnum.RUNNING
                 existing_runner.start_time = datetime.utcnow()
                 existing_runner.end_time = None  # Reset end_time if previously set
                 existing_runner.available_games_count = json.available_games_count  # Optionally update this field
@@ -228,7 +228,7 @@ class RunnerManager:
 
                 # Create a new runner
                 new_runner = RunnerModel(
-                    status=RunnerStatusEnum.RUNNING,  # Set status to RUNNING upon registration
+                    status=RunnerStatusMessageEnum.RUNNING,  # Set status to RUNNING upon registration
                     address=address,
                     available_games_count=json.available_games_count,
                     start_time=datetime.utcnow(),
@@ -252,7 +252,7 @@ class RunnerManager:
         self.logger.info(f"send_command_to_runners: Sending command '{command}' to runners: {runner_ids}")
         try:
             if not runner_ids or len(runner_ids) == 0:
-                stmt = select(RunnerModel).where(RunnerModel.status != RunnerStatusEnum.CRASHED).where(RunnerModel.status != RunnerStatusEnum.STOPPED) # not crashed or stopped
+                stmt = select(RunnerModel).where(RunnerModel.status != RunnerStatusMessageEnum.CRASHED).where(RunnerModel.status != RunnerStatusMessageEnum.STOPPED) # not crashed or stopped
                 result = await self.db_session.execute(stmt)
                 runners = result.scalars().all()
 
@@ -285,7 +285,7 @@ class RunnerManager:
             runner: RunnerModel = runner_response 
             
             # check if the runner is stopped or crashed
-            if runner.status == RunnerStatusEnum.STOPPED or runner.status == RunnerStatusEnum.CRASHED:
+            if runner.status == RunnerStatusMessageEnum.STOPPED or runner.status == RunnerStatusMessageEnum.CRASHED:
                 self.logger.error(f"send_command: Runner with id {runner_id} is stopped or crashed.")
                 return ResponseMessage(success=False, error="Runner is stopped or crashed.")
             
@@ -343,7 +343,7 @@ class RunnerManager:
                 self.logger.info(f"Runner ID {runner.id} is already in status '{runner.status}'. No update needed.")
                 return ResponseMessage(success=True, value="Status is already up-to-date.", error=None)
 
-            runner.status = RunnerStatusEnum(status_message.status)
+            runner.status = RunnerStatusMessageEnum(status_message.status)
             runner.last_updated = datetime.utcnow()
             runner.requested_command = RunnerCommandMessageEnum.NONE
 

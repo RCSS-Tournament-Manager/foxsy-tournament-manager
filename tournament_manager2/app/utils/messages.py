@@ -17,15 +17,14 @@ class LogLevelMessageEnum(str, Enum):
     WARNING = 'WARNING'
     ERROR = 'ERROR'
     CRITICAL = 'CRITICAL'
-
-class RunnerStatusMessageEnum(str, Enum):
+class RunnerStatusMessageEnum(str, Enum): # used by runner_manager.py and runner_model.py
     RUNNING = 'running'
     PAUSED = 'paused'
     STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
 
-class RunnerCommandMessageEnum(str, Enum):
+class RunnerCommandMessageEnum(str, Enum): # used by send_command for runners
     RESUME = 'resume'
     PAUSE = 'pause'
     STOP = 'stop'

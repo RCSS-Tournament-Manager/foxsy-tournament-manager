@@ -8,7 +8,7 @@ from managers.tournament_manager import TournamentManager
 from models.base import Base
 from models.user_model import UserModel
 from models.team_model import TeamModel
-from models.runner_model import RunnerModel, RunnerStatusEnum
+from models.runner_model import RunnerModel, RunnerStatusMessageEnum
 from models.runner_log_model import RunnerLogModel
 from managers.team_manager import TeamManager
 from managers.user_manager import UserManager
@@ -23,9 +23,9 @@ from sqlalchemy.orm import selectinload
 @pytest.mark.asyncio
 async def test_get_runner_success():
     session = await get_db_session()
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
     assert response is not None
-    assert response.status == RunnerStatusEnum.RUNNING
+    assert response.status == RunnerStatusMessageEnum.RUNNING
     assert response.address == "127.0.0.1:8000"
     assert response.available_games_count == 10
     assert response.start_time is not None
@@ -42,7 +42,7 @@ async def test_get_runner_success():
     assert response.available_games_count == 10
     assert response.start_time is not None
     assert response.end_time is None
-    assert response.status == RunnerStatusEnum.RUNNING
+    assert response.status == RunnerStatusMessageEnum.RUNNING
     
     
     await session.close()
@@ -50,7 +50,7 @@ async def test_get_runner_success():
 @pytest.mark.asyncio
 async def test_get_runner_failed_runner_not_found():
     session = await get_db_session()
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
     
     session.expunge_all()
     
@@ -66,9 +66,9 @@ async def test_get_runner_failed_runner_not_found():
 @pytest.mark.asyncio
 async def test_get_all_runners_success():
     session = await get_db_session()
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:9000", 10, datetime.now(), None)
-    response = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.2:9000", 10, datetime.now(), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:9000", 10, datetime.now(), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.2:9000", 10, datetime.now(), None)
     
     session.expunge_all()
     
@@ -108,7 +108,7 @@ async def test_register_runner_success():
     assert len(scalars) == 1
     runner: RunnerModel = scalars[0]
     assert runner is not None
-    assert runner.status == RunnerStatusEnum.RUNNING
+    assert runner.status == RunnerStatusMessageEnum.RUNNING
     assert runner.address == "127.0.0.1:8000"
     assert runner.available_games_count == 10
     assert runner.start_time is not None
@@ -120,7 +120,7 @@ async def test_register_runner_success():
 @pytest.mark.asyncio
 async def test_register_runner_success_duplicate_update():
     session = await get_db_session()
-    response = await add_runner_to_db(session, RunnerStatusEnum.PAUSED, "127.0.0.1:8000", 10, datetime.now() - timedelta(days=2), None)
+    response = await add_runner_to_db(session, RunnerStatusMessageEnum.PAUSED, "127.0.0.1:8000", 10, datetime.now() - timedelta(days=2), None)
     assert response is not None
 
     now_time = datetime.now() - timedelta(days=1)
@@ -148,7 +148,7 @@ async def test_register_runner_success_duplicate_update():
     assert len(scalars) == 1
     runner: RunnerModel = scalars[0]
     assert runner is not None
-    assert runner.status == RunnerStatusEnum.RUNNING
+    assert runner.status == RunnerStatusMessageEnum.RUNNING
     assert runner.address == "127.0.0.1:8000"
     assert runner.available_games_count == 10
     assert runner.start_time is not None
@@ -178,7 +178,7 @@ async def f(session: AsyncSession):
 @pytest.mark.asyncio
 async def test_handle_game_started_success():
     session = await get_db_session()
-    runner_model = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    runner_model = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
     assert runner_model is not None
 
     user_model = await add_user_to_db(session, "user1", "code1")
@@ -208,7 +208,7 @@ async def test_handle_game_started_success():
     result = await session.execute(stmt)
     runner:RunnerModel = result.scalars().first()
     assert runner is not None
-    assert runner.status == RunnerStatusEnum.RUNNING
+    assert runner.status == RunnerStatusMessageEnum.RUNNING
     assert len(runner.games) == 1
 
     stmt = select(GameModel).where(GameModel.id == game_model.id)
@@ -225,7 +225,7 @@ async def test_handle_game_started_success():
 @pytest.mark.asyncio
 async def test_handle_game_finished_success_tournament_not_finished():
     session = await get_db_session()
-    runner_model = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    runner_model = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
     user_model = await add_user_to_db(session, "user1", "code1")
     team_model1 = await add_team_to_db(session, user_model.id, "team1")
     team_model2 = await add_team_to_db(session, user_model.id, "team2")
@@ -254,7 +254,7 @@ async def test_handle_game_finished_success_tournament_not_finished():
     result = await session.execute(stmt)
     runner = result.scalars().first()
     assert runner is not None
-    assert runner.status == RunnerStatusEnum.RUNNING
+    assert runner.status == RunnerStatusMessageEnum.RUNNING
     assert len(runner.games) == 1
 
     stmt = select(GameModel).where(GameModel.id == game_model1.id)
@@ -285,7 +285,7 @@ async def test_handle_game_finished_success_tournament_not_finished():
 @pytest.mark.asyncio
 async def test_handle_game_finished_success():
     session = await get_db_session()
-    runner_model = await add_runner_to_db(session, RunnerStatusEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
+    runner_model = await add_runner_to_db(session, RunnerStatusMessageEnum.RUNNING, "127.0.0.1:8000", 10, datetime.now(), None)
     user_model = await add_user_to_db(session, "user1", "code1")
     team_model1 = await add_team_to_db(session, user_model.id, "team1")
     team_model2 = await add_team_to_db(session, user_model.id, "team2")
@@ -312,7 +312,7 @@ async def test_handle_game_finished_success():
     result = await session.execute(stmt)
     runner = result.scalars().first()
     assert runner is not None
-    assert runner.status == RunnerStatusEnum.RUNNING
+    assert runner.status == RunnerStatusMessageEnum.RUNNING
     assert len(runner.games) == 0
 
     stmt = select(GameModel).where(GameModel.id == game_model1.id)

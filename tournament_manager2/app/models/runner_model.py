@@ -8,33 +8,11 @@ from enum import Enum
 from datetime import datetime
 from utils.messages import *
 
-class RunnerStatusEnum(str, Enum): # TODO it should be remove and use RunnerStatusMessageEnum
-    RUNNING = 'running'
-    PAUSED = 'paused'
-    STOPPED = 'stopped'
-    UNKNOWN = 'unknown'
-    CRASHED = 'crashed'
-
-    def to_RunnerStatusMessageEnum(self):
-        if self == RunnerStatusEnum.RUNNING:
-            return RunnerStatusMessageEnum.RUNNING
-        elif self == RunnerStatusEnum.PAUSED:
-            return RunnerStatusMessageEnum.PAUSED
-        elif self == RunnerStatusEnum.UNKNOWN:
-            return RunnerStatusMessageEnum.UNKNOWN
-        elif self == RunnerStatusEnum.CRASHED:
-            return RunnerStatusMessageEnum.CRASHED
-        elif self == RunnerStatusEnum.STOPPED:
-            return RunnerStatusMessageEnum.STOPPED
-        else:
-            return RunnerStatusMessageEnum.UNKNOWN
-
-
 class RunnerModel(Base):
     __tablename__ = 'runners'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    status = Column(SQLEnum(RunnerStatusEnum, native_enum=False), default=RunnerStatusEnum.UNKNOWN, nullable=False)
+    status = Column(SQLEnum(RunnerStatusMessageEnum, native_enum=False), default=RunnerStatusMessageEnum.UNKNOWN, nullable=False)
     address = Column(String, nullable=False, unique=True)
     available_games_count = Column(Integer, default=0, nullable=False)
     start_time = Column(DateTime, nullable=True)

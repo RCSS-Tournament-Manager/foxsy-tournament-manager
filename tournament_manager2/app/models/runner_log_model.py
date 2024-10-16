@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from .base import Base
-from .runner_model import RunnerStatusEnum  
+from .runner_model import RunnerStatusMessageEnum  
 from datetime import datetime
 from enum import Enum
 
@@ -23,8 +23,8 @@ class RunnerLogModel(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     log_level = Column(SqlEnum(LogLevelEnum), default=LogLevelEnum.INFO, nullable=False)
     
-    previous_status = Column(SqlEnum(RunnerStatusEnum), nullable=True)
-    new_status = Column(SqlEnum(RunnerStatusEnum), nullable=True)
+    previous_status = Column(SqlEnum(RunnerStatusMessageEnum), nullable=True)
+    new_status = Column(SqlEnum(RunnerStatusMessageEnum), nullable=True)
 
     # Relationship back to RunnerModel
     # runner = relationship('RunnerModel', back_populates='logs')
