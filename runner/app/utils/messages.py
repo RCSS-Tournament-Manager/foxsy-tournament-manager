@@ -77,6 +77,15 @@ class GameInfoMessage(BaseModel):
         if self.right_team_config_json:
             self.right_team_config_json = fix_json(self.right_team_config_json)
 
+class UpdateBaseFromURLRequestMessage(BaseModel):
+    base_name: str = Field(None, example="cyrus")
+    download_url: str = Field(None, example="https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/download/8/cyrus.zip")
+
+class UpdateBaseFromMINIORequestMessage(BaseModel):
+    base_name: str = Field(None, example="cyrus")
+    minio_bucket: str = Field(None, example="baseteam")
+    minio_object: str = Field(None, example="cyrus.zip")
+
 class GameStartedMessage(BaseModel):
     game_id: int = Field(None, example=1)
     success: bool = Field(None, example=True)
@@ -120,9 +129,9 @@ class TeamMessage(BaseModel):
 class AddTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
     tournament_name: str = Field(None, example="RoboCup 2024")
-    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
-    start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
-    end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    start_registration_at: datetime = Field(None, example="2025-10-01 00:00:00")
+    end_registration_at: datetime = Field(None, example="2025-11-30 00:00:00")
+    start_at: datetime = Field(None, example="2025-12-01 00:00:00")
     
 class RemoveTournamentRequestMessage(BaseMessage):
     user_code: str = Field(None, example="123456")
@@ -167,9 +176,9 @@ class TournamentMessage(BaseModel):
 class TournamentSummaryMessage(BaseModel):
     tournament_id: int = Field(None, example=1)
     tournament_name: str = Field(None, example="RoboCup 2024")
-    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
     start_registration_at: datetime = Field(None, example="2024-06-01 00:00:00")
     end_registration_at: datetime = Field(None, example="2024-06-30 00:00:00")
+    start_at: datetime = Field(None, example="2024-07-01 00:00:00")
     status: str = Field(None, example="pending")
     
 class GetTournamentsResponseMessage(BaseModel):
