@@ -28,6 +28,7 @@ class RunnerCommandMessageEnum(str, Enum): # used by send_command for runners
     RESUME = 'resume'
     PAUSE = 'pause'
     STOP = 'stop'
+    UPDATE = 'update'
     HELLO = 'hello'
     NONE = 'none'
 
@@ -318,7 +319,7 @@ class UpdateTournamentRequestMessage(BaseModel):
 
 class SendCommandRequest(BaseModel):
     runner_ids: Optional[Union[int, List[int]]] = Field(None,examples=[1,2],description="Runner ID (int) or list of runner IDs to send the command to.")
-    command: RunnerCommandMessageEnum = Field(..., examples=['resume', 'pause', 'stop', 'hello'],description="Command to send to the runner.")
+    command: RunnerCommandMessageEnum = Field(..., examples=['resume', 'pause', 'stop','update' ,'hello'],description="Command to send to the runner.")
 
 class RequestedCommandToRunnerMessage(BaseModel):
     command: RunnerCommandMessageEnum = Field(..., example="resume", description="Command to be sent to the runner.")

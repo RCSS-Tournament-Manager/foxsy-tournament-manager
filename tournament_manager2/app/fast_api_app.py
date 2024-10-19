@@ -516,7 +516,7 @@ class FastApiApp:
             - If runner_ids is empty or contains invalid IDs, appropriate errors are returned.
             """
             self.logger.info(f"send_command: {command_request}")
-            valid_commands = ["stop", "pause", "resume", "hello"]
+            valid_commands = ["stop", "pause", "resume", "update", "hello"]
             if command_request.command not in valid_commands:
                 self.logger.error(f"send_command: Invalid command: {command_request.command}")
                 return AnyResponseMessage(success=False, value="Invalid command.")

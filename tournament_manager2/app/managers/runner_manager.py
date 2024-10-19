@@ -335,6 +335,13 @@ class RunnerManager:
                 self.logger.error(f"send_command: Runner with id {runner_id} is stopped or crashed.")
                 return ResponseMessage(success=False, error="Runner is stopped or crashed.")
 
+            if runner.status is not RunnerStatusMessageEnum.PAUSED and command is RunnerCommandMessageEnum.UPDATE:
+                if runner.requested_command is RunnerCommandMessageEnum.PAUSE:
+                    self.logger.info(f"runner {runner_id} is pausing, please wait for the pause to complete")
+                    return ResponseMessage(success=False, error=f"Runner {runner_id} is pausing, please wait for the pause to complete.") 
+                else:
+                    self.logger.error(f"runner {runner_id} is not paused, cannot send update command")
+                    return ResponseMessage(success=False, error=f"Runner {runner_id} is not paused, Cannot send update command.")
             try:
                 ip, port = runner.address.split(":")
             except ValueError:
@@ -342,6 +349,7 @@ class RunnerManager:
                 return ResponseMessage(success=False, error="Invalid runner address format.")
 
             RUNNER_API_KEY = "api-key"  # TODO: get from environment variable or configuration file // os.getenv("RUNNER_API_KEY")
+            logging.info(f"send_command: Connecting to runner {runner_id} at {ip}:{port} with API key {RUNNER_API_KEY}")
             message_sender = MessageSender(ip, port, RUNNER_API_KEY)
 
             # Prepare the command data
