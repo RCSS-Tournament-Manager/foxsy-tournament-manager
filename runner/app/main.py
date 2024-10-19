@@ -161,9 +161,6 @@ async def main():
                 logging.error(f"Error on downloading team: {e}")
                 
 
-
-
-
     game_runner_manager.set_available_games_count(2)
 
     # download base teams by default

@@ -46,7 +46,7 @@ args = get_args()
 data_dir = args.data_dir
 log_dir = args.log_dir
 api_key = args.api_key
-api_key_name = "api_key"
+api_key_name = "api-key"
 
 logging.info(args)
 
