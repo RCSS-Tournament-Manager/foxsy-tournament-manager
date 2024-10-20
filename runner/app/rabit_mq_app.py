@@ -27,7 +27,7 @@ class RabbitMQConsumer:
         self.message_queue = asyncio.Queue()
         self.requested_command: RunnerCommandMessageEnum = None
         self.paused = False
-        
+        self.update = False
 
     async def connect(self):
         while True:
@@ -64,22 +64,26 @@ class RabbitMQConsumer:
         elif self.requested_command == RunnerCommandMessageEnum.RESUME:
             self.logger.info("Received RESUME command. Resuming...")
             self.paused = False
+            self.update = False
 
     async def process_messages(self):
         try:
             while self.requested_command != RunnerCommandMessageEnum.STOP:
                 await self.check_requested_command()
-                if self.paused or self.requested_command == RunnerCommandMessageEnum.PAUSE or self.requested_command == RunnerCommandMessageEnum.UPDATE:
-                    self.logger.info("Pausing...")
+                if self.paused or self.update or self.requested_command == RunnerCommandMessageEnum.PAUSE or self.requested_command == RunnerCommandMessageEnum.UPDATE:
+                    self.logger.debug("Paused. Waiting for 1 second..." if self.paused else "Update in progress. Waiting for 1 second...")
                     if self.requested_command == RunnerCommandMessageEnum.PAUSE:
                         self.logger.info("Pause requested. Pausing...")
                         self.requested_command = None
                         await self.manager.update_status_to(RunnerStatusMessageEnum.PAUSED)
+                        self.update = False
+                        self.paused = True
                     elif self.requested_command == RunnerCommandMessageEnum.UPDATE:
                         self.logger.info("Update requested. Updating...")
                         self.requested_command = None
                         await self.manager.update_status_to(RunnerStatusMessageEnum.UPDATING)
-                    self.paused = True
+                        self.paused = False
+                        self.update = True
                     await asyncio.sleep(1)
                     continue
                 if self.requested_command == RunnerCommandMessageEnum.RESUME:

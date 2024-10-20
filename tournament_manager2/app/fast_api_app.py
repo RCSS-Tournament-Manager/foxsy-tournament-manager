@@ -525,7 +525,7 @@ class FastApiApp:
                 if isinstance(command_request.runner_ids, int):
                     runners_ids = [command_request.runner_ids]
                 
-                responses = await runner_manager.send_command_to_runners(runners_ids, command_request.command)
+                responses = await runner_manager.send_command_to_runners(runners_ids, command_request)
                 return AnyResponseMessage(success=True, value=responses, error=None)
             except Exception as e:
                 self.logger.exception(f"send_command: Unexpected error: {e}")

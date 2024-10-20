@@ -132,7 +132,7 @@ async def main():
         storage_client=minio_client, 
         message_sender=message_sender, 
         runner_id=runner_id,
-        config=settings['config']
+        config=settings
     )
 
 

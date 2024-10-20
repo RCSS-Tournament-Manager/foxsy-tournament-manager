@@ -167,7 +167,7 @@ class RunnerManager:
         return ResponseMessage(value=self.status)
 
     async def receive_command(self, req_command: RequestedCommandToRunnerMessage) -> ResponseMessage:
-        self.logger.info(f'GameRunnerManager receive_command: {command}')
+        self.logger.info(f'GameRunnerManager receive_command: {req_command}')
         command = req_command.command
         try:
             if command == RunnerCommandMessageEnum.PAUSE:
@@ -203,15 +203,22 @@ class RunnerManager:
                 self.logger.info("Update Command from TM")
                 try: 
                     self.requested_command = command
-                    self.update_status_to(RunnerStatusMessageEnum.UPDATING)
-
-                    if self.config['base_teams'] is None:
-                        self.logger.error('No base teams found in config')
-                        self.update_status_to(RunnerStatusMessageEnum.PAUSED)
-                        self.requested_command = RunnerCommandMessageEnum.PAUSE     
-                        return ResponseMessage(success=False, error="400", value="No base teams found in config")
-                    
-                    asyncio.create_task(self.update_all_default_base_teams(req_command=req_command))
+                    # asyncio.create_task(self.update_status_to(RunnerStatusMessageEnum.UPDATING))
+                    try:
+                        self.logger.info('RunnerManager checking base teams')
+                        print(self.config)
+                        print(self.config['base_teams'])
+                        if 'base_teams' not in self.config or self.config['base_teams'] is None:
+                            self.logger.error('No base teams found in config')
+                            # asyncio.create_task(self.update_status_to(RunnerStatusMessageEnum.PAUSED))
+                            self.requested_command = RunnerCommandMessageEnum.PAUSE     
+                            return ResponseMessage(success=False, error="400", value="No base teams found in config")
+                        asyncio.create_task(self.update_all_default_base_teams(req_command=req_command))
+                        self.logger.info('RunnerManager updating base teams')
+                        # await self.update_all_default_base_teams(req_command=req_command)
+                    except Exception as e:
+                        self.logger.error(f'Error on updating base teams: {e}')
+                        return ResponseMessage(success=False, error=str(e))
                     
                     return ResponseMessage(success=True, value="Update Command recived", obj={"success": True, "value": "Update Command recived", "error": None})
                 except Exception as e:
@@ -254,23 +261,24 @@ class RunnerManager:
         if teams is None or len(teams) == 0:
             self.logger.warning('No base teams found in command, update all teams')
             teams = self.config['base_teams']
-
+        self.logger.info(f"Updating base teams")
         for base_team in teams:
+            self.logger.info(f"Updating base team: {base_team}")
+            # await asyncio.sleep(5)
             try:
                 if use_git:
-                    if base_team.type == 'url':
+                    if base_team['download']['type'] == 'url':
                         await self.update_base_url(base_team['name'], base_team['download']['url'])
                     else:
                         self.logger.error(f'error no url found in base team: {base_team}')
                 else:
-                    if base_team.type == 'minio':
+                    if base_team['download']['type'] == 'minio':
                         await self.update_base_minio(base_team['name'], base_team['download']['bucket'], base_team['download']['object'])
                     else:
                         self.logger.error(f'error no minio found in base team: {base_team}')
             except Exception as e:
                 self.logger.error(f'Error on downloading team: {e}')
                 continue
-        self.update_status_to(RunnerStatusMessageEnum.PAUSED)
         self.requested_command = RunnerCommandMessageEnum.PAUSE        
 
     async def update_base_minio(

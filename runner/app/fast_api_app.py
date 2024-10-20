@@ -65,8 +65,9 @@ class FastApiApp:
         @self.app.post("/runner/receive_command", response_model=ResponseMessage)
         async def receive_command(command_request: RequestedCommandToRunnerMessage, api_key: str = Depends(get_api_key)):
             try:
+                self.logger.info(f"Received command: {command_request}")
                 command = command_request.command
-                self.logger.info(f"Received command: {command}")
+                self.logger.info(f"command to act: {command}")
                 return await self.manager.receive_command(command_request)
             except Exception as e:
                 self.logger.error(f"Error receiving command: {str(e)}")

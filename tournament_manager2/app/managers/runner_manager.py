@@ -292,8 +292,8 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def send_command_to_runners(self, runner_ids: List[int], command: RequestedCommandToRunnerMessage) -> List[Dict[str, Any]]:
-        self.logger.info(f"send_command_to_runners: Sending command '{command}' to runners: {runner_ids}")
+    async def send_command_to_runners(self, runner_ids: List[int], req_command: RequestedCommandToRunnerMessage) -> List[Dict[str, Any]]:
+        self.logger.info(f"send_command_to_runners: Sending command '{req_command}' to runners: {runner_ids}")
         try:
             if not runner_ids or len(runner_ids) == 0:
                 self.logger.debug("No runner IDs provided. Fetching all active runners...")
@@ -309,12 +309,11 @@ class RunnerManager:
                 
                 runner_ids = [runner.id for runner in runners]
                 self.logger.info(f"send_command_to_runners: Using all available runners: {runner_ids}")
-
             responses = []
             for runner_id in runner_ids:
                 self.logger.debug(f"Sending command to Runner ID {runner_id}...")
                 # TODO: run in tasks
-                response = await self.send_command(runner_id, command)
+                response = await self.send_command(runner_id, req_command)
                 responses.append({"runner_id": runner_id, "response": response})
             return responses
         except Exception as e:
@@ -342,8 +341,8 @@ class RunnerManager:
                     self.logger.info(f"runner {runner_id} is pausing, please wait for the pause to complete")
                     return ResponseMessage(success=False, error=f"Runner {runner_id} is pausing, please wait for the pause to complete.") 
                 else:
-                    self.logger.error(f"runner {runner_id} is not paused, cannot send update command")
-                    return ResponseMessage(success=False, error=f"Runner {runner_id} is not paused, Cannot send update command.")
+                    self.logger.error(f"runner {runner_id} is not paused or it is updating, cannot send update command")
+                    return ResponseMessage(success=False, error=f"Runner {runner_id} is not paused or it is updating, Cannot send update command.")
             
             if runner.status is RunnerStatusMessageEnum.UPDATING and command is RunnerCommandMessageEnum.RESUME:
                 self.logger.info(f"runner {runner_id} is updating, please wait for the update to complete")
