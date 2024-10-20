@@ -3,7 +3,6 @@ import logging
 import logging.config
 import sys
 from utils.base_teams import download_base_teams
-from utils.config import get_config_file, get_settings
 from utils.args_helper import ArgsHelper
 from utils.logging_config import get_logging_config
 from game_runner.runner_manager import RunnerManager
@@ -17,6 +16,8 @@ import signal
 from utils.message_sender import MessageSender
 from utils.messages import *
 import json
+from utils.config import get_config
+
 
 
 pika.logger.setLevel(logging.ERROR)
@@ -54,10 +55,10 @@ def get_args():
 
 # ---------------------------- DEFAULT CONFIG 
 args = get_args()
-config = get_config_file(args)
-settings = get_settings(args,config)
-data_dir = settings['config']['data_dir']
-log_dir = settings['config']['log_dir']
+config = get_config()
+settings = config.load_config(get_args(), "default.yml")
+data_dir = config.get('config', {}).get('data_dir')
+log_dir = config['config']['log_dir']
 api_key = settings['config']['api_key']
 api_key_name = "api-key"
 

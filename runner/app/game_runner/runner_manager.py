@@ -1,4 +1,5 @@
 import asyncio
+from utils.base_teams import download_base_teams
 from utils.tools import Tools
 from game_runner.game import Game
 import logging
@@ -80,10 +81,21 @@ class RunnerManager:
                 self.logger.warning(f'GameRunnerManager add_game: No available ports')
                 return GameStartedMessage(game_id=game_info.game_id, success=False, runner_id=self.runner_id, error='No available ports')
             self.available_games_count -= 1
-            game = Game(game_info, port, self.data_dir, self.storage_client)
+            
+            
+            game = Game(
+                game_info=game_info, 
+                port=port, 
+                data_dir=self.data_dir, 
+                storage_client=self.storage_client,
+                base_teams_config=self.config['base_teams'],
+                runner_manager=self
+            )
+
+
             game.finished_event = self.on_finished_game
             self.games[port] = game
-            self.games[port].check()
+            await self.games[port].check()
             asyncio.create_task(game.run_game())
             res = GameStartedMessage(game_id=game_info.game_id, success=True, port=port, runner_id=self.runner_id)
             if called_from_rabbitmq:
@@ -255,31 +267,37 @@ class RunnerManager:
         await asyncio.get_event_loop().stop()
     
     async def update_all_default_base_teams(self, req_command: RequestedCommandToRunnerMessage):
+        """
+        Updates all default base teams based on the requested command.
+
+        Args:
+            req_command (RequestedCommandToRunnerMessage): The requested command containing base teams and use_git flag.
+
+        Returns:
+            None
+        """
         self.logger.info('GameRunnerManager update_all_default_base_teams')
         teams = req_command.base_teams
         use_git = req_command.use_git
+
         if teams is None or len(teams) == 0:
             self.logger.warning('No base teams found in command, update all teams')
-            teams = self.config['base_teams']
+            teams = None  # This will make download_base_teams process all teams
+
         self.logger.info(f"Updating base teams")
-        for base_team in teams:
-            self.logger.info(f"Updating base team: {base_team}")
-            # await asyncio.sleep(5)
-            try:
-                if use_git:
-                    if base_team['download']['type'] == 'url':
-                        await self.update_base_url(base_team['name'], base_team['download']['url'])
-                    else:
-                        self.logger.error(f'error no url found in base team: {base_team}')
-                else:
-                    if base_team['download']['type'] == 'minio':
-                        await self.update_base_minio(base_team['name'], base_team['download']['bucket'], base_team['download']['object'])
-                    else:
-                        self.logger.error(f'error no minio found in base team: {base_team}')
-            except Exception as e:
-                self.logger.error(f'Error on downloading team: {e}')
-                continue
-        self.requested_command = RunnerCommandMessageEnum.PAUSE        
+        try:
+            success = await download_base_teams(
+                game_runner_manager=self,
+                settings=self.config,
+                use_git=use_git,
+                teams=teams
+            )
+            if not success:
+                self.logger.error("Failed to update all base teams")
+            else:
+                self.logger.info("Successfully updated all specified base teams")
+        except Exception as e:
+            self.logger.error(f'Error on downloading teams: {e}')     
 
     async def update_base_minio(
             self, 

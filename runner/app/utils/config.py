@@ -1,96 +1,154 @@
 import os
 import yaml
-
 import logging
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
+class Config:
+    _instance = None
 
-DEFAULT_CONFIG = {
-    "config": {
-        "update_base_teams_at_startup": True,
-        "data_dir": "../data",
-        "log_dir": "../data/logs",
-        "api_key": "api-key",
-        "max_games_count": 2,
-        "use_fast_api": True,
-        "fast_api_ip": "127.0.0.1",
-        "fast_api_port": 8082,
-        "use_rabbitmq": True,
-        "rabbitmq_host": "localhost",
-        "rabbitmq_port": 5672,
-        "rabbitmq_username": "guest",
-        "rabbitmq_password": "guest1234",
-        "to_runner_queue": "to_runner",
-        "connect_to_tournament_manager": True,
-        "tournament_manager_ip": "localhost",
-        "tournament_manager_port": 8085,
-        "tournament_manager_api_key": "api-key",
-        "use_minio": True,
-        "minio_endpoint": "localhost:9000",
-        "minio_access_key": "guest",
-        "minio_secret_key": "guest1234",
-        "server_bucket_name": "server",
-        "base_team_bucket_name": "baseteam",
-        "team_config_bucket_name": "teamconfig",
-        "game_log_bucket_name": "gamelog",
-        "default_param": "runner",
-    },
-    "base_teams": [
-        {
-            "name": "cyrus",
-            "force_pull": True,
-            "download": {
-                "type": "url",
-                "url": "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip",
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+        self.settings = {}
+
+    def load_config(self, args, config_file):
+        """
+        Load configuration from default, file, and command-line arguments.
+
+        Args:
+            args: Parsed command-line arguments
+            config_file: Path to the YAML config file
+
+        Returns:
+            Dict containing the merged configuration
+        """
+        # Default configuration
+        default_config = {
+            "config": {
+                "update_base_teams_at_startup": True,
+                "data_dir": "../data",
+                "log_dir": "../data/logs",
+                "api_key": "api-key",
+                "max_games_count": 2,
+                "use_fast_api": True,
+                "fast_api_ip": "127.0.0.1",
+                "fast_api_port": 8082,
+                "use_rabbitmq": True,
+                "rabbitmq_host": "localhost",
+                "rabbitmq_port": 5672,
+                "rabbitmq_username": "guest",
+                "rabbitmq_password": "guest1234",
+                "to_runner_queue": "to_runner",
+                "connect_to_tournament_manager": True,
+                "tournament_manager_ip": "localhost",
+                "tournament_manager_port": 8085,
+                "tournament_manager_api_key": "api-key",
+                "use_minio": True,
+                "minio_endpoint": "localhost:9000",
+                "minio_access_key": "guest",
+                "minio_secret_key": "guest1234",
+                "server_bucket_name": "server",
+                "base_team_bucket_name": "baseteam",
+                "team_config_bucket_name": "teamconfig",
+                "game_log_bucket_name": "gamelog",
+                "default_param": "runner",
             },
+            "base_teams": [
+                {
+                    "name": "cyrus",
+                    "force_pull": True,
+                    "download": [
+                        {
+                            "type": "url",
+                            "url": "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip",
+                        },
+                        {
+                            "type": "minio",
+                            "bucket": "baseteam",
+                            "object": "cyrus.zip",
+                        }
+                    ],
+                }
+            ],
         }
-    ],
-}
 
-SETTINGS = {}
+        # Load config from file
+        file_config = self._load_yaml_config(config_file) if config_file else {}
 
-def get_settings(args, config):
-    # turn args to dict
-    args = vars(args)
-    # remove None values
-    args = {k: v for k, v in args.items() if v is not None}
+        # Convert args to dict and remove None values
+        args_dict = {k: v for k, v in vars(args).items() if v is not None}
 
-    # order of config loading
-    # default config
-    # config file
-    # args
+        # Merge configurations
+        merged_config = default_config.copy()
+        merged_config["config"].update(file_config.get("config", {}))
+        merged_config["config"].update(args_dict)
+        merged_config["base_teams"] = file_config.get("base_teams", merged_config["base_teams"])
 
-    settings_o = DEFAULT_CONFIG.copy()
-    settings_o["config"] = {
-        **settings_o["config"],
-        **(config["config"] if "config" in config.keys() else {}),
-        **args,
-    }
-    settings_o["base_teams"] = config["base_teams"] if "base_teams" in config.keys() else settings_o["base_teams"]
-    global SETTINGS
-    SETTINGS = settings_o
-    return settings_o
+        self.settings = merged_config
+        return merged_config
 
+    def _load_yaml_config(self, config_file: str) -> Dict[str, Any]:
+        """
+        Load configuration from a YAML file.
 
-def apply_default_args(argument, config_obj):
-    if hasattr(config_obj, argument):
-        return getattr(config_obj, argument)
-    else:
-        raise AttributeError(f"Config object has no attribute '{argument}'")
+        Args:
+            config_file: Path to the YAML config file
 
-
-def get_config_file(args):
-    if args.config == None:
-        print("no config file")
-
-    if args.config != None and os.path.exists(args.config):
-
-        if not args.config.endswith(".yml"):
+        Returns:
+            Dict containing the configuration from the YAML file
+        """
+        if not config_file.endswith(".yml"):
             raise ValueError("Config file must be a .yml file")
 
-        with open(args.config, "r") as file:
-            config = yaml.safe_load(file)
-            return config
+        if not os.path.exists(config_file):
+            logger.warning(f"Config file {config_file} does not exist. Using default configuration.")
+            return {}
 
-    return {}
+        with open(config_file, "r") as file:
+            return yaml.safe_load(file)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get a configuration value.
+
+        Args:
+            key: The configuration key to retrieve
+            default: The default value to return if the key is not found
+
+        Returns:
+            The configuration value for the given key
+        """
+        return self.settings.get(key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        """
+        Allow dictionary-style access to configuration values.
+
+        Args:
+            key: The configuration key to retrieve
+
+        Returns:
+            The configuration value for the given key
+        """
+        return self.settings[key]
+
+# Global configuration instance
+config = Config()
+
+def get_config() -> Config:
+    """
+    Get the global configuration instance.
+
+    Returns:
+        The global Config instance
+    """
+    return config
