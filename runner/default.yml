@@ -32,8 +32,10 @@ base_teams:
   - name: "cyrus"
     force_pull: true
     download:
-      type: "url"
-      url: "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip"
+      - type: "url"
+        url: "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip1"
+      - type: "url"
+        url: "https://github.com/Cyrus2D/FoxsyCyrus2DBase/releases/latest/download/cyrus.zip"
 
   - name: "cyrus2"
     force_pull: true

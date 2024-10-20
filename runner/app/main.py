@@ -2,6 +2,7 @@ import asyncio
 import logging
 import logging.config
 import sys
+from utils.base_teams import download_base_teams
 from utils.config import get_config_file, get_settings
 from utils.args_helper import ArgsHelper
 from utils.logging_config import get_logging_config
@@ -137,29 +138,10 @@ async def main():
 
 
     # ---------------------------- DOWNLOAD BASE TEAMS
-    logging.info('Downloading base teams')
-    for base_team in settings['base_teams']:
-        if base_team['download']['type'] == 'url':
-            logging.info(f"Downloading base team {base_team['name']} from {base_team['download']['url']}")
-            try:
-                await game_runner_manager.update_base_url(
-                    base_team_name=base_team['name'], 
-                    download_url=base_team['download']['url']
-                )
-            except Exception as e:
-                logging.error(f"Error on downloading team: {e}")
-                
-
-        elif base_team['download']['type'] == 'minio':
-            logging.info(f"Downloading base team {base_team['name']} from Minio")
-            try:
-                await game_runner_manager.update_base_minio(
-                    base_team_name=base_team['name'], 
-                    bucket_name=base_team['download']['bucket'],
-                    file_name=base_team['download']['object']
-                )
-            except Exception as e:
-                logging.error(f"Error on downloading team: {e}")
+    try:
+        await download_base_teams(game_runner_manager, settings)
+    except Exception as e:
+        logging.error(f"Failed to download base teams: {e}")
                 
 
     game_runner_manager.set_available_games_count(2)
