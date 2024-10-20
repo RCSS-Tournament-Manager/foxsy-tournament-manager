@@ -11,9 +11,8 @@ from storage.downloader import Downloader
 from enum import Enum
 import requests
 
-
 class RunnerManager:
-    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int):
+    def __init__(self, data_dir: str, storage_client: StorageClient, message_sender: MessageSender, runner_id: int, config: dict):
         self.logger = logging.getLogger(__name__)
         self.logger.info('GameRunnerManager created')
         self.available_games_count = 0
@@ -27,7 +26,8 @@ class RunnerManager:
         self.runner_id = runner_id
         self.status = RunnerStatusMessageEnum.RUNNING
         self.requested_command: RunnerCommandMessageEnum = None
-
+        self.config = config
+        
     def check_server(self):
         server_dir = os.path.join(self.data_dir, DataDir.server_dir_name)
         server_path = os.path.join(server_dir, 'rcssserver')
@@ -166,8 +166,9 @@ class RunnerManager:
     async def get_status(self):
         return ResponseMessage(value=self.status)
 
-    async def receive_command(self, command: RunnerCommandMessageEnum) -> ResponseMessage:
+    async def receive_command(self, req_command: RequestedCommandToRunnerMessage) -> ResponseMessage:
         self.logger.info(f'GameRunnerManager receive_command: {command}')
+        command = req_command.command
         try:
             if command == RunnerCommandMessageEnum.PAUSE:
                 if self.status == RunnerStatusMessageEnum.PAUSED:
@@ -181,6 +182,9 @@ class RunnerManager:
                 if self.status == RunnerStatusMessageEnum.RUNNING:
                     self.logger.warning("Runner is already running.")
                     return ResponseMessage(success=False, error="400", value="Runner is already running.")
+                elif self.status == RunnerStatusMessageEnum.UPDATING:
+                    self.logger.warning("Runner is updating, Can't resume.")
+                    return ResponseMessage(success=False, error="400", value="Runner is updating, Can't resume.")
                 else:
                     self.requested_command = command
                     self.logger.info("Resuming Runner: Accepting new games.")
@@ -190,8 +194,29 @@ class RunnerManager:
                     self.logger.info("Stopping Runner: Initiating shutdown.")
                     return ResponseMessage(success=True, value="Runner is stopping.")
             elif command == RunnerCommandMessageEnum.HELLO:
-                self.logger.info("Hello - Direct Command, TM!")
+                self.logger.info("Hello - Command from TM")
                 return ResponseMessage(success=True, value="Hello, TM!", obj={"success": True, "value": "Hello - Direct Command, TM!", "error": None})
+            elif command == RunnerCommandMessageEnum.UPDATE:
+                if self.status == RunnerStatusMessageEnum.RUNNING:
+                    self.logger.warning("Runner is already running, Can't update.")
+                    return ResponseMessage(success=False, error="400", value="Runner is running, Can't update.")
+                self.logger.info("Update Command from TM")
+                try: 
+                    self.requested_command = command
+                    self.update_status_to(RunnerStatusMessageEnum.UPDATING)
+
+                    if self.config['base_teams'] is None:
+                        self.logger.error('No base teams found in config')
+                        self.update_status_to(RunnerStatusMessageEnum.PAUSED)
+                        self.requested_command = RunnerCommandMessageEnum.PAUSE     
+                        return ResponseMessage(success=False, error="400", value="No base teams found in config")
+                    
+                    asyncio.create_task(self.update_all_default_base_teams(req_command=req_command))
+                    
+                    return ResponseMessage(success=True, value="Update Command recived", obj={"success": True, "value": "Update Command recived", "error": None})
+                except Exception as e:
+                    self.logger.error(f'Error on updating base teams: {e}')
+                    return ResponseMessage(success=False, error=str(e))
             else:
                 raise ValueError(f"Unknown command: {command}")
         except Exception as e:
@@ -221,14 +246,40 @@ class RunnerManager:
         self.logger.info("Runner has shutdown.")
         await asyncio.sleep(1)
         await asyncio.get_event_loop().stop()
-        
+    
+    async def update_all_default_base_teams(self, req_command: RequestedCommandToRunnerMessage):
+        self.logger.info('GameRunnerManager update_all_default_base_teams')
+        teams = req_command.base_teams
+        use_git = req_command.use_git
+        if teams is None or len(teams) == 0:
+            self.logger.warning('No base teams found in command, update all teams')
+            teams = self.config['base_teams']
+
+        for base_team in teams:
+            try:
+                if use_git:
+                    if base_team.type == 'url':
+                        await self.update_base_url(base_team['name'], base_team['download']['url'])
+                    else:
+                        self.logger.error(f'error no url found in base team: {base_team}')
+                else:
+                    if base_team.type == 'minio':
+                        await self.update_base_minio(base_team['name'], base_team['download']['bucket'], base_team['download']['object'])
+                    else:
+                        self.logger.error(f'error no minio found in base team: {base_team}')
+            except Exception as e:
+                self.logger.error(f'Error on downloading team: {e}')
+                continue
+        self.update_status_to(RunnerStatusMessageEnum.PAUSED)
+        self.requested_command = RunnerCommandMessageEnum.PAUSE        
+
     async def update_base_minio(
             self, 
             base_team_name: str, 
             bucket_name: str,
             file_name: str
         ):
-        self.logger.info(f'GameRunnerManager update_base: {base_team_name}, github')
+        self.logger.info(f'GameRunnerManager minio update_base: {base_team_name}, github')
 
 
         base_teams_dir = os.path.join(self.data_dir, DataDir.base_team_dir_name)

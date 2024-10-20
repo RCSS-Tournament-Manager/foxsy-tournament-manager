@@ -24,11 +24,13 @@ class RunnerStatusMessageEnum(str, Enum):
     STOPPED = 'stopped'
     UNKNOWN = 'unknown'
     CRASHED = 'crashed'
+    UPDATING = 'updating'
 
 class RunnerCommandMessageEnum(str, Enum):
     RESUME = 'resume'
     PAUSE = 'pause'
     STOP = 'stop'
+    UPDATE = 'update'
     HELLO = 'hello'
 
 class BaseMessage(BaseModel):
@@ -310,7 +312,9 @@ class SendCommandRequest(BaseModel):
 
 class RequestedCommandToRunnerMessage(BaseModel):
     command: RunnerCommandMessageEnum = Field(..., example="resume", description="Command to be sent to the runner.")
-    
+    base_teams: Optional[list[str]] = Field(None, example=["cyrus"], description="List of base team names to be updated.")
+    use_git: Optional[bool] = Field(None, example=True, description="If True, the base teams will be updated from the git repository.")
+
 class RunnerStatusMessage(BaseModel):
     runner_id: Optional[int]
     status: RunnerStatusMessageEnum

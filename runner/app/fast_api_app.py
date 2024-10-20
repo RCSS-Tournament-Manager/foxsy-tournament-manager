@@ -67,7 +67,7 @@ class FastApiApp:
             try:
                 command = command_request.command
                 self.logger.info(f"Received command: {command}")
-                return await self.manager.receive_command(command)
+                return await self.manager.receive_command(command_request)
             except Exception as e:
                 self.logger.error(f"Error receiving command: {str(e)}")
                 return ResponseMessage(success=False, error=str(e))

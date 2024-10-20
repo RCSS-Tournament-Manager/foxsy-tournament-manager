@@ -58,6 +58,8 @@ class RabbitMQConsumer:
             self.logger.info("Received STOP command. Stopping...")
         elif self.requested_command == RunnerCommandMessageEnum.PAUSE:
             self.logger.info("Received PAUSE command. Pausing...")
+        elif self.requested_command == RunnerCommandMessageEnum.UPDATE:
+            self.logger.info("Received UPDATE command. Updating...")
             # await asyncio.sleep(10)
         elif self.requested_command == RunnerCommandMessageEnum.RESUME:
             self.logger.info("Received RESUME command. Resuming...")
@@ -67,12 +69,16 @@ class RabbitMQConsumer:
         try:
             while self.requested_command != RunnerCommandMessageEnum.STOP:
                 await self.check_requested_command()
-                if self.paused or self.requested_command == RunnerCommandMessageEnum.PAUSE:
+                if self.paused or self.requested_command == RunnerCommandMessageEnum.PAUSE or self.requested_command == RunnerCommandMessageEnum.UPDATE:
                     self.logger.info("Pausing...")
                     if self.requested_command == RunnerCommandMessageEnum.PAUSE:
                         self.logger.info("Pause requested. Pausing...")
                         self.requested_command = None
                         await self.manager.update_status_to(RunnerStatusMessageEnum.PAUSED)
+                    elif self.requested_command == RunnerCommandMessageEnum.UPDATE:
+                        self.logger.info("Update requested. Updating...")
+                        self.requested_command = None
+                        await self.manager.update_status_to(RunnerStatusMessageEnum.UPDATING)
                     self.paused = True
                     await asyncio.sleep(1)
                     continue

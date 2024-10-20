@@ -292,7 +292,7 @@ class RunnerManager:
             self.logger.error(f"Unexpected error in register: {e}")
             return ResponseMessage(success=False, error=str(e))
 
-    async def send_command_to_runners(self, runner_ids: List[int], command: RunnerCommandMessageEnum) -> List[Dict[str, Any]]:
+    async def send_command_to_runners(self, runner_ids: List[int], command: RequestedCommandToRunnerMessage) -> List[Dict[str, Any]]:
         self.logger.info(f"send_command_to_runners: Sending command '{command}' to runners: {runner_ids}")
         try:
             if not runner_ids or len(runner_ids) == 0:
@@ -313,6 +313,7 @@ class RunnerManager:
             responses = []
             for runner_id in runner_ids:
                 self.logger.debug(f"Sending command to Runner ID {runner_id}...")
+                # TODO: run in tasks
                 response = await self.send_command(runner_id, command)
                 responses.append({"runner_id": runner_id, "response": response})
             return responses
@@ -321,7 +322,8 @@ class RunnerManager:
             traceback.print_exc()
             return []
                 
-    async def send_command(self, runner_id: int, command: RunnerCommandMessageEnum) -> ResponseMessage:
+    async def send_command(self, runner_id: int, req_command: RequestedCommandToRunnerMessage) -> ResponseMessage:
+        command = req_command.command
         self.logger.info(f"send_command: Sending command '{command}' to runner {runner_id}")
         try:
             # Retrieve the runner
@@ -342,6 +344,11 @@ class RunnerManager:
                 else:
                     self.logger.error(f"runner {runner_id} is not paused, cannot send update command")
                     return ResponseMessage(success=False, error=f"Runner {runner_id} is not paused, Cannot send update command.")
+            
+            if runner.status is RunnerStatusMessageEnum.UPDATING and command is RunnerCommandMessageEnum.RESUME:
+                self.logger.info(f"runner {runner_id} is updating, please wait for the update to complete")
+                return ResponseMessage(success=False, error=f"Runner {runner_id} is updating, please wait for the update to complete.")
+            
             try:
                 ip, port = runner.address.split(":")
             except ValueError:
@@ -353,7 +360,7 @@ class RunnerManager:
             message_sender = MessageSender(ip, port, RUNNER_API_KEY)
 
             # Prepare the command data
-            command_data = RequestedCommandToRunnerMessage(command=command)
+            command_data = req_command
 
             self.logger.debug(f"Sending '{command_data}' to the runner...")
             # Send the command
